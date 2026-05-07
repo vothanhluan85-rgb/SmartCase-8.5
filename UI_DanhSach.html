@@ -1,0 +1,346 @@
+<!--
+  HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V7.5.0 - GROQ AI EDITION
+  FILE: UI_DanhSach.html (SỔ THỤ LÝ ĐIỆN TỬ & DASHBOARD)
+  ------------------------------------------------------------
+  NÂNG CẤP GIAO DIỆN:
+  - Triển khai Dashboard 8 thẻ chỉ số thông minh, hỗ trợ lọc nhanh.
+  - Tối ưu hóa Thanh công cụ (Toolbelt) chống vỡ layout.
+  - Bảng dữ liệu phân loại màu sắc theo trạng thái (Status-coded borders).
+  - Hệ thống nhắc việc tự động (Notification Hub) với hiệu ứng soft-blink.
+  - Cơ chế chọn hàng loạt (Bulk Selection) và xóa nhanh.
+-->
+
+
+<div class="animate-fadeIn p-2 p-md-3">
+
+
+  <!-- ==========================================
+       PHẦN 1: DASHBOARD CHỈ SỐ & THÔNG BÁO
+  =========================================== -->
+  <style>
+    .stat-card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 15px;
+      cursor: pointer;
+      border: 1px solid #eef2f7;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      height: 100%;
+      min-height: 95px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgba(30, 41, 59, 0.08);
+      border-color: var(--primary);
+    }
+    .stat-card.active-filter {
+        box-shadow: 0 0 0 2px var(--primary);
+        border-color: var(--primary);
+        background-color: var(--primary-light);
+    }
+    .stat-title {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #64748b;
+      margin-bottom: 6px;
+      letter-spacing: 0.5px;
+    }
+    .stat-main-val {
+      font-size: 24px;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 4px;
+      color: #1e293b;
+    }
+    .stat-sub-val {
+      font-size: 11px;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+   
+    .soft-blink { animation: softBlinkAnim 7s infinite; }
+    @keyframes softBlinkAnim {
+      0% { opacity: 0.4; } 20% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0.4; }
+    }
+   
+    .toolbelt-wrapper {
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: center;
+      gap: 10px;
+      overflow-x: auto;
+      padding: 4px 0;
+    }
+    .toolbelt-wrapper::-webkit-scrollbar { height: 4px; }
+    .toolbelt-wrapper::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 3px; }
+  </style>
+
+
+  <div class="row g-2 mb-3">
+    <!-- Tổng thụ lý -->
+    <div class="col-6 col-md-3 col-xl">
+      <div class="stat-card sc-all active-filter" onclick="setFilter('category', 'ALL')">
+        <div class="stat-title">Tổng thụ lý</div>
+        <div class="stat-main-val text-primary" id="stat-total">0</div>
+        <div class="stat-sub-val" id="stat-sub-total">Mới: 0 | Cũ: 0</div>
+      </div>
+    </div>
+   
+    <!-- Đã hoàn thành -->
+    <div class="col-6 col-md-3 col-xl">
+      <div class="stat-card sc-finished" onclick="setFilter('category', 'FINISHED')">
+        <div class="stat-title">Đã Hoàn Thành</div>
+        <div class="stat-main-val text-success" id="stat-finished">0</div>
+        <div class="stat-sub-val text-success fw-bold">Tỷ lệ: <span id="stat-rate-text">0%</span></div>
+      </div>
+    </div>
+
+
+<!-- Đang giải quyết -->
+    <div class="col-6 col-md-3 col-xl">
+      <div class="stat-card sc-active" onclick="setFilter('category', 'ACTIVE')">
+        <div class="stat-title">Đang Giải Quyết</div>
+        <div class="stat-main-val" style="color:#f59e0b;" id="stat-active">0</div>
+        <div class="stat-sub-val">Hồ sơ đang xử lý</div>
+      </div>
+    </div>
+   
+    <!-- Sắp hết hạn -->
+    <div class="col-6 col-md-3 col-xl">
+      <div class="stat-card sc-urgent" onclick="setFilter('category', 'URGENT')">
+        <div class="stat-title">Sắp Hết Hạn</div>
+        <div class="stat-main-val" style="color: #f97316;" id="stat-urgent">0</div>
+        <div class="stat-sub-val">Còn dưới 15 ngày</div>
+      </div>
+    </div>
+   
+    <!-- Quá hạn -->
+    <div class="col-6 col-md-3 col-xl">
+      <div class="stat-card sc-overdue" onclick="setFilter('category', 'OVERDUE')">
+        <div class="stat-title">Quá Hạn</div>
+        <div class="stat-main-val text-danger" id="stat-overdue">0</div>
+        <div class="stat-sub-val">Cần ưu tiên xử lý</div>
+      </div>
+    </div>
+    <!-- Tạm đình chỉ / Đóng băng -->
+    <div class="col-6 col-md-3 col-xl">
+      <div class="stat-card sc-frozen" onclick="setFilter('category', 'FROZEN')">
+        <div class="stat-title">Tạm Đình Chỉ</div>
+        <div class="stat-main-val text-secondary" id="stat-frozen">0</div>
+        <div class="stat-sub-val">Đang tạm dừng</div>
+      </div>
+    </div>
+    <!-- Hòa giải đối thoại -->
+    <div class="col-6 col-md-3 col-xl">
+      <div class="stat-card sc-hoagiai" onclick="setFilter('category', 'HOAGIAI')">
+        <div class="stat-title">HG Đối Thoại</div>
+        <div class="stat-main-val" style="color: #8b5cf6;"><span id="stat-hgdt-success">0</span><span style="font-size:14px; color:#cbd5e1; font-weight: 400;">/</span><span id="stat-hgdt-total" style="font-size:16px;">0</span></div>
+        <div class="stat-sub-val">Thành công / Tổng</div>
+      </div>
+    </div>
+   
+    <!-- Trợ lý nhắc việc -->
+    <div class="col-6 col-md-3 col-xl">
+      <div id="notification-hub" class="stat-card" style="border-color: #bae6fd; background: #f0f9ff; text-align: center;">
+        <div class="fw-bold mb-1" style="font-size: 10px; color: #0284c7; text-transform: uppercase; letter-spacing: 0.5px;">
+          <i class="fas fa-bell me-1"></i> TRỢ LÝ NHẮC VIỆC
+        </div>
+        <div id="notification-text" class="fw-bold text-dark soft-blink" style="font-size: 11.5px; line-height: 1.4;">
+          Hệ thống đang ổn định...
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ==========================================
+       PHẦN 2: THANH CÔNG CỤ (TOOLBELT)
+  =========================================== -->
+  <div class="bg-white p-2 mb-3 shadow-sm" style="border-radius: 12px; border: 1px solid #eef2f7;">
+    <div class="toolbelt-wrapper">
+     
+      <!-- ĐÃ SỬA: Thêm min-width để chống vỡ layout trên mobile -->
+      <div style="flex: 1 1 250px; min-width: 200px;">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
+          <input type="text" id="txtSearchMain" class="form-control border-start-0 ps-0 fw-bold"
+                 placeholder="Tìm kiếm nhanh (Số thụ lý, tên đương sự, tội danh...)" style="font-size: 12.5px; color: #334155; box-shadow: none;">
+        </div>
+      </div>
+     
+      <div style="width: 130px; flex-shrink: 0;">
+        <input type="date" id="filter-start" class="form-control form-control-sm fw-bold text-muted" title="Từ ngày" onchange="setFilter('start', this.value)" style="font-size: 11.5px;">
+      </div>
+     
+      <div style="width: 130px; flex-shrink: 0;">
+        <input type="date" id="filter-end" class="form-control form-control-sm fw-bold text-muted" title="Đến ngày" onchange="setFilter('end', this.value)" style="font-size: 11.5px;">
+      </div>
+     
+      <div style="width: 150px; flex-shrink: 0;">
+        <select id="filter-loaiAn" class="form-select form-select-sm fw-bold text-muted" onchange="setFilter('loaiAn', this.value)" style="font-size: 11.5px;">
+          <option value="">-- Tất cả án --</option>
+          <option value="Hình sự">Hình sự</option> <option value="Dân sự">Dân sự</option> <option value="Hôn nhân">Hôn nhân</option>
+          <option value="Kinh doanh">Kinh doanh</option> <option value="Lao động">Lao động</option> <option value="Hành chính">Hành chính</option>
+          <option value="HGĐT">HGĐT</option>
+        </select>
+      </div>
+     
+      <div style="flex-shrink: 0;">
+        <button class="btn btn-sm btn-light border fw-bold text-danger px-2 shadow-sm" onclick="clearAllFilters()" title="Làm mới bộ lọc" style="font-size: 12px; height: 31px;">
+          <i class="fas fa-filter-circle-xmark"></i>
+        </button>
+      </div>
+
+
+      <div class="vr mx-1 d-none d-lg-block" style="opacity: 0.15; height: 25px;"></div>
+
+
+      <div style="flex-shrink: 0;">
+        <button class="btn btn-sm btn-outline-success fw-bold px-3 text-nowrap" onclick="openImportExcelModal()" style="font-size: 12px; height: 31px;">
+          <i class="fas fa-file-excel me-1"></i> ĐỒNG BỘ TAKV2
+        </button>
+      </div>
+
+
+      <div style="flex-shrink: 0;">
+        <button class="btn btn-sm btn-primary fw-bold px-3 text-nowrap shadow-sm" onclick="moModalThemMoi()" style="font-size: 12px; height: 31px;">
+          <i class="fas fa-plus-circle me-1"></i> THỤ LÝ
+        </button>
+      </div>
+
+
+      <div style="flex-shrink: 0;">
+        <button id="btn-bulk-delete" class="btn btn-sm btn-danger fw-bold px-3 text-nowrap shadow-sm d-none" onclick="deleteSelectedCases()" style="font-size: 12px; height: 31px;">
+          <i class="fas fa-trash-alt me-1"></i> XÓA CHỌN
+        </button>
+      </div>
+
+
+    </div>
+  </div>
+
+
+  <!-- ==========================================
+       PHẦN 3: BẢNG DỮ LIỆU SỔ THỤ LÝ
+  =========================================== -->
+  <div class="bg-white shadow-sm" style="border-radius: 12px; max-height: calc(100vh - 240px); overflow-y: auto; border: 1px solid #eef2f7;">
+    <table class="table table-hover gs-table align-middle m-0" style="min-width: 1100px;">
+      <thead class="table-light">
+        <tr>
+          <th class="text-center border-bottom" style="width: 40px; position: sticky; top: 0; z-index: 100; background: #f8fafc;">
+            <input type="checkbox" class="form-check-input shadow-sm" id="select-all-checkbox" onclick="toggleAllCheckboxes(this.checked)" style="cursor: pointer; width: 1.1rem; height: 1.1rem;">
+          </th>
+          <th class="text-nowrap border-bottom" style="width: 18%; position: sticky; top: 0; z-index: 100; background: #f8fafc;">SỐ / NGÀY THỤ LÝ</th>
+          <th class="text-nowrap border-bottom" style="width: 26%; position: sticky; top: 0; z-index: 100; background: #f8fafc;">ĐƯƠNG SỰ</th>
+          <th class="text-nowrap border-bottom" style="width: 25%; position: sticky; top: 0; z-index: 100; background: #f8fafc;">QUAN HỆ / TỘI DANH</th>
+          <th class="text-nowrap border-bottom" style="width: 16%; position: sticky; top: 0; z-index: 100; background: #f8fafc;">TIẾN ĐỘ / KẾT QUẢ</th>
+          <th class="text-center text-nowrap border-bottom" style="width: 120px; position: sticky; top: 0; z-index: 100; background: #f8fafc;">THAO TÁC</th>
+        </tr>
+      </thead>
+      <tbody id="list-data">
+        <tr><td colspan="6" class="text-center p-5"><div class="spinner-border spinner-border-sm text-primary me-2"></div><span class="text-muted fw-bold small">Đang nạp Sổ thụ lý điện tử...</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- SCRIPT ĐIỀU KHIỂN RIÊNG CHO TRANG DANH SÁCH -->
+<script>
+  document.getElementById('txtSearchMain').addEventListener('input', function() { setFilter('keyword', this.value); });
+ 
+  function toggleAllCheckboxes(checked) {
+    document.querySelectorAll('.case-select-checkbox').forEach(cb => { cb.checked = checked; });
+    toggleBulkDeleteButton();
+  }
+ 
+  function toggleBulkDeleteButton() {
+    const checkedCount = document.querySelectorAll('.case-select-checkbox:checked').length;
+    const btnDelete = document.getElementById('btn-bulk-delete');
+    if (btnDelete) {
+      if (checkedCount > 0) {
+        btnDelete.classList.remove('d-none');
+        btnDelete.innerHTML = `<i class="fas fa-trash-alt me-1"></i> XÓA (${checkedCount})`;
+      } else {
+        btnDelete.classList.add('d-none');
+      }
+    }
+  }
+ 
+  document.getElementById('list-data').addEventListener('change', function(e) {
+    if (e.target && e.target.classList.contains('case-select-checkbox')) {
+        toggleBulkDeleteButton();
+        document.getElementById('select-all-checkbox').checked = (document.querySelectorAll('.case-select-checkbox:checked').length === document.querySelectorAll('.case-select-checkbox').length);
+    }
+  });
+
+
+  // ĐÃ NÂNG CẤP: XÓA CHỌN NHIỀU ÁN
+  function deleteSelectedCases() {
+    const checkedBoxes = document.querySelectorAll('.case-select-checkbox:checked');
+    if (checkedBoxes.length === 0) return;
+   
+    const confirmMsg = `Bạn sắp xóa <b>${checkedBoxes.length} hồ sơ</b>.\n- Toàn bộ dữ liệu trong Sổ thụ lý sẽ mất.\n- Thư mục tương ứng trên Drive sẽ bị xóa.\n- KHÔNG THỂ KHÔI PHỤC.\n\nBạn có chắc chắn muốn thực hiện?`;
+   
+    AppUI.confirm("Cảnh báo xóa vĩnh viễn", confirmMsg, 'danger', function() {
+        const idsToDelete = Array.from(checkedBoxes).map(cb => cb.dataset.id);
+       
+        // Ẩn nút xóa và hiện Toast
+        document.getElementById('btn-bulk-delete').classList.add('d-none');
+        document.getElementById('select-all-checkbox').checked = false;
+        AppUI.showToast(`Đang dọn dẹp ${idsToDelete.length} hồ sơ...`, "");
+       
+        google.script.run
+            .withSuccessHandler(res => {
+                if (res.success) {
+                    AppUI.showToast("Đã xóa hoàn tất!", "success");
+                    loadCaseList(true); // Tải lại ngầm danh sách
+                } else {
+                    AppUI.showToast("Lỗi hệ thống: " + res.error, "error");
+                }
+            })
+            .withFailureHandler(err => {
+                AppUI.showToast("Lỗi đường truyền: " + err.message, "error");
+            })
+            .api_DeleteMultipleCases(idsToDelete);
+    });
+  }
+
+
+  // ĐÃ NÂNG CẤP: XÓA MỘT ÁN NGOÀI DANH SÁCH
+  function confirmDeleteSingleCase(idAn) {
+    if(event) event.stopPropagation();
+   
+    const an = G_Cases.find(c => c.id === idAn);
+    const soThuLy = an ? an.soTL : "";
+    const confirmMsg = `Xóa vĩnh viễn hồ sơ <b>${soThuLy}</b>?\nDữ liệu không thể khôi phục và hệ thống sẽ xóa cả thư mục Drive.`;
+   
+    AppUI.confirm("Xác nhận xóa", confirmMsg, 'danger', function() {
+        // Tự động làm mờ dòng hồ sơ trên UI để tạo cảm giác đã xóa
+        let row = document.querySelector(`input[data-id="${idAn}"]`).closest('tr');
+        if(row) { row.style.opacity = '0.4'; row.style.pointerEvents = 'none'; }
+       
+        AppUI.showToast("Đang xóa hồ sơ...", "");
+       
+        google.script.run
+            .withSuccessHandler(res => {
+                if (res.success) {
+                    AppUI.showToast("Xóa hồ sơ thành công!", "success");
+                    loadCaseList(true);
+                } else {
+                    AppUI.showToast("Lỗi: " + res.error, "error");
+                    if(row) { row.style.opacity = '1'; row.style.pointerEvents = 'auto'; }
+                }
+            })
+            .withFailureHandler(err => {
+                AppUI.showToast("Lỗi kết nối: " + err.message, "error");
+                if(row) { row.style.opacity = '1'; row.style.pointerEvents = 'auto'; }
+            })
+            .api_DeleteCase(idAn);
+    });
+  }
+</script>

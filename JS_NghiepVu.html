@@ -1,0 +1,1327 @@
+<script>
+  /**
+   * HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V7.6 - GROQ AI EDITION
+   * FILE: JS_NghiepVu.html (BẢN FULL HOÀN CHỈNH 100%)
+   * CHỨC NĂNG: Logic xử lý Đơn, Án, AI, Mail Merge, Drive, Lịch...
+   * ĐÃ SỬA LỖI: Null reference trong hàm moModalThemDonMoi
+   */
+  
+  var stopImport = false;
+  var isMergingDocument = false; 
+  var isSavingCase = false;      
+  var BieuMauConfig = []; 
+
+  // ==========================================
+  // 0. HỆ THỐNG TÌM KIẾM THÔNG MINH
+  // ==========================================
+  window.searchCasesForDropdown = function(keyword, resultsContainerId, clickCallbackName) {
+      var resultsContainer = document.getElementById(resultsContainerId);
+      if (!keyword || keyword.trim().length < 2) { resultsContainer.style.display = 'none'; return; }
+      var q = keyword.toLowerCase().trim();
+      var matches = G_Cases.filter(c => c.soTL.toLowerCase().includes(q) || c.nguyenDon.toLowerCase().includes(q) || c.biDon.toLowerCase().includes(q) || c.quanHe.toLowerCase().includes(q)).slice(0, 10);
+
+      if (matches.length === 0) {
+          resultsContainer.innerHTML = '<div class="list-group-item text-muted small text-center py-3"><i class="fas fa-search-minus mb-2 d-block fa-2x opacity-50"></i>Không tìm thấy hồ sơ...</div>';
+      } else {
+          resultsContainer.innerHTML = matches.map(c => `<button type="button" class="list-group-item list-group-item-action py-2" onclick="window.${clickCallbackName}('${c.id}', '${c.soTL}')"><div class="fw-bold text-primary" style="font-size: 13px;">${c.soTL}</div><div class="small text-dark text-truncate">${c.nguyenDon} - ${c.biDon}</div></button>`).join('');
+      }
+      resultsContainer.style.display = 'block';
+  };
+
+  window.handleDraftSearchCase = function(val) { window.searchCasesForDropdown(val, 'draft-search-results', 'selectDraftSearchCase'); };
+  window.selectDraftSearchCase = function(id, soTL) {
+      document.getElementById('draft-search-results').style.display = 'none';
+      document.getElementById('draft-search-case').value = "";
+      document.getElementById('draft-selected-case-id').value = id;
+      document.getElementById('draft-selected-case').style.display = 'block';
+      document.getElementById('draft-selected-case').innerHTML = `<i class="fas fa-check-circle me-1"></i>Đã chọn: ${soTL}`;
+      window.loadPartiesForDrafting(id);
+  };
+
+  window.handleTaskSearchCase = function(val) { window.searchCasesForDropdown(val, 'task-search-results', 'selectTaskSearchCase'); };
+  window.selectTaskSearchCase = function(id, soTL) {
+      document.getElementById('task-search-results').style.display = 'none';
+      document.getElementById('task_vuAn_search').value = "";
+      document.getElementById('task_vuAn').setAttribute('data-id', id);
+      document.getElementById('task-selected-case').style.display = 'block';
+      document.getElementById('task-selected-case').innerHTML = `<i class="fas fa-check-circle me-1"></i>Đã chọn: ${soTL}`;
+  };
+
+  // ==========================================
+  // 1. TÍNH ÁN PHÍ (Hỗ trợ cả Đơn và Án)
+  // ==========================================
+  window.openAnPhiModal = function() {
+    if(document.getElementById('calc_giaTri')) document.getElementById('calc_giaTri').value = "";
+    if(document.getElementById('res_anPhi')) document.getElementById('res_anPhi').innerText = "0";
+    if(document.getElementById('res_tamUng')) document.getElementById('res_tamUng').innerText = "0";
+    if(document.getElementById('res_anPhiChu')) document.getElementById('res_anPhiChu').innerText = "(Không đồng)";
+    if(document.getElementById('res_tamUngChu')) document.getElementById('res_tamUngChu').innerText = "(Không đồng)";
+    var modalEl = document.getElementById('modalTinhAnPhi');
+    if(modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).show();
+  };
+ 
+  window.formatCurrency = function(el) {
+    var val = el.value.replace(/\D/g, "");
+    el.value = val.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  };
+ 
+  window.runCalculator = function() {
+    var loaiAn = document.getElementById('calc_loaiAn').value;
+    var giaTri = document.getElementById('calc_giaTri').value;
+    google.script.run.withSuccessHandler(function(res) {
+        document.getElementById('res_anPhi').innerText = res.anPhiSo;
+        document.getElementById('res_anPhiChu').innerText = "("+res.anPhiChu+")";
+        document.getElementById('res_tamUng').innerText = res.tamUngSo;
+        document.getElementById('res_tamUngChu').innerText = "("+res.tamUngChu+")";
+        window.lastCalcResult = res;
+      }).api_CalculateCourtFee(loaiAn, giaTri);
+  };
+ 
+  window.copyFee = function(type) {
+    if(!window.lastCalcResult) return;
+    var textToCopy = type === 'anphi' ? window.lastCalcResult.anPhiSo + " đồng (" + window.lastCalcResult.anPhiChu + ")" : window.lastCalcResult.tamUngSo + " đồng (" + window.lastCalcResult.tamUngChu + ")";
+    navigator.clipboard.writeText(textToCopy).then(function() { AppUI.showToast("Đã chép: " + textToCopy, "success"); });
+  };
+
+  /**
+   * Tính toán án phí nhanh ngay trong màn hình CHI TIẾT ĐƠN
+   */
+  window.calculateDonFee = function(val) {
+    var loaiAn = document.getElementById('don_loaiAn').value;
+    var key = "danSu";
+    if (loaiAn.includes("Kinh doanh")) key = "kinhDoanh";
+    else if (loaiAn.includes("Hình sự")) key = "hinhSu";
+    else if (loaiAn.includes("Hành chính")) key = "hanhChinh";
+
+    google.script.run.withSuccessHandler(function(res) {
+      document.getElementById('don_ketQuaTamUng').innerText = res.tamUngSo;
+      document.getElementById('don_tamUngValue').value = res.tamUngSo.replace(/\./g, '');
+    }).api_CalculateCourtFee(key, val);
+  };
+
+  // ==========================================
+  // 2. QUẢN LÝ DRIVE
+  // ==========================================
+  window.openDetailDrive = function() {
+    if (typeof currentCaseData !== 'undefined' && currentCaseData && currentCaseData.info && currentCaseData.info.folderUrl) {
+      var url = currentCaseData.info.folderUrl;
+      if (url.includes("http")) { window.open(url, '_blank'); return; }
+    }
+    AppUI.alert("Lỗi truy cập", "Hồ sơ này chưa có thư mục Drive gốc!");
+  };
+
+  window.openTemplateFolder = function() {
+    AppUI.showToast("Đang mở kho biểu mẫu...", "");
+    google.script.run
+      .withSuccessHandler(function(config) {
+        AppUI.hideToast();
+        if(config && config.ID_THUMUC_MAU) { window.open("https://drive.google.com/drive/folders/" + config.ID_THUMUC_MAU, '_blank'); }
+        else AppUI.alert("Thiếu cấu hình", "Bạn chưa cấu hình ID Thư mục mẫu trong Cài đặt!");
+      })
+      .withFailureHandler(function(err) { AppUI.showToast("Lỗi: " + err.message, "error"); })
+      .api_GetAppIdentity();
+  };
+
+  window.refreshDetailFiles = function() {
+    const folderUrl = document.getElementById('btn-open-drive').getAttribute('data-url');
+    if (!folderUrl) return;
+    document.getElementById('det-files').innerHTML = '<div class="text-center p-3 text-primary small"><div class="spinner-border spinner-border-sm me-2"></div>Đang quét file...</div>';
+    google.script.run.withSuccessHandler(files => {
+      document.getElementById('det-files').innerHTML = files.map(f => `<a href="${f.url}" target="_blank" class="file-item d-flex align-items-center p-2 mb-1 border rounded bg-light text-decoration-none"><i class="${f.icon} fa-lg" style="width:30px"></i><div class="ms-2"><div class="fw-bold text-dark small text-truncate" style="max-width:180px;">${f.name}</div><div class="text-muted" style="font-size:9px;">${f.size} • ${f.date}</div></a>`).join('');
+    }).api_GetDriveFiles(folderUrl);
+  };
+
+  window.handleLocalFileUpload = function(input) {
+    const files = input.files; if (!files.length) return;
+    const folderUrl = document.getElementById('btn-open-drive').getAttribute('data-url');
+    if (!folderUrl) return AppUI.alert("Thiếu thư mục", "Hồ sơ này chưa có thư mục Drive!");
+    AppUI.showToast(`Đang tải lên ${files.length} file...`, "");
+    Array.from(files).forEach((file, index) => {
+      const r = new FileReader();
+      r.onload = (e) => {
+        google.script.run.withSuccessHandler(() => {
+          if(index === files.length - 1) { AppUI.showToast("Tải lên hoàn tất!", "success"); refreshDetailFiles(); }
+        }).api_UploadFileToDrive(file.name, file.type, e.target.result.split(',')[1], folderUrl);
+      };
+      r.readAsDataURL(file);
+    });
+    input.value = ''; 
+  };
+
+  // ==========================================
+  // 3. NHẬP TỪ EXCEL TAKV2
+  // ==========================================
+  window.openImportExcelModal = function() {
+    document.getElementById('excel-file-input').value = "";
+    document.getElementById('import-log').innerHTML = "";
+    var modalEl = document.getElementById('modalImportExcel');
+    if(modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).show();
+  };
+
+  window.stopImportProcess = function() {
+    stopImport = true;
+    document.getElementById('import-log').innerHTML += `<div class="text-danger fw-bold mt-2">🛑 Đã gửi yêu cầu DỪNG đồng bộ...</div>`;
+  };
+
+  window.processExcelFile = function() {
+    var fileInput = document.getElementById('excel-file-input');
+    if (!fileInput.files || fileInput.files.length === 0) return AppUI.alert("Lỗi", "Vui lòng chọn file Excel xuất từ TAKV2!");
+   
+    var reader = new FileReader();
+    var logArea = document.getElementById('import-log');
+    logArea.innerHTML = "<div class='text-primary fw-bold'><i class='fas fa-spinner fa-spin me-2'></i>Đang phân tích cấu trúc file...</div>";
+   
+    reader.onload = function(e) {
+      try {
+        var data = new Uint8Array(e.target.result);
+        var workbook = XLSX.read(data, {type: 'array'});
+        var worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        var json = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+       
+        var colMap = { soTL: -1, ngayTL: -1, loaiAn: -1, quanHe: -1, tenHoSo: -1, kqLoai: -1, kqSo: -1, kqNgay: -1 };
+        var headerRow = -1;
+       
+        for (var i = 0; i < 15; i++) {
+          if (!json[i]) continue;
+          for (var j = 0; j < json[i].length; j++) {
+            var v = String(json[i][j] || "").toLowerCase();
+            if (v.includes("số thụ lý") || v.includes("hồ sơ vụ án")) colMap.soTL = j;
+            else if (v.includes("ngày thụ lý")) colMap.ngayTL = j;
+            else if (v.includes("loại án") || v.includes("loại tranh chấp")) colMap.loaiAn = j;
+            else if (v.includes("quan hệ")) colMap.quanHe = j;
+            else if (v.includes("tên hồ sơ") || v.includes("họ và tên")) colMap.tenHoSo = j;
+            else if (v.includes("loại kết quả")) colMap.kqLoai = j;
+            else if (v.includes("số kết quả") || v.includes("số bản án")) colMap.kqSo = j;
+            else if (v.includes("ngày kết quả") || v.includes("ngày ban hành")) colMap.kqNgay = j;
+          }
+          if (colMap.soTL !== -1) { headerRow = i; break; }
+        }
+       
+        if (headerRow === -1) throw new Error("Không nhận diện được cột 'Số thụ lý'.");
+       
+        var parsed =[];
+        var lastKnown = { ngayTL: "", loaiAn: "", quanHe: "" };
+       
+        for (var k = headerRow + 1; k < json.length; k++) {
+          var row = json[k];
+          if (!row || !row[colMap.soTL] || String(row[colMap.soTL]).trim() === "") continue;
+
+          function getValue(colIdx, key) {
+            if (colIdx === -1) return "";
+            var val = row[colIdx];
+            if (val === undefined || val === null || String(val).trim() === "") return lastKnown[key];
+            lastKnown[key] = val;
+            return val;
+          }
+
+          var currentNgayTL = getValue(colMap.ngayTL, 'ngayTL');
+          var currentLoaiAn = getValue(colMap.loaiAn, 'loaiAn');
+          var currentQuanHe = getValue(colMap.quanHe, 'quanHe');
+         
+          var rawTen = String(row[colMap.tenHoSo] || "").trim();
+          var nd = "", bd = "";
+          var sp = rawTen;
+          if (rawTen.includes("giữa ")) sp = rawTen.split("giữa ")[1];
+          else if (rawTen.includes("của ")) sp = rawTen.split("của ")[1];
+         
+          if (sp) {
+             var separatorIdx = sp.indexOf(" - ");
+             if (separatorIdx !== -1) { nd = sp.substring(0, separatorIdx).trim(); bd = sp.substring(separatorIdx + 3).trim(); } 
+             else {
+                separatorIdx = sp.lastIndexOf("-");
+                if (separatorIdx !== -1) { nd = sp.substring(0, separatorIdx).trim(); bd = sp.substring(separatorIdx + 1).trim(); } 
+                else nd = sp;
+             }
+          }
+         
+          parsed.push({
+            soTL: String(row[colMap.soTL]).trim(), ngayTL: String(currentNgayTL || "").trim(), loaiAn: String(currentLoaiAn || "2. Dân sự").trim(),
+            quanHe: String(currentQuanHe || "Chưa xác định").trim(), nd: nd, bd: bd, kqLoai: colMap.kqLoai !== -1 ? row[colMap.kqLoai] : "",
+            kqSo: colMap.kqSo !== -1 ? row[colMap.kqSo] : "", kqNgay: colMap.kqNgay !== -1 ? row[colMap.kqNgay] : ""
+          });
+        }
+       
+        stopImport = false;
+        window.startChunkedImport(parsed);
+      } catch (ex) {
+        logArea.innerHTML = `<div class="text-danger fw-bold"><i class="fas fa-times-circle me-1"></i>Lỗi đọc file: ${ex.message}</div>`;
+        AppUI.alert("Lỗi định dạng", "Có lỗi trong quá trình đọc file:\n" + ex.message);
+      }
+    };
+    reader.readAsArrayBuffer(fileInput.files[0]);
+  };
+
+  window.startChunkedImport = function(allData) {
+    var chunkSize = 20; var total = allData.length; var currentIdx = 0;
+    var totalImported = 0, totalUpdated = 0, totalSkipped = 0;
+    var logArea = document.getElementById('import-log');
+   
+    document.getElementById('import-progress-wrapper').style.display = 'block';
+    var progressBar = document.getElementById('import-progress-bar');
+    var percentText = document.getElementById('import-percent-text');
+
+    function processNextChunk() {
+      if (stopImport) {
+        logArea.innerHTML += `<div class="text-danger fw-bold mt-2">🛑 Tiến trình đã bị DỪNG.</div>`;
+        document.getElementById('import-progress-wrapper').style.display = 'none';
+        return;
+      }
+      if (currentIdx >= total) {
+        progressBar.style.width = "100%"; percentText.innerText = "Hoàn tất 100%";
+        logArea.innerHTML = `<div class="text-success fw-bold"><i class="fas fa-check-circle me-1"></i>HOÀN TẤT: Nạp ${totalImported}, Cập nhật ${totalUpdated}, Bỏ qua ${totalSkipped}.</div>`;
+        setTimeout(() => { document.getElementById('import-progress-wrapper').style.display = 'none'; }, 3000);
+        loadCaseList(true);
+        return;
+      }
+
+      var chunk = allData.slice(currentIdx, currentIdx + chunkSize);
+      var percent = Math.round((currentIdx / total) * 100);
+     
+      progressBar.style.width = percent + "%"; percentText.innerText = `Đang đồng bộ... ${percent}% (${currentIdx}/${total})`;
+      logArea.innerHTML = `<div class="text-primary fw-bold"><i class="fas fa-spinner fa-spin me-2"></i>Đang xử lý phân đoạn ${Math.ceil(currentIdx/chunkSize)}...</div>`;
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (res.success) { totalImported += res.imported; totalUpdated += res.updated; totalSkipped += res.skipped; currentIdx += chunkSize; processNextChunk(); } 
+          else { logArea.innerHTML = `<div class="text-danger fw-bold">❌ Lỗi: ${res.error}</div>`; }
+        })
+        .withFailureHandler(function(err) { logArea.innerHTML = `<div class="text-danger fw-bold">❌ Lỗi kết nối Server: ${err.message}</div>`; })
+        .api_ImportCasesChunked(chunk);
+    }
+    processNextChunk();
+  };
+
+  // ==========================================
+  // 4. NGHIỆP VỤ THỤ LÝ & RÚT TRÍCH SỔ ĐƠN
+  // ==========================================
+  
+  // A. Thụ lý mới (Modal)
+  window.moModalThemMoi = function() {
+    isSavingCase = false;
+    var form = document.getElementById('formNewCase');
+    if(form) form.reset();
+    
+    // Clear an toàn DOM và thêm 1 row rỗng mặc định
+    ['container-ND', 'container-BD'].forEach(function(type) {
+      var cont = document.getElementById(type);
+      if(cont) {
+        cont.innerHTML = "";
+        window.addPartyRowV3(type.replace('container-', ''));
+        // Ẩn nút xóa ở row đầu tiên
+        var firstBtn = cont.querySelector('.btn-outline-danger');
+        if(firstBtn) firstBtn.style.display = 'none';
+      }
+    });
+   
+    var elNgay = document.getElementById('in_ngayTL');
+    if(elNgay) elNgay.valueAsDate = new Date();
+   
+    window.handleCaseTypeChangeV3();
+    if(document.getElementById('in_soDon_trichXuat')) document.getElementById('in_soDon_trichXuat').value = '';
+    
+    var modalEl = document.getElementById('modalThemMoi');
+    if(modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).show();
+  };
+
+  // B. Đổi nhãn Tội danh/Tranh chấp theo Loại án
+  window.handleCaseTypeChangeV3 = function() {
+    var loaiAn = document.getElementById('in_loaiAn').value;
+    var lblND = document.getElementById('lbl_ND'), lblBD = document.getElementById('lbl_BD'), lblTranhChap = document.getElementById('lbl_tranhChap');
+   
+    if (loaiAn.includes("1. Hình sự")) {
+      if(lblND) lblND.innerHTML = '<i class="fas fa-user-plus me-2"></i>Người bị hại'; if(lblBD) lblBD.innerHTML = '<i class="fas fa-user-minus me-2"></i>Bị cáo'; if(lblTranhChap) lblTranhChap.innerText = 'Tội danh *';
+    } else if (loaiAn.includes("6. Hành chính")) {
+      if(lblND) lblND.innerHTML = '<i class="fas fa-user-plus me-2"></i>Người khởi kiện'; if(lblBD) lblBD.innerHTML = '<i class="fas fa-user-minus me-2"></i>Người bị kiện'; if(lblTranhChap) lblTranhChap.innerText = 'Đối tượng khởi kiện *';
+    } else if (loaiAn.includes("7. Hòa giải đối thoại")) {
+      if(lblND) lblND.innerHTML = '<i class="fas fa-user-plus me-2"></i>Người yêu cầu'; if(lblBD) lblBD.innerHTML = '<i class="fas fa-user-minus me-2"></i>Người bị yêu cầu'; if(lblTranhChap) lblTranhChap.innerText = 'Quan hệ tranh chấp *';
+    } else {
+      if(lblND) lblND.innerHTML = '<i class="fas fa-user-plus me-2"></i>Nguyên đơn'; if(lblBD) lblBD.innerHTML = '<i class="fas fa-user-minus me-2"></i>Bị đơn'; if(lblTranhChap) lblTranhChap.innerText = 'Quan hệ tranh chấp *';
+    }
+  };
+
+  window.addPartyRowV3 = function(type) {
+    var container = document.getElementById('container-' + type);
+    var newRow = document.createElement('div');
+    newRow.className = "party-row-v3 position-relative";
+    var borderColor = type === 'ND' ? 'primary' : 'danger';
+    
+    newRow.innerHTML = `
+      <div class="row g-2">
+        <div class="col-4"><label class="small-label">Xưng hô</label><input class="form-control form-control-sm in-xungho" list="listXungHo" placeholder="Ông/Bà"></div>
+        <div class="col-8"><label class="small-label">Họ và tên *</label><input class="form-control form-control-sm in-hoten fw-bold border-${borderColor}"></div>
+        <div class="col-12"><label class="small-label">Địa chỉ</label><input class="form-control form-control-sm in-diachi"></div>
+        <div class="col-6"><label class="small-label">Điện thoại</label><input class="form-control form-control-sm in-sdt"></div>
+        <div class="col-6"><label class="small-label">CCCD</label><input class="form-control form-control-sm in-cccd"></div>
+      </div>
+      <button type="button" class="btn btn-sm btn-outline-danger position-absolute bg-white shadow-sm" style="top: -10px; right: -5px; padding: 2px 6px; font-size: 10px; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;" onclick="this.parentElement.remove()">
+        <i class="fas fa-times"></i>
+      </button>
+    `;
+    container.appendChild(newRow);
+    newRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
+
+  // C. Thực thi Lưu Thụ Lý
+  window.thucHienThuLyV3 = function() {
+    if (isSavingCase) return;
+
+    var data = {
+      soTL: document.getElementById('in_soTL').value.trim(), ngayTL: document.getElementById('in_ngayTL').value,
+      loaiAn: document.getElementById('in_loaiAn').value, quanHe: document.getElementById('in_quanHe').value.trim(), duongSu:[]
+    };
+   
+    if (!data.soTL || !data.ngayTL || !data.quanHe) return AppUI.alert("Nhập thiếu", "Vui lòng nhập đủ thông tin bắt buộc (Cố đánh dấu *)!");
+   
+    ['ND', 'BD'].forEach(function(type) {
+      var cont = document.getElementById('container-' + type);
+      if(cont) {
+        var rows = cont.querySelectorAll('.party-row-v3');
+        rows.forEach(function(row) {
+          var hoTen = row.querySelector('.in-hoten').value.trim();
+          if (hoTen) {
+            var tuCach = "";
+            if (data.loaiAn.includes("Hình sự")) tuCach = (type === 'ND' ? "Người bị hại" : "Bị cáo");
+            else if (data.loaiAn.includes("Hành chính")) tuCach = (type === 'ND' ? "Người khởi kiện" : "Người bị kiện");
+            else if (data.loaiAn.includes("Hòa giải")) tuCach = (type === 'ND' ? "Người yêu cầu" : "Người bị yêu cầu");
+            else tuCach = (type === 'ND' ? "Nguyên đơn" : "Bị đơn");
+
+            data.duongSu.push({
+              tuCach: tuCach, xungHo: row.querySelector('.in-xungho').value, hoTen: hoTen,
+              namSinh: row.querySelector('.in-namsinh').value, diaChi: row.querySelector('.in-diachi').value,
+              sdt: row.querySelector('.in-sdt').value, cccd: row.querySelector('.in-cccd').value, daiDien: ""
+            });
+          }
+        });
+      }
+    });
+   
+    if (data.duongSu.length === 0) return AppUI.alert("Nhập thiếu", "Vụ án phải có ít nhất 1 đương sự!");
+   
+    isSavingCase = true;
+    bootstrap.Modal.getInstance(document.getElementById('modalThemMoi')).hide(); 
+
+    AppUI.showToast("Đang thụ lý và tạo Drive...", "");
+   
+    setTimeout(() => {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            isSavingCase = false;
+            if (res.success) { AppUI.showToast("Thụ lý thành công!", "success"); loadCaseList(true); } 
+            else { AppUI.showToast("Lỗi hệ thống: " + res.error, "error"); }
+          })
+          .withFailureHandler(function(err) {
+             isSavingCase = false; AppUI.showToast("Lỗi kết nối: " + err.message, "error");
+          })
+          .api_LuuVuAnMoi(data);
+    }, 50);
+  };
+
+  // D. NÂNG CẤP V7.6: Rút trích Sổ Đơn (Cách 1 - Khi đang thụ lý mới)
+  window.thucHienRutTrichTuDon = function() {
+      var soDon = document.getElementById('in_soDon_trichXuat').value.trim();
+      if (!soDon) { AppUI.alert("Thiếu thông tin", "Vui lòng nhập số đơn cần trích xuất!"); return; }
+      
+      AppUI.showToast("Đang tra cứu...", "");
+      google.script.run
+          .withSuccessHandler(function(res) {
+              if (res.error) { AppUI.alert("Lỗi", res.error); return; }
+              AppUI.showToast("Trích xuất thành công!", "success");
+              
+              if(res.info.quanHe) document.getElementById('in_quanHe').value = res.info.quanHe;
+              if(res.info.loaiAn) {
+                  document.getElementById('in_loaiAn').value = res.info.loaiAn;
+                  window.handleCaseTypeChangeV3();
+              }
+              
+              // Clear bảng đương sự hiện tại
+              ['container-ND', 'container-BD'].forEach(function(id) {
+                 var cont = document.getElementById(id);
+                 if(cont) cont.innerHTML = "";
+              });
+              
+              // Nạp đương sự từ Đơn sang Án
+              res.ds.forEach(function(d) {
+                  var target = '';
+                  var tc = d.tuCach.toLowerCase();
+                  if (tc.includes('nguyên đơn') || tc.includes('khởi kiện') || tc.includes('yêu cầu') || tc.includes('bị hại')) target = 'ND';
+                  else target = 'BD';
+                  
+                  window.addPartyRowV3(target);
+                  
+                  // Lấy Node vừa tạo (dòng cuối cùng)
+                  var cont = document.getElementById('container-' + target);
+                  var rows = cont.querySelectorAll('.party-row-v3');
+                  var lastRow = rows[rows.length - 1];
+                  
+                  if(lastRow) {
+                      lastRow.querySelector('.in-xungho').value = d.xungHo || "Ông/Bà";
+                      lastRow.querySelector('.in-hoten').value = d.hoTen || "";
+                      lastRow.querySelector('.in-diachi').value = d.diaChi || "";
+                      lastRow.querySelector('.in-sdt').value = d.sdt || "";
+                      lastRow.querySelector('.in-cccd').value = d.cccd || "";
+                  }
+              });
+          })
+          .withFailureHandler(function(err) { AppUI.showToast("Lỗi mạng: " + err.message, "error"); })
+          .api_RutTrichThongTinDon(soDon);
+  };
+
+  // E. NÂNG CẤP V7.6: Rút trích Sổ Đơn (Cách 2 - Khi cập nhật án cũ)
+  window.promptPullFromDon = function() {
+      if (!currentCaseId) return;
+      var soDon = prompt("RÚT TRÍCH TỪ SỔ ĐƠN\n\nNhập chính xác [Số đơn] để tải danh sách đương sự và nội dung tranh chấp vào vụ án này:");
+      if (!soDon || soDon.trim() === "") return;
+
+      AppUI.showToast("Đang tra cứu Sổ nhận đơn...", "");
+      google.script.run
+          .withSuccessHandler(function(res) {
+              if (res.error) { AppUI.alert("Lỗi", res.error); return; }
+              
+              var confMsg = `Tìm thấy Đơn: ${soDon}\nNội dung: ${res.info.quanHe}\nCó ${res.ds.length} đương sự.\n\nBạn có chắc muốn GHI ĐÈ toàn bộ danh sách đương sự hiện tại bằng dữ liệu từ Sổ đơn không?`;
+              AppUI.confirm("Xác nhận cập nhật", confMsg, 'primary', function() {
+                  AppUI.showToast("Đang đồng bộ dữ liệu...", "");
+                  
+                  var casePayload = {
+                      idAn: currentCaseId,
+                      soTL: currentCaseData.info.soTL.split('/')[0].replace(/\D/g, ''),
+                      ngayTL: currentCaseData.info.ngayTL,
+                      loaiAn: currentCaseData.info.loaiAn,
+                      quanHe: res.info.quanHe
+                  };
+                  
+                  google.script.run.withSuccessHandler(function(updateRes) {
+                      google.script.run.withSuccessHandler(function(partyRes) {
+                          AppUI.showToast("Đã rút trích dữ liệu thành công!", "success");
+                          loadCaseList(true);
+                          setTimeout(() => window.moChiTiet(currentCaseId), 1500);
+                      }).api_UpdateAllParties(currentCaseId, res.ds);
+                  }).api_CapNhatThongTinAn(casePayload);
+              });
+          })
+          .withFailureHandler(function(err) { AppUI.showToast("Lỗi mạng: " + err.message, "error"); })
+          .api_RutTrichThongTinDon(soDon);
+  };
+
+  // F. Quét AI (Thụ lý & Cập nhật)
+  window.scanDocumentForInfo = function(fileInput) {
+    if (!fileInput.files || fileInput.files.length === 0) return;
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        AppUI.showToast("AI đang quét và trích xuất thông tin...", "");
+        const base64Data = e.target.result.split(',')[1];
+       
+        google.script.run
+            .withSuccessHandler(res => {
+                if (res.success) {
+                    AppUI.showToast("Trích xuất thành công!", "success");
+                    const data = res.data;
+                    const ndRow = document.querySelector('#container-ND .party-row-v3');
+                    if (ndRow && data.nd_Info) {
+                        if(data.nd_Info.hoTen) ndRow.querySelector('.in-hoten').value = window.toTitleCaseLocal(data.nd_Info.hoTen);
+                        if(data.nd_Info.diaChi) ndRow.querySelector('.in-diachi').value = data.nd_Info.diaChi;
+                        if(data.nd_Info.namSinh) ndRow.querySelector('.in-namsinh').value = data.nd_Info.namSinh;
+                        if(data.nd_Info.cccd) ndRow.querySelector('.in-cccd').value = data.nd_Info.cccd;
+                    }
+                    const bdRow = document.querySelector('#container-BD .party-row-v3');
+                    if (bdRow && data.bd_Info) {
+                        if(data.bd_Info.hoTen) bdRow.querySelector('.in-hoten').value = window.toTitleCaseLocal(data.bd_Info.hoTen);
+                        if(data.bd_Info.diaChi) bdRow.querySelector('.in-diachi').value = data.bd_Info.diaChi;
+                        if(data.bd_Info.namSinh) bdRow.querySelector('.in-namsinh').value = data.bd_Info.namSinh;
+                        if(data.bd_Info.cccd) bdRow.querySelector('.in-cccd').value = data.bd_Info.cccd;
+                    }
+                    if(data.soTL) document.getElementById('in_soTL').value = data.soTL;
+                    if(data.quanHe) document.getElementById('in_quanHe').value = data.quanHe;
+                } else { AppUI.showToast("Lỗi AI: " + res.error, "error"); }
+                fileInput.value = "";
+            })
+            .withFailureHandler(err => { AppUI.showToast("Lỗi mạng: " + err.message, "error"); fileInput.value = ""; })
+            .api_ParseDocumentForCaseInfo(file.name, file.type, base64Data);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  window.triggerUpdateScan = function() { document.getElementById('case-update-scan-input').click(); };
+
+  window.handleCaseUpdateScan = function(input) {
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+      const base64Data = e.target.result.split(',')[1];
+      const idVuAn = document.getElementById('det-so').getAttribute('data-id');
+     
+      AppUI.showToast("AI đang cập nhật đương sự...", "");
+      google.script.run
+        .withSuccessHandler(res => {
+          if (res.success) {
+            AppUI.showToast(`Đã thêm mới: ${res.added}, Cập nhật: ${res.updated}`, "success");
+            loadCaseList(true);
+            setTimeout(() => { window.moChiTiet(idVuAn); }, 1500);
+          } else { AppUI.showToast("Lỗi AI: " + res.error, "error"); }
+          input.value = "";
+        })
+        .withFailureHandler(err => { AppUI.showToast("Lỗi mạng: " + err.message, "error"); input.value = ""; })
+        .api_UpdateCaseFromScan(idVuAn, base64Data, file.name, file.type);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // G. AI Tạo Biểu Mẫu
+  window.createSmartTemplate = function(fileInput) {
+    if (!fileInput.files || fileInput.files.length === 0) return;
+    const file = fileInput.files[0];
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        AppUI.showToast("AI đang phân tích và tạo mẫu...", "");
+        const base64Data = e.target.result.split(',')[1];
+        google.script.run
+            .withSuccessHandler(res => {
+                if (res.success) { AppUI.alert("Thành công", `Đã tạo mẫu: "${res.name}"\nHệ thống đã tự động cấy Placeholder cho bạn và lưu vào thư mục Biểu mẫu.`); } 
+                else { AppUI.alert("Lỗi AI", "Có lỗi xảy ra: " + res.error); }
+                fileInput.value = "";
+            })
+            .withFailureHandler(err => { AppUI.alert("Lỗi kết nối", "Lỗi mạng: " + err.message); fileInput.value = ""; })
+            .api_CreateTemplateFromDoc(file.name, file.type, base64Data);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  window.toTitleCaseLocal = function(str) {
+    if (!str) return "";
+    var words = str.toString().trim().split(/\s+/);
+    var keepUpper =["TNHH", "MTV", "CP", "UBND", "TAND", "VKSND", "VN", "JSC", "BHTG", "HTX"];
+    return words.map(w => {
+      var upperW = w.toUpperCase();
+      if (keepUpper.includes(upperW)) return upperW;
+      return upperW.charAt(0) + w.slice(1).toLowerCase();
+    }).join(" ");
+  };
+
+  // ============================================================
+  // 5. CÁC HÀM XỬ LÝ ĐƠN TIỀN TỐ TỤNG (MODULE ĐƠN V7.6)
+  // ============================================================
+  
+  window.moModalThemDonMoi = function() {
+      // Mở UI_ChiTiet_Don và reset toàn bộ fields
+      if(document.getElementById('don_id')) document.getElementById('don_id').value = "";
+      if(document.getElementById('don_soDon')) document.getElementById('don_soDon').value = "";
+      if(document.getElementById('don_ngayNhan')) document.getElementById('don_ngayNhan').valueAsDate = new Date();
+      if(document.getElementById('don_loaiAn')) document.getElementById('don_loaiAn').value = "2. Dân sự";
+      
+      // Xóa party cũ, tạo một NKK, một NBK mặc định
+      var tbody = document.getElementById('don-party-list');
+      if (tbody) {
+          tbody.innerHTML = "";
+          window.addPartyRowDon({tuCach: "Người khởi kiện", hoTen: "", xungHo: "Ông/Bà"});
+          window.addPartyRowDon({tuCach: "Người bị kiện", hoTen: "", xungHo: "Ông/Bà"});
+      }
+      
+      if(document.getElementById('don_quanHe')) document.getElementById('don_quanHe').value = "";
+      if(document.getElementById('don_aiAnalysis')) document.getElementById('don_aiAnalysis').value = "";
+      if(document.getElementById('don_huongXuLy')) document.getElementById('don_huongXuLy').value = "Đang xem xét";
+      if(document.getElementById('don_thamPhan')) document.getElementById('don_thamPhan').value = "";
+      if(document.getElementById('don_giaTri')) document.getElementById('don_giaTri').value = "";
+      if(document.getElementById('don_ketQuaTamUng')) document.getElementById('don_ketQuaTamUng').innerText = "0";
+      if(document.getElementById('don_tamUngValue')) document.getElementById('don_tamUngValue').value = "0";
+
+      if(document.getElementById('don_header_title')) document.getElementById('don_header_title').innerHTML = "THÊM ĐƠN KHỞI KIỆN MỚI";
+      
+      appNavigate('view-chi-tiet-don');
+  };
+
+  window.moChiTietDon = function(idDon) {
+      AppUI.showToast("Đang tải dữ liệu đơn...", "");
+      google.script.run
+        .withSuccessHandler(res => {
+            AppUI.hideToast();
+            if(!res.success) { AppUI.alert("Lỗi", res.error); return; }
+            
+            var info = res.info;
+            document.getElementById('don_id').value = info.id;
+            document.getElementById('don_soDon').value = info.soDon;
+            
+            if (info.ngayNhan) document.getElementById('don_ngayNhan').value = info.ngayNhan.split('T')[0]; // ISO Date
+            
+            document.getElementById('don_loaiAn').value = info.loaiAn;
+            document.getElementById('don_quanHe').value = info.quanHe;
+            document.getElementById('don_aiAnalysis').value = info.ghiChu || ""; 
+            
+            document.getElementById('don_huongXuLy').value = info.huongXuLy || "Đang xem xét";
+            document.getElementById('don_thamPhan').value = info.thamPhan || "";
+            
+            document.getElementById('don_giaTri').value = formatNumber(info.giaTri || "0");
+            document.getElementById('don_ketQuaTamUng').innerText = formatNumber(info.tamUng || "0");
+            document.getElementById('don_tamUngValue').value = info.tamUng || "0";
+
+            // Render Danh sách đương sự
+            var tbody = document.getElementById('don-party-list');
+            if(tbody) {
+               tbody.innerHTML = "";
+               res.ds.forEach(d => window.addPartyRowDon(d));
+            }
+
+            document.getElementById('don_header_title').innerHTML = `CHI TIẾT ĐƠN: <span class="text-info">${info.soDon}</span>`;
+            appNavigate('view-chi-tiet-don');
+        })
+        .withFailureHandler(err => { AppUI.showToast("Lỗi mạng: " + err.message, "error"); })
+        .api_LayChiTietDon(idDon);
+  };
+
+  window.addPartyRowDon = function(data = null) {
+    var tbody = document.getElementById('don-party-list');
+    if (!tbody) return;
+    var row = document.createElement('tr');
+    row.className = "don-party-row animate-fadeIn";
+    var tuCach = data ? data.tuCach : (tbody.children.length === 0 ? "Người khởi kiện" : "Người bị kiện");
+    
+    row.innerHTML = `
+      <td><input type="text" class="form-control form-control-sm fw-bold in-don-tucach text-primary" list="listTuCachDon" value="${tuCach}"></td>
+      <td>
+        <input type="text" class="form-control form-control-sm fw-bold in-don-hoten mb-1 border-primary" placeholder="Họ và tên..." value="${data ? data.hoTen : ''}">
+        <input type="text" class="form-control form-control-sm in-don-xungho text-muted" list="listXungHo" placeholder="Xưng hô (Ông/Bà...)" value="${data ? data.xungHo : 'Ông/Bà'}">
+      </td>
+      <td>
+        <input type="text" class="form-control form-control-sm in-don-diachi mb-1" placeholder="Địa chỉ..." value="${data ? data.diaChi : ''}">
+        <div class="row g-1">
+          <div class="col-6"><input type="text" class="form-control form-control-sm in-don-sdt" placeholder="SĐT" value="${data ? data.sdt : ''}"></div>
+          <div class="col-6"><input type="text" class="form-control form-control-sm in-don-cccd" placeholder="CCCD" value="${data ? data.cccd : ''}"></div>
+        </div>
+      </td>
+      <td class="text-center"><button class="btn btn-sm btn-outline-danger py-0 px-2" style="border-radius:50%" onclick="this.closest('tr').remove()"><i class="fas fa-times"></i></button></td>
+    `;
+    tbody.appendChild(row);
+  };
+
+  window.scanDocumentForInfoDon = function(fileInput) {
+    if (!fileInput.files || fileInput.files.length === 0) return;
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        AppUI.showToast("Groq AI đang đọc và phân tích đơn...", "");
+        const base64Data = e.target.result.split(',')[1];
+        
+        google.script.run
+            .withSuccessHandler(res => {
+                if (res.success) {
+                    AppUI.showToast("Trích xuất đơn thành công!", "success");
+                    const data = res.data;
+                    
+                    if(data.quanHe) document.getElementById('don_quanHe').value = data.quanHe;
+                    if(data.soTL) document.getElementById('don_soDon').value = data.soTL;
+                    
+                    document.getElementById('don-party-list').innerHTML = "";
+                    if (data.nd_Info && data.nd_Info.hoTen) {
+                        addPartyRowDon({tuCach: "Người khởi kiện", hoTen: data.nd_Info.hoTen, xungHo: "Ông/Bà", diaChi: data.nd_Info.diaChi || "", cccd: data.nd_Info.cccd || ""});
+                    }
+                    if (data.bd_Info && data.bd_Info.hoTen) {
+                        addPartyRowDon({tuCach: "Người bị kiện", hoTen: data.bd_Info.hoTen, xungHo: "Ông/Bà", diaChi: data.bd_Info.diaChi || "", cccd: data.bd_Info.cccd || ""});
+                    }
+                    
+                    document.getElementById('don_aiAnalysis').value = "--- TÓM TẮT AI ---\n" + (data.tomTat || "Đã trích xuất xong dữ liệu.");
+                } else { AppUI.showToast("Lỗi AI: " + res.error, "error"); }
+                fileInput.value = "";
+            })
+            .api_ParseDocumentForCaseInfo(file.name, file.type, base64Data);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  window.luuThongTinDon = function() {
+    var payload = {
+      info: {
+        id: document.getElementById('don_id').value,
+        soDon: document.getElementById('don_soDon').value.trim(),
+        ngayNhan: document.getElementById('don_ngayNhan').value,
+        loaiAn: document.getElementById('don_loaiAn').value,
+        quanHe: document.getElementById('don_quanHe').value.trim(),
+        huongXuLy: document.getElementById('don_huongXuLy').value,
+        thamPhan: document.getElementById('don_thamPhan').value.trim(),
+        giaTri: document.getElementById('don_giaTri').value.replace(/\./g, ''),
+        tamUng: document.getElementById('don_tamUngValue').value,
+        trangThai: document.getElementById('don_huongXuLy').value, // Trạng thái = Hướng xử lý
+        ghiChu: document.getElementById('don_aiAnalysis').value
+      },
+      ds: []
+    };
+
+    if (!payload.info.soDon || !payload.info.quanHe) {
+      AppUI.alert("Thiếu dữ liệu", "Vui lòng nhập Số đơn và Quan hệ tranh chấp.");
+      return;
+    }
+
+    var rows = document.querySelectorAll('.don-party-row');
+    rows.forEach(function(row) {
+      var name = row.querySelector('.in-don-hoten').value.trim();
+      if (name) {
+        payload.ds.push({
+          tuCach: row.querySelector('.in-don-tucach').value,
+          xungHo: row.querySelector('.in-don-xungho').value,
+          hoTen: name,
+          diaChi: row.querySelector('.in-don-diachi').value,
+          sdt: row.querySelector('.in-don-sdt').value,
+          cccd: row.querySelector('.in-don-cccd').value,
+          daiDien: ""
+        });
+      }
+    });
+
+    AppUI.showToast("Đang lưu hồ sơ đơn...", "");
+    google.script.run.withSuccessHandler(function(res) {
+      if (res.success) {
+        AppUI.showToast("Đã lưu đơn thành công!", "success");
+        loadDanhSachDon(true);
+        appNavigate('view-danh-sach-don');
+      } else {
+        AppUI.showToast("Lỗi: " + res.error, "error");
+      }
+    }).api_LuuThongTinDon(payload);
+  };
+
+  window.xoaDonHienTai = function() {
+    var id = document.getElementById('don_id').value;
+    if (!id) {
+       appNavigate('view-danh-sach-don');
+       return;
+    }
+
+    AppUI.confirm("Xác nhận xóa", "Bạn có chắc chắn muốn xóa hồ sơ đơn này khỏi sổ nhận đơn?", "danger", function() {
+       AppUI.showToast("Đang xóa đơn...", "");
+       google.script.run.withSuccessHandler(function(res) {
+          if (res.success) {
+            AppUI.showToast("Đã xóa đơn.", "success");
+            loadDanhSachDon(true);
+            appNavigate('view-danh-sach-don');
+          } else AppUI.showToast("Lỗi: " + res.error, "error");
+       }).api_XoaDon(id);
+    });
+  };
+
+  // ============================================================
+  // 6. QUẢN LÝ ĐƯƠNG SỰ NHÓM (CỦA ÁN) - DÀNH CHO CÁC HÀM CŨ
+  // ============================================================
+  
+  window.moModalQuanLyDuongSu = function() {
+    if (!currentCaseData || !currentCaseData.ds) return AppUI.alert("Lỗi", "Vui lòng chờ tải lại dữ liệu hồ sơ!");
+    var modalEl = document.getElementById('modalManageParties');
+    if (!modalEl) return;
+    
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+   
+    ['ND', 'BD', 'LQ', 'LC'].forEach(type => { document.getElementById('container-' + type + '-manage').innerHTML = ''; });
+
+    currentCaseData.ds.forEach(ds => {
+      var role = ds.tuCach;
+      var targetContainerId = '';
+      if (role.includes("Nguyên đơn") || role.includes("Bị hại") || role.includes("khởi kiện") || role.includes("yêu cầu")) targetContainerId = 'container-ND-manage';
+      else if (role.includes("Bị đơn") || role.includes("Bị cáo") || role.includes("bị kiện")) targetContainerId = 'container-BD-manage';
+      else if (role.includes("liên quan")) targetContainerId = 'container-LQ-manage';
+      else if (role.includes("làm chứng")) targetContainerId = 'container-LC-manage';
+
+      if (targetContainerId) window.appendManagePartyRow(targetContainerId, ds);
+    });
+   
+    window.updatePartyIndices();
+  };
+
+  window.openEditSinglePartyModal = function(idAn, hoTen, tuCach) {
+      if (!currentCaseData || !currentCaseData.ds) return AppUI.alert("Lỗi", "Chưa có dữ liệu đương sự.");
+      
+      const party = currentCaseData.ds.find(p => p.hoTen === hoTen && p.tuCach === tuCach);
+      if (!party) return AppUI.alert("Lỗi", `Không tìm thấy đương sự[${hoTen}]`);
+
+      document.getElementById('editParty_oldName').value = party.hoTen;
+      document.getElementById('editParty_tuCach').value = party.tuCach;
+      document.getElementById('editParty_xungHo').value = party.xungHo;
+      document.getElementById('editParty_hoTen').value = party.hoTen;
+      document.getElementById('editParty_diaChi').value = party.diaChi;
+      document.getElementById('editParty_namSinh').value = party.namSinh;
+      document.getElementById('editParty_sdt').value = party.sdt;
+      document.getElementById('editParty_cccd').value = party.cccd;
+      document.getElementById('editParty_daiDien').value = party.daiDien;
+
+      var modalEl = document.getElementById('modalSuaDuongSuLe');
+      bootstrap.Modal.getOrCreateInstance(modalEl).show();
+  };
+
+  window.submitEditSingleParty = function() {
+      const payload = {
+          idVuAn: currentCaseId,
+          oldName: document.getElementById('editParty_oldName').value,
+          tuCach: document.getElementById('editParty_tuCach').value,
+          xungHo: document.getElementById('editParty_xungHo').value,
+          hoTen: document.getElementById('editParty_hoTen').value,
+          diaChi: document.getElementById('editParty_diaChi').value,
+          namSinh: document.getElementById('editParty_namSinh').value,
+          sdt: document.getElementById('editParty_sdt').value,
+          cccd: document.getElementById('editParty_cccd').value,
+          daiDien: document.getElementById('editParty_daiDien').value
+      };
+
+      if (!payload.hoTen) return AppUI.alert("Thiếu thông tin", "Họ và tên không được để trống.");
+      
+      bootstrap.Modal.getInstance(document.getElementById('modalSuaDuongSuLe')).hide();
+      AppUI.showToast("Đang cập nhật đương sự...", "");
+
+      google.script.run
+          .withSuccessHandler(res => {
+              if (res.success) {
+                  AppUI.showToast("Cập nhật thành công!", "success");
+                  loadCaseList(true);
+                  setTimeout(() => window.moChiTiet(currentCaseId), 1500);
+              } else { AppUI.showToast("Lỗi: " + res.error, "error"); }
+          })
+          .withFailureHandler(err => AppUI.showToast("Lỗi mạng: " + err.message, "error"))
+          .api_UpdatePartyDetails(payload);
+  };
+
+  window.appendManagePartyRow = function(containerId, ds = null) {
+    var container = document.getElementById(containerId);
+    var role = "";
+    if (containerId === 'container-ND-manage') role = "Nguyên đơn";
+    else if (containerId === 'container-BD-manage') role = "Bị đơn";
+    else if (containerId === 'container-LQ-manage') role = "Người có quyền lợi, nghĩa vụ liên quan";
+    else if (containerId === 'container-LC-manage') role = "Người làm chứng";
+
+    var row = document.createElement('div');
+    row.className = "party-row-main position-relative animate-fadeIn mb-3";
+    row.innerHTML = `
+      <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+         <span class="fw-bold text-dark party-index-label" style="font-size: 13px;"><i class="fas fa-user-circle me-1 text-secondary"></i> Đương sự</span>
+         <button class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size: 11px; border-radius: 4px;" onclick="this.closest('.party-row-main').remove(); window.updatePartyIndices();"><i class="fas fa-trash-alt me-1"></i> Xóa</button>
+      </div>
+      <div class="row g-2">
+        <div class="col-4"><label class="small-label">Tư cách</label><input type="text" class="form-control form-control-sm fw-bold m-party-role text-primary" list="listTuCach" value="${ds ? ds.tuCach : role}"></div>
+        <div class="col-3"><label class="small-label">Xưng hô</label><input type="text" class="form-control form-control-sm m-party-xungho" list="listXungHo" value="${ds ? ds.xungHo : 'Ông/Bà'}"></div>
+        <div class="col-5"><label class="small-label">Họ tên chính *</label><input type="text" class="form-control form-control-sm fw-bold m-party-name" value="${ds ? ds.hoTen : ''}"></div>
+        <div class="col-12"><label class="small-label">Địa chỉ</label><input type="text" class="form-control form-control-sm m-party-address" value="${ds ? ds.diaChi : ''}"></div>
+        <div class="col-4"><label class="small-label">Năm sinh</label><input type="text" class="form-control form-control-sm m-party-birth" value="${ds ? ds.namSinh : ''}"></div>
+        <div class="col-4"><label class="small-label">Số điện thoại</label><input type="text" class="form-control form-control-sm m-party-phone" value="${ds ? ds.sdt : ''}"></div>
+        <div class="col-4"><label class="small-label">CCCD</label><input type="text" class="form-control form-control-sm m-party-id" value="${ds ? ds.cccd : ''}"></div>
+      </div>
+      <div class="mt-3 pt-2 border-top">
+         <div class="d-flex justify-content-between align-items-center mb-2">
+            <label class="small-label mb-0 text-warning" style="font-size: 12px;"><i class="fas fa-user-shield me-1"></i> DANH SÁCH NGƯỜI ĐẠI DIỆN</label>
+            <button class="btn btn-sm btn-warning text-dark fw-bold py-0 px-2 shadow-sm" style="font-size: 10px; border-radius: 4px;" onclick="window.addRepRow(this)"><i class="fas fa-plus me-1"></i> Thêm</button>
+         </div>
+         <div class="reps-container d-flex flex-column gap-2"></div>
+      </div>
+    `;
+    container.appendChild(row);
+
+    if (ds && ds.daiDien) {
+        let repContainer = row.querySelector('.reps-container');
+        try {
+            let repArray = JSON.parse(ds.daiDien);
+            if (Array.isArray(repArray)) { repArray.forEach(r => window.appendRepRowHTML(repContainer, r)); } 
+            else { window.appendRepRowHTML(repContainer, { tuCach: "Người đại diện", hoTen: ds.daiDien }); }
+        } catch(e) { window.appendRepRowHTML(repContainer, { tuCach: "Người đại diện", hoTen: ds.daiDien }); }
+    }
+  };
+
+  window.updatePartyIndices = function() {['container-ND-manage', 'container-BD-manage', 'container-LQ-manage', 'container-LC-manage'].forEach(cid => {
+          let container = document.getElementById(cid);
+          let rows = container.querySelectorAll('.party-row-main');
+          rows.forEach((row, index) => {
+              let labelPrefix = "Đương sự";
+              if (cid === 'container-ND-manage') labelPrefix = "Nguyên đơn";
+              else if (cid === 'container-BD-manage') labelPrefix = "Bị đơn";
+              else if (cid === 'container-LQ-manage') labelPrefix = "Người liên quan";
+              else if (cid === 'container-LC-manage') labelPrefix = "Người làm chứng";
+              row.querySelector('.party-index-label').innerHTML = `<i class="fas fa-user-circle me-1 text-secondary"></i> ${labelPrefix} ${index + 1}`;
+          });
+      });
+  };
+
+  window.addPartyRow = function(role) {
+    var containerId = "";
+    if (role === 'Nguyên đơn') containerId = 'container-ND-manage';
+    else if (role === 'Bị đơn') containerId = 'container-BD-manage';
+    else if (role === 'Người có quyền lợi, nghĩa vụ liên quan') containerId = 'container-LQ-manage';
+    else if (role === 'Người làm chứng') containerId = 'container-LC-manage';
+    if (containerId) { window.appendManagePartyRow(containerId); window.updatePartyIndices(); }
+  };
+
+  window.addRepRow = function(btnEl) {
+      let repContainer = btnEl.closest('.mt-3').querySelector('.reps-container');
+      window.appendRepRowHTML(repContainer);
+  };
+
+  window.appendRepRowHTML = function(container, repData = null) {
+      let rDiv = document.createElement('div');
+      rDiv.className = "rep-row-item animate-fadeIn p-2";
+      rDiv.innerHTML = `
+          <button class="btn btn-sm btn-outline-danger position-absolute bg-white" style="top: 5px; right: 5px; border-radius: 50%; width: 22px; height: 22px; padding: 0; font-size: 11px;" onclick="this.parentElement.remove()" title="Xóa đại diện này"><i class="fas fa-times"></i></button>
+          <div class="row g-2 pe-4">
+              <div class="col-4"><label class="small-label" style="font-size: 9px;">Tư cách ĐD</label><input type="text" class="form-control form-control-sm m-rep-role text-warning-emphasis fw-bold" list="listRepType" value="${repData ? repData.tuCach : 'Người đại diện theo ủy quyền'}"></div>
+              <div class="col-3"><label class="small-label" style="font-size: 9px;">Xưng hô</label><input type="text" class="form-control form-control-sm m-rep-xungho" list="listXungHo" value="${repData ? (repData.xungHo || '') : 'Ông/Bà'}"></div>
+              <div class="col-5"><label class="small-label" style="font-size: 9px;">Họ tên ĐD *</label><input type="text" class="form-control form-control-sm fw-bold m-rep-name" value="${repData ? repData.hoTen : ''}" placeholder="Nhập tên..."></div>
+              <div class="col-6"><label class="small-label" style="font-size: 9px;">Căn cứ</label><input type="text" class="form-control form-control-sm m-rep-chucvu" value="${repData ? (repData.vanBan || repData.chucVu || '') : ''}" placeholder="Giám đốc / GUQ số 01..."></div>
+              <div class="col-6"><label class="small-label" style="font-size: 9px;">Địa chỉ ĐD</label><input type="text" class="form-control form-control-sm m-rep-address" value="${repData ? (repData.diaChi || '') : ''}"></div>
+              <div class="col-4"><label class="small-label" style="font-size: 9px;">Năm sinh</label><input type="text" class="form-control form-control-sm m-rep-birth" value="${repData ? (repData.namSinh || '') : ''}"></div>
+              <div class="col-4"><label class="small-label" style="font-size: 9px;">Điện thoại</label><input type="text" class="form-control form-control-sm m-rep-phone" value="${repData ? (repData.sdt || '') : ''}"></div>
+              <div class="col-4"><label class="small-label" style="font-size: 9px;">CCCD</label><input type="text" class="form-control form-control-sm m-rep-id" value="${repData ? (repData.cccd || '') : ''}"></div>
+          </div>
+      `;
+      container.appendChild(rDiv);
+  };
+
+  window.saveAllParties = function() {
+    var parties = [];
+    var containers =['container-ND-manage', 'container-BD-manage', 'container-LQ-manage', 'container-LC-manage'];
+   
+    containers.forEach(cid => {
+      var rows = document.getElementById(cid).querySelectorAll('.party-row-main');
+      rows.forEach(row => {
+        let repArray =[];
+        let repBlocks = row.querySelectorAll('.rep-row-item');
+        repBlocks.forEach(rb => {
+            let rName = rb.querySelector('.m-rep-name').value.trim();
+            if (rName) {
+                repArray.push({
+                    tuCach: rb.querySelector('.m-rep-role').value.trim(), xungHo: rb.querySelector('.m-rep-xungho').value.trim(),
+                    hoTen: rName, namSinh: rb.querySelector('.m-rep-birth').value.trim(), diaChi: rb.querySelector('.m-rep-address').value.trim(),
+                    sdt: rb.querySelector('.m-rep-phone').value.trim(), cccd: rb.querySelector('.m-rep-id').value.trim(),
+                    chucVu: rb.querySelector('.m-rep-chucvu').value.trim(), vanBan: rb.querySelector('.m-rep-chucvu').value.trim()
+                });
+            }
+        });
+       
+        let repJSONString = repArray.length > 0 ? JSON.stringify(repArray) : "";
+
+        parties.push({
+          tuCach: row.querySelector('.m-party-role').value, xungHo: row.querySelector('.m-party-xungho').value,
+          hoTen: row.querySelector('.m-party-name').value, namSinh: row.querySelector('.m-party-birth').value,
+          diaChi: row.querySelector('.m-party-address').value, sdt: row.querySelector('.m-party-phone').value,
+          cccd: row.querySelector('.m-party-id').value, daiDien: repJSONString
+        });
+      });
+    });
+
+    if (parties.length === 0) return AppUI.alert("Nhập thiếu", "Vui lòng nhập ít nhất một đương sự!");
+
+    bootstrap.Modal.getInstance(document.getElementById('modalManageParties')).hide();
+    AppUI.showToast("Đang lưu đương sự...", "");
+
+    setTimeout(() => {
+        google.script.run
+          .withSuccessHandler(res => {
+            if (res.success) {
+              AppUI.showToast("Cập nhật đương sự thành công!", "success");
+              loadCaseList(true);
+              setTimeout(() => window.moChiTiet(currentCaseId), 1500);
+            } else AppUI.showToast("Lỗi lưu: " + res.error, "error");
+          })
+          .withFailureHandler(err => { AppUI.showToast("Lỗi mạng: " + err.message, "error"); })
+          .api_UpdateAllParties(currentCaseId, parties);
+    }, 50);
+  };
+
+  // ==========================================
+  // 7. CẬP NHẬT ÁN HÀNH CHÍNH
+  // ==========================================
+  window.openEditCaseModal = function(idAnPass) {
+    isSavingCase = false;
+    var idAn = idAnPass || (currentCaseData ? currentCaseData.info.id : null);
+    if (!idAn) return;
+   
+    if (currentCaseData && currentCaseData.info.id === idAn) {
+        var info = currentCaseData.info;
+        document.getElementById('edit_soTL').value = info.soTL.split('/')[0].replace(/\D/g, '');
+        document.getElementById('edit_ngayTL').value = info.ngayTL;
+        document.getElementById('edit_loaiAn').value = info.loaiAn;
+        document.getElementById('edit_quanHe').value = info.quanHe;
+    } else {
+        var c = G_Cases.find(x => x.id === idAn);
+        if (c) {
+            document.getElementById('edit_soTL').value = c.soTL.split('/')[0].replace(/\D/g, '');
+            var p = c.ngayTL.split('/');
+            if(p.length === 3) document.getElementById('edit_ngayTL').value = p[2] + "-" + p[1] + "-" + p[0];
+            document.getElementById('edit_loaiAn').value = c.loaiAn;
+            document.getElementById('edit_quanHe').value = c.quanHe;
+        }
+    }
+    document.getElementById('modalSuaAn').setAttribute('data-target-id', idAn);
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalSuaAn')).show();
+  };
+
+  window.submitEditCase = function() {
+    if (isSavingCase) return;
+
+    var idAn = document.getElementById('modalSuaAn').getAttribute('data-target-id');
+    var payload = {
+      idAn: idAn, soTL: document.getElementById('edit_soTL').value.trim(),
+      ngayTL: document.getElementById('edit_ngayTL').value, loaiAn: document.getElementById('edit_loaiAn').value,
+      quanHe: document.getElementById('edit_quanHe').value.trim()
+    };
+   
+    if (!payload.soTL || !payload.ngayTL || !payload.quanHe) return AppUI.alert("Nhập thiếu", "Vui lòng nhập đủ thông tin!");
+
+    isSavingCase = true;
+    bootstrap.Modal.getInstance(document.getElementById('modalSuaAn')).hide();
+    AppUI.showToast("Đang cập nhật hồ sơ...", "");
+
+    setTimeout(() => {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            isSavingCase = false;
+            if (res.success) {
+              AppUI.showToast("Đã lưu thay đổi!", "success");
+              loadCaseList(true);
+              setTimeout(() => { if (document.getElementById('view-detail').style.display === 'block') window.moChiTiet(idAn); }, 1500);
+            } else AppUI.showToast("Lỗi: " + res.error, "error");
+          })
+          .withFailureHandler(function(err) { isSavingCase = false; AppUI.showToast("Lỗi mạng: " + err.message, "error"); })
+          .api_CapNhatThongTinAn(payload);
+    }, 50);
+  };
+
+  // ==========================================
+  // 8. SOẠN THẢO VĂN BẢN (MAIL MERGE)
+  // ==========================================
+  window.openDraftingModal = function(targetId) {
+    isMergingDocument = false;
+    var idAn = targetId;
+    if (targetId === 'CURRENT_CASE') {
+        var elSo = document.getElementById('det-so');
+        idAn = elSo ? elSo.getAttribute('data-id') : null;
+    }
+
+    document.getElementById('ext_ngayBanHanh').valueAsDate = new Date();
+    document.getElementById('ext_soPhatHanh').value = "";
+    document.getElementById('ext_noiDung').value = "";
+    document.getElementById('ext_ngayTrieuTap').value = "";
+    document.getElementById('ext_gioTrieuTap').value = "08:00"; 
+    document.getElementById('ext_soPhatHanh').classList.remove('is-invalid');
+   
+    document.getElementById('draft-selected-case-id').value = "";
+    document.getElementById('draft-selected-case').style.display = 'none';
+    document.getElementById('list-parties-merge').innerHTML = '<div class="p-3 text-center small text-muted"><i class="fas fa-search me-2"></i>Vui lòng chọn hồ sơ ở Bước 1...</div>';
+    document.getElementById('list-templates').innerHTML = '<div class="p-3 text-center small text-muted"><div class="spinner-border spinner-border-sm me-2"></div>Đang nạp biểu mẫu...</div>';
+
+    if (idAn) {
+        var caseObj = G_Cases.find(c => c.id === idAn);
+        if (caseObj) {
+            document.getElementById('draft-selected-case-id').value = idAn;
+            document.getElementById('draft-selected-case').style.display = 'block';
+            document.getElementById('draft-selected-case').innerHTML = `<i class="fas fa-check-circle me-1"></i>Đã chọn: ${caseObj.soTL}`;
+            window.loadPartiesForDrafting(idAn);
+        }
+    }
+   
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalSoanThao')).show();
+   
+    google.script.run
+      .withSuccessHandler(function(templates) {
+        var tplContainer = document.getElementById('list-templates');
+        if (!templates || templates.length === 0) {
+          tplContainer.innerHTML = '<p class="text-danger small text-center mt-3">Chưa có biểu mẫu nào trong thư mục.</p>';
+          return;
+        }
+        tplContainer.innerHTML = templates.map(t => `
+          <label class="list-group-item d-flex gap-3 align-items-center py-2" style="cursor:pointer; border:none; border-bottom:1px solid #f0f0f0;">
+            <input class="form-check-input flex-shrink-0 tpl-merge-check" type="checkbox" value="${t.id}" data-name="${t.name}">
+            <span class="small" style="font-weight:600; color:#3c4043"><i class="far fa-file-word text-primary me-2"></i>${t.name}</span>
+          </label>`).join('');
+          
+        google.script.run.withSuccessHandler(conf => { BieuMauConfig = conf; }).api_GetTemplateSettings();
+      })
+      .withFailureHandler(function(err) { document.getElementById('list-templates').innerHTML = '<span class="text-danger">Lỗi tải mẫu</span>'; })
+      .api_GetBieuMauTemplates();
+  };
+
+  window.loadPartiesForDrafting = function(idAn) {
+      document.getElementById('list-parties-merge').innerHTML = '<div class="p-3 text-center small text-muted"><div class="spinner-border spinner-border-sm me-2"></div>Đang nạp đương sự...</div>';
+      google.script.run
+        .withSuccessHandler(function(res) {
+          var dsContainer = document.getElementById('list-parties-merge');
+          if (res.error || !res.ds || res.ds.length === 0) {
+            dsContainer.innerHTML = '<p class="text-warning small text-center mt-3">Vụ án này chưa có đương sự.</p>';
+            return;
+          }
+          dsContainer.innerHTML = res.ds.map((d, idx) => `
+            <div class="form-check mb-2">
+              <input class="form-check-input ds-merge-check" type="checkbox" value="${idx}" id="ds-merge-${idx}" checked>
+              <label class="form-check-label small d-flex align-items-center" for="ds-merge-${idx}" style="cursor:pointer;">
+                <span class="badge bg-secondary me-2" style="font-size:8px">${d.tuCach}</span>
+                <b>${d.hoTen}</b>
+              </label>
+            </div>`).join('');
+        })
+        .withFailureHandler(function(err) { document.getElementById('list-parties-merge').innerHTML = '<span class="text-danger">Lỗi tải đương sự</span>'; })
+        .api_LayDuLieuChiTietAn(idAn);
+  };
+
+  window.executeMailMergeV3 = function() {
+    if (isMergingDocument) return;
+
+    var idAn = document.getElementById('draft-selected-case-id').value;
+    if (!idAn) return AppUI.alert("Nhắc nhở", "Vui lòng chọn một hồ sơ ở Bước 1!");
+
+    var tplNodes = document.querySelectorAll('.tpl-merge-check:checked');
+    if (tplNodes.length === 0) return AppUI.alert("Nhắc nhở", "Vui lòng chọn ít nhất một biểu mẫu ở Bước 2!");
+
+    var dsNodes = document.querySelectorAll('.ds-merge-check:checked');
+    if (dsNodes.length === 0) return AppUI.alert("Nhắc nhở", "Vui lòng chọn ít nhất một đương sự ở Bước 3!");
+   
+    var ngayBanHanh = document.getElementById('ext_ngayBanHanh').value;
+    var soPhatHanh = document.getElementById('ext_soPhatHanh').value.trim();
+    var extNgay = document.getElementById('ext_ngayTrieuTap').value;
+    var extGio = document.getElementById('ext_gioTrieuTap').value;
+    var extDiaDiem = document.getElementById('ext_diaDiem') ? document.getElementById('ext_diaDiem').value : "Trụ sở Tòa án";
+    var noiDungThem = document.getElementById('ext_noiDung').value;
+
+    var selectedTpls = Array.from(tplNodes);
+    var needsTime = false, needsLocation = false;
+    var missingTimeAlert = false, missingLocationAlert = false;
+    
+    var reminderDays = 0; 
+    var reminderText = "";
+    var isStatusChanger = false, changerType = "";
+    
+    selectedTpls.forEach(function(t) {
+       var name = t.getAttribute('data-name').toLowerCase();
+       
+       var conf = BieuMauConfig.find(c => name.includes(c.name));
+       if (conf) {
+           if (conf.requireTime) needsTime = true;
+           if (conf.requireLocation) needsLocation = true;
+       }
+       
+       if (name.includes("đình chỉ")) { isStatusChanger = true; changerType = "Đình chỉ"; }
+       else if (name.includes("thỏa thuận")) { isStatusChanger = true; changerType = "QĐCNTT"; }
+       else if (name.includes("thuận tình ly hôn")) { isStatusChanger = true; changerType = "QĐCN-TTLH"; }
+       else if (name.includes("chuyển hồ sơ")) { isStatusChanger = true; changerType = "Quyết định chuyển hồ sơ"; }
+       else if (name.includes("bản án")) { isStatusChanger = true; changerType = "Bản án"; }
+       
+       if (name.includes("hòa giải thành") || name.includes("tự nguyện ly hôn")) { 
+           reminderDays = Math.max(reminderDays, 7); reminderText = "Hết thời hạn 07 ngày ra QĐ công nhận thỏa thuận."; 
+       }
+       else if (name.includes("kết quả hòa giải đối thoại")) { 
+           reminderDays = Math.max(reminderDays, 15); reminderText = "Hết thời hạn 15 ngày ra QĐ công nhận HGĐT thành."; 
+       }
+    });
+
+    if (needsTime && (!extNgay || !extGio)) missingTimeAlert = true;
+    if (needsLocation && (extDiaDiem.trim() === "" || extDiaDiem.trim() === "Trụ sở Tòa án")) missingLocationAlert = true;
+    
+    if (missingTimeAlert || missingLocationAlert) {
+        var msg = "Biểu mẫu bạn chọn thường yêu cầu " + (missingTimeAlert ? "THỜI GIAN" : "") + (missingTimeAlert && missingLocationAlert ? " và " : "") + (missingLocationAlert ? "ĐỊA ĐIỂM cụ thể" : "") + " nhưng bạn chưa nhập.\n\nNếu tiếp tục, hệ thống sẽ tự điền dấu '......' vào vị trí đó. Có muốn tiếp tục không?";
+        
+        AppUI.confirm("Thiếu thông tin", msg, 'primary', function() {
+            window.triggerMailMerge(idAn, selectedTpls, dsNodes, ngayBanHanh, extNgay, extGio, extDiaDiem, noiDungThem, soPhatHanh, missingLocationAlert, isStatusChanger, changerType, reminderDays, reminderText);
+        });
+    } else {
+        window.triggerMailMerge(idAn, selectedTpls, dsNodes, ngayBanHanh, extNgay, extGio, extDiaDiem, noiDungThem, soPhatHanh, false, isStatusChanger, changerType, reminderDays, reminderText);
+    }
+  };
+
+  window.triggerMailMerge = function(idAn, selectedTpls, dsNodes, ngayBanHanh, extNgay, extGio, extDiaDiem, noiDungThem, soPhatHanh, isMissingLocation, isStatusChanger, changerType, reminderDays, reminderText) {
+    if (isStatusChanger && !soPhatHanh) {
+       AppUI.alert("Thiếu Số Văn Bản", "Mẫu này làm thay đổi trạng thái án. Vui lòng nhập SỐ VĂN BẢN (Khung 4) để đồng bộ!");
+       return;
+    }
+
+    var inputPayload = {
+      templateIds: selectedTpls.map(t => t.value), selectedIndices: Array.from(dsNodes).map(d => parseInt(d.value)),
+      idVuAn: idAn, ngayBanHanh: ngayBanHanh, trieuTapDate: extNgay, trieuTapTime: extGio,
+      diaDiemLamViec: extDiaDiem, noiDungThem: noiDungThem, soPhatHanh: soPhatHanh, isMissingLocation: isMissingLocation 
+    };
+   
+    isMergingDocument = true;
+    bootstrap.Modal.getInstance(document.getElementById('modalSoanThao')).hide();
+    AppUI.showToast("Đang trộn văn bản. Vui lòng chờ...", "");
+
+    setTimeout(() => {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            isMergingDocument = false;
+            if (res.success) {
+              
+              if (reminderDays > 0) {
+                 google.script.run.api_LuuLichNhacNho({ idVuAn: idAn, ngayBatDau: ngayBanHanh, days: reminderDays, noiDung: "🔔 NHẮC VIỆC: " + reminderText });
+              }
+
+              if (isStatusChanger && soPhatHanh) {
+                google.script.run.api_UpdateCaseResolution({ idVuAn: idAn, resultType: changerType, resultNo: soPhatHanh, resultDate: ngayBanHanh });
+              }
+             
+              AppUI.showToast("Đã soạn thảo thành công! Đang mở file...", "success");
+              
+              res.files.forEach((file, idx) => {
+                  setTimeout(() => { window.open(file.url, '_blank'); }, idx * 800); 
+              });
+
+              setTimeout(() => window.moChiTiet(idAn), 1500);
+            } else { AppUI.showToast("Lỗi Trộn thư: " + res.error, "error"); }
+          })
+          .withFailureHandler(function(err) {
+             isMergingDocument = false; AppUI.showToast("Lỗi kết nối: " + err.message, "error");
+          })
+          .api_RunMailMergeV3(inputPayload);
+    }, 50);
+  };
+
+  // ==========================================
+  // 9. CẬP NHẬT KẾT QUẢ GIẢI QUYẾT
+  // ==========================================
+  window.openResolutionModal = function() {
+      var idAn = document.getElementById('det-so') ? document.getElementById('det-so').getAttribute('data-id') : null;
+      if (!idAn) return AppUI.alert("Nhắc nhở", "Vui lòng mở một hồ sơ trước!");
+     
+      if (currentCaseData && currentCaseData.info.ketQuaGiaiQuyet) {
+        var lines = currentCaseData.info.ketQuaGiaiQuyet.split('\n');
+        document.getElementById('res_loai').value = lines[0] || "Bản án";
+        document.getElementById('res_so').value = lines[1] || "";
+        if (lines[2] && lines[2].includes("/")) {
+          var p = lines[2].split("/");
+          document.getElementById('res_ngay').value = p[2] + "-" + ('0'+p[1]).slice(-2) + "-" + ('0'+p[0]).slice(-2);
+        }
+      } else {
+        document.getElementById('res_so').value = ""; document.getElementById('res_ngay').value = "";
+      }
+     
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('modalKetQua')).show();
+  };
+
+  window.submitResolution = function() {
+      var idAn = document.getElementById('det-so').getAttribute('data-id');
+      var rawDate = document.getElementById('res_ngay').value;
+      if (!rawDate) return AppUI.alert("Nhắc nhở", "Vui lòng nhập Ngày ban hành!");
+     
+      var payload = { idVuAn: idAn, resultType: document.getElementById('res_loai').value, resultNo: document.getElementById('res_so').value.trim() || "Chưa có số", resultDate: rawDate };
+     
+      bootstrap.Modal.getInstance(document.getElementById('modalKetQua')).hide();
+      AppUI.showToast("Đang đồng bộ kết quả...", "");
+
+      setTimeout(() => {
+          google.script.run.withSuccessHandler(function(res) {
+              if (res.success) {
+                AppUI.showToast("Đã cập nhật kết quả thành công!", "success");
+                loadCaseList(true); setTimeout(() => window.moChiTiet(idAn), 1000);
+              } else AppUI.showToast("Lỗi xử lý: " + res.error, "error");
+            }).withFailureHandler(function(err) { AppUI.showToast("Lỗi kết nối: " + err.message, "error"); }).api_UpdateCaseResolution(payload);
+      }, 50);
+  };
+
+  window.xoaKetQuaGiaiQuyet = function() {
+      AppUI.confirm("Xác nhận xóa kết quả", "Bạn có chắc muốn xóa kết quả giải quyết của hồ sơ này?\nHệ thống sẽ khôi phục trạng thái về 'Đang giải quyết'.", "danger", function() {
+          var idAn = document.getElementById('det-so').getAttribute('data-id');
+          bootstrap.Modal.getInstance(document.getElementById('modalKetQua')).hide();
+          AppUI.showToast("Đang khôi phục trạng thái...", "");
+
+          setTimeout(() => {
+              google.script.run.withSuccessHandler(function(res) {
+                  if (res.success) {
+                    AppUI.showToast("Đã khôi phục trạng thái án!", "success");
+                    loadCaseList(true); setTimeout(() => window.moChiTiet(idAn), 1000);
+                  } else AppUI.showToast("Lỗi: " + res.error, "error");
+                }).withFailureHandler(function(err) { AppUI.showToast("Lỗi kết nối: " + err.message, "error"); }).api_UpdateCaseResolution({ idVuAn: idAn, resultType: "CLEAR" });
+          }, 50);
+      });
+  };
+</script>

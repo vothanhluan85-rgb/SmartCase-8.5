@@ -1,0 +1,739 @@
+<style>
+  /* =========================================================
+     HỆ THỐNG GLOBAL UI (TOAST & CUSTOM DIALOG)
+     ========================================================= */
+  #global-toast-container {
+      position: fixed; bottom: 30px; right: 30px; z-index: 99999;
+      background-color: #1e293b; color: white; padding: 12px 24px;
+      border-radius: 8px; font-size: 13.5px; font-weight: 600;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25); transform: translateY(150%); opacity: 0;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); pointer-events: none; display: flex; align-items: center;
+  }
+  #global-toast-container.show { transform: translateY(0); opacity: 1; }
+  #global-toast-container.success { background-color: #10b981; }
+  #global-toast-container.error { background-color: #ef4444; }
+
+  .app-dialog-overlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(15, 23, 42, 0.4); z-index: 100000;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; visibility: hidden; transition: all 0.2s ease; backdrop-filter: blur(2px);
+  }
+  .app-dialog-overlay.show { opacity: 1; visibility: visible; }
+  .app-dialog-box {
+      background: #fff; width: 400px; max-width: 90%; border-radius: 12px;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+      transform: scale(0.95) translateY(10px); transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: hidden;
+  }
+  .app-dialog-overlay.show .app-dialog-box { transform: scale(1) translateY(0); }
+  .app-dialog-header { padding: 20px 24px 10px; font-size: 18px; font-weight: 700; color: #1e293b; }
+  .app-dialog-body { padding: 0 24px 24px; font-size: 14px; color: #475569; line-height: 1.5; }
+  .app-dialog-footer { padding: 12px 24px; display: flex; justify-content: flex-end; gap: 10px; background: #f8fafc; border-top: 1px solid #e2e8f0; }
+  .btn-dialog { padding: 8px 16px; border-radius: 6px; font-weight: 600; font-size: 13px; border: none; cursor: pointer; transition: 0.2s; }
+  .btn-dialog-cancel { background: transparent; color: #64748b; }
+  .btn-dialog-cancel:hover { background: #f1f5f9; color: #334155; }
+  .btn-dialog-confirm { background: #1a73e8; color: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+  .btn-dialog-confirm:hover { background: #1557b0; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+  .btn-dialog-danger { background: #dc3545; color: #fff; }
+  .btn-dialog-danger:hover { background: #bb2d3b; }
+</style>
+
+<script>
+  /**
+   * HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V7.6
+   * FILE: JS_HeThong.html 
+   * CHỨC NĂNG: Khởi tạo, biến toàn cục, UI Dialog, Điều hướng, Load danh sách.
+   */
+  
+  // --- KHAI BÁO CÁC BIẾN TOÀN CỤC CHUẨN XÁC ---
+  var G_Cases = []; 
+  var G_An = [];    
+  var G_Don = [];
+  var G_Filter = { keyword: "", category: "ALL", start: "", end: "", loaiAn: "" };
+  var G_FilterDon = { keyword: "", start: "", end: "" };
+  
+  var currentCaseId = null; 
+  var currentCaseData = null; 
+  var notificationInterval = null;
+  var currentAlertIndex = 0;
+  var globalToastTimeout = null;
+
+  // =========================================================
+  // HỆ THỐNG APP UI ENGINE
+  // =========================================================
+  const AppUI = {
+      init: function() {
+          if(!document.getElementById('global-toast-container')) {
+              const uiHtml = `
+                  <div id="global-toast-container">
+                      <i id="global-toast-icon" class="fas fa-spinner fa-spin me-2"></i>
+                      <span id="global-toast-text">Đang làm việc...</span>
+                  </div>
+                  <div id="app-dialog" class="app-dialog-overlay">
+                      <div class="app-dialog-box">
+                          <div class="app-dialog-header" id="dialog-title">Xác nhận</div>
+                          <div class="app-dialog-body" id="dialog-message">Bạn có chắc chắn không?</div>
+                          <div class="app-dialog-footer">
+                              <button class="btn-dialog btn-dialog-cancel" id="dialog-btn-cancel">Hủy</button>
+                              <button class="btn-dialog btn-dialog-confirm" id="dialog-btn-confirm">Đồng ý</button>
+                          </div>
+                      </div>
+                  </div>
+              `;
+              document.body.insertAdjacentHTML('beforeend', uiHtml);
+          }
+      },
+
+      showToast: function(msg, type) {
+          const toast = document.getElementById('global-toast-container');
+          const icon = document.getElementById('global-toast-icon');
+          if(!toast) return;
+
+          document.getElementById('global-toast-text').innerText = msg;
+          toast.className = 'show ' + (type || '');
+          
+          if(type === 'success') icon.className = 'fas fa-check-circle me-2';
+          else if(type === 'error') icon.className = 'fas fa-exclamation-triangle me-2';
+          else icon.className = 'fas fa-spinner fa-spin me-2';
+
+          if(globalToastTimeout) clearTimeout(globalToastTimeout);
+          
+          if(type === 'success' || type === 'error') {
+              globalToastTimeout = setTimeout(() => { toast.classList.remove('show'); }, 3500);
+          }
+      },
+
+      hideToast: function() {
+          const toast = document.getElementById('global-toast-container');
+          if(toast) toast.classList.remove('show');
+      },
+
+      confirm: function(title, message, type, onConfirm) {
+          const overlay = document.getElementById('app-dialog');
+          document.getElementById('dialog-title').innerHTML = title;
+          document.getElementById('dialog-message').innerHTML = message.replace(/\n/g, '<br>');
+          
+          const btnConfirm = document.getElementById('dialog-btn-confirm');
+          const btnCancel = document.getElementById('dialog-btn-cancel');
+          
+          btnConfirm.className = 'btn-dialog ' + (type === 'danger' ? 'btn-dialog-danger' : 'btn-dialog-confirm');
+          btnConfirm.innerText = type === 'danger' ? 'Đồng ý xóa' : 'Đồng ý';
+
+          overlay.classList.add('show');
+          btnConfirm.onclick = null; btnCancel.onclick = null;
+
+          btnCancel.onclick = function() { overlay.classList.remove('show'); };
+          btnConfirm.onclick = function() {
+              overlay.classList.remove('show');
+              if(typeof onConfirm === 'function') onConfirm();
+          };
+      },
+
+      alert: function(title, message) {
+          const overlay = document.getElementById('app-dialog');
+          document.getElementById('dialog-title').innerHTML = title;
+          document.getElementById('dialog-message').innerHTML = message.replace(/\n/g, '<br>');
+          
+          const btnConfirm = document.getElementById('dialog-btn-confirm');
+          const btnCancel = document.getElementById('dialog-btn-cancel');
+          
+          btnConfirm.className = 'btn-dialog btn-dialog-confirm';
+          btnConfirm.innerText = 'Đã hiểu';
+          btnCancel.style.display = 'none'; 
+
+          overlay.classList.add('show');
+
+          btnConfirm.onclick = function() {
+              overlay.classList.remove('show');
+              btnCancel.style.display = 'block'; 
+          };
+      }
+  };
+
+  document.addEventListener("DOMContentLoaded", AppUI.init);
+
+  // =========================================================
+  // CÁC HÀM TIỆN ÍCH
+  // =========================================================
+  var dateVN = function(ts) {
+    if(!ts) return "---";
+    var d = new Date(ts);
+    if(isNaN(d.getTime())) return "---";
+    return ("0" + d.getDate()).slice(-2) + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + d.getFullYear();
+  };
+
+  function getStatisticalStartDate() {
+    var today = new Date();
+    var currentMonth = today.getMonth() + 1;
+    var startYear = (currentMonth < 10) ? today.getFullYear() - 1 : today.getFullYear();
+    return startYear + "-10-01";
+  }
+
+  function loadJudgeIdentity() {
+    google.script.run
+      .withSuccessHandler(function(config) {
+        if (config) {
+          if (document.getElementById('header-ten-tp')) document.getElementById('header-ten-tp').innerText = config.TEN_THAM_PHAN || "Thẩm phán";
+          if (document.getElementById('header-ten-toa')) document.getElementById('header-ten-toa').innerText = config.TEN_TOA_AN || "Cơ quan...";
+        }
+      })
+      .api_GetAppIdentity();
+  }
+
+  function toggleMobileMenu() {
+    document.getElementById('main-sidebar').classList.toggle('show');
+    document.getElementById('mobile-overlay').classList.toggle('show');
+  }
+
+  function startSplashScreen() {
+    const splash = document.getElementById('splash-screen');
+    const msgEl = document.getElementById('splash-message');
+    if (!splash || !msgEl) return;
+    setTimeout(() => { msgEl.innerText = "Chào mừng bạn đến với Trợ lý Thẩm phán V7.6"; }, 0);
+    setTimeout(() => { msgEl.innerText = "Đang kết nối dữ liệu và chuẩn bị các tiện ích..."; }, 1500);
+    setTimeout(() => { msgEl.innerText = "Mọi thứ đã sẵn sàng. Chúc bạn làm việc hiệu quả!"; }, 3000);
+  }
+
+  function hideSplashScreen() {
+      const splash = document.getElementById('splash-screen');
+      if(splash) {
+          splash.style.opacity = '0';
+          setTimeout(() => { splash.style.display = 'none'; }, 500);
+      }
+  }
+
+  function parseVNDate(dateStr) {
+    if (!dateStr) return null;
+    var parts = dateStr.split('\n');
+    var dStr = parts.length > 2 ? parts[2] : parts[0];
+    if (dStr.indexOf('/') !== -1) {
+      var p = dStr.split('/');
+      if (p.length === 3 && p[2] && p[2].length === 4) return new Date(p[2], p[1] - 1, p[0]).getTime();
+    }
+    return null;
+  }
+
+  function formatNumber(num) {
+    if (!num) return "0";
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  }
+
+  // =========================================================
+  // ĐIỀU HƯỚNG TƯƠNG THÍCH MỚI (appNavigate)
+  // =========================================================
+  function appNavigate(viewId) {
+    var sidebar = document.getElementById('main-sidebar');
+    var overlay = document.getElementById('mobile-overlay');
+    if (sidebar && sidebar.classList.contains('show')) {
+      sidebar.classList.remove('show'); overlay.classList.remove('show');
+    }
+
+    document.querySelectorAll('.spa-view').forEach(v => { v.style.display = 'none'; v.classList.remove('active'); });
+    var targetView = document.getElementById(viewId);
+    if (targetView) {
+      targetView.style.display = 'block';
+      setTimeout(() => targetView.classList.add('active'), 10);
+    }
+
+    document.querySelectorAll('.nav-menu-item').forEach(m => m.classList.remove('active'));
+    var menuBtn = document.getElementById('menu-' + viewId);
+    if (menuBtn) menuBtn.classList.add('active');
+
+    // Điều khiển ẩn/hiện menu chi tiết Đơn và Án
+    var isDonDetail = (viewId === 'view-chi-tiet-don');
+    var isAnDetail = (viewId === 'view-detail');
+
+    var menuDonDetail = document.getElementById('menu-view-chi-tiet-don');
+    if(menuDonDetail) menuDonDetail.style.display = isDonDetail ? 'block' : 'none';
+    if(isDonDetail && menuDonDetail) menuDonDetail.classList.add('active');
+
+    var menuAnDetail = document.getElementById('menu-view-detail');
+    if(menuAnDetail) menuAnDetail.style.display = isAnDetail ? 'block' : 'none';
+    if(isAnDetail && menuAnDetail) menuAnDetail.classList.add('active');
+
+    if (viewId === 'view-danh-sach-don' || viewId === 'view-list') {
+       if(menuDonDetail) menuDonDetail.style.display = 'none';
+       if(menuAnDetail) menuAnDetail.style.display = 'none';
+    }
+
+    var titles = {
+      'view-danh-sach-don': 'SỔ NHẬN ĐƠN ĐIỆN TỬ',
+      'view-chi-tiet-don': 'CHI TIẾT ĐƠN KHỞI KIỆN',
+      'view-list': 'SỔ THỤ LÝ ĐIỆN TỬ',
+      'view-detail': 'CHI TIẾT HỒ SƠ VỤ ÁN',
+      'view-schedule': 'LỊCH CÔNG TÁC',
+      'view-stats': 'THỐNG KÊ DỮ LIỆU',
+      'view-settings': 'THIẾT LẬP HỆ THỐNG'
+    };
+    if (document.getElementById('current-page-title')) {
+      document.getElementById('current-page-title').innerText = titles[viewId] || "TRỢ LÝ V7.6";
+    }
+
+    // Kích hoạt dữ liệu tương ứng
+    if (viewId === 'view-danh-sach-don') {
+        if (typeof loadDanhSachDon === 'function') loadDanhSachDon(false);
+    }
+    else if (viewId === 'view-list') { 
+        if (G_An && G_An.length > 0) runFilterEngine(); else loadCaseList(true); 
+    }
+    else if (viewId === 'view-schedule' && typeof loadSchedule === 'function') loadSchedule();
+    else if (viewId === 'view-stats' && typeof loadStatsPage === 'function') loadStatsPage();
+    else if (viewId === 'view-settings' && typeof loadSettingsData === 'function') loadSettingsData();
+  }
+
+  // =========================================================
+  // XỬ LÝ SỔ ÁN (SỔ THỤ LÝ)
+  // =========================================================
+  function calculateLiveStatus(an) {
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (an.trangThai === "Tạm đình chỉ") {
+      an.liveStatus = "Tạm đình chỉ";
+      an.liveClass = "text-secondary";
+      return;
+    }
+
+    var hasFinalResult = (an.ketQuaGiaiQuyet && an.ketQuaGiaiQuyet.trim() !== "" && an.ketQuaGiaiQuyet.indexOf("---") === -1 && an.ketQuaGiaiQuyet.indexOf("Tạm đình chỉ") === -1 && an.ketQuaGiaiQuyet.indexOf("Gia hạn") === -1 && an.ketQuaGiaiQuyet.indexOf("Tiếp tục giải quyết") === -1);
+    
+    if (an.trangThai === "Đã giải quyết" || hasFinalResult) {
+      an.liveStatus = "Đã giải quyết";
+      an.liveClass = "text-success";
+    } else {
+      if (an.rawHanDate > 0) {
+        var diffDays = Math.ceil((an.rawHanDate - today.getTime()) / 86400000);
+        if (diffDays < 0) { an.liveStatus = "Đã quá hạn"; an.liveClass = "text-danger fw-bold"; }
+        else if (diffDays <= 15) { an.liveStatus = "Sắp quá hạn"; an.liveClass = "text-warning fw-bold"; }
+        else { an.liveStatus = "Đang giải quyết"; an.liveClass = "text-primary"; }
+      } else {
+        an.liveStatus = "Đang giải quyết"; an.liveClass = "text-primary";
+      }
+    }
+  }
+
+  function loadCaseList(isForceRefresh) {
+    if (G_An && G_An.length > 0 && !isForceRefresh) { runFilterEngine(); return; }
+    
+    var tbody = document.getElementById('list-data');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center p-5"><div class="spinner-grow text-primary me-2"></div><span class="text-muted fw-bold">Đang tải Dữ liệu Sổ thụ lý...</span></td></tr>';
+
+    google.script.run
+      .withSuccessHandler(function(data) {
+        if (data && data.error) {
+          if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center p-5 text-danger">' + data.error + '</td></tr>';
+          return;
+        }
+        
+        G_Cases = data || []; 
+        G_An = data || [];    
+
+        for (var i = 0; i < G_An.length; i++) calculateLiveStatus(G_An[i]);
+        
+        window.requestAnimationFrame(() => {
+            runFilterEngine();
+            hideSplashScreen(); 
+        });
+      })
+      .withFailureHandler(function(err) {
+         if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center p-5 text-danger">Lỗi kết nối Server: ' + err.message + '</td></tr>';
+         hideSplashScreen();
+      })
+      .api_LayDanhSachAn();
+  }
+
+  function setFilter(key, value) {
+    G_Filter[key] = value;
+    if (key === 'category') {
+      document.querySelectorAll('.stat-card').forEach(el => el.classList.remove('active-filter'));
+      var activeCard = document.querySelector('.sc-' + value.toLowerCase());
+      if (activeCard) activeCard.classList.add('active-filter');
+    }
+    runFilterEngine();
+  }
+
+  function clearAllFilters() {
+    if(document.getElementById('txtSearchMain')) document.getElementById('txtSearchMain').value = "";
+    if(document.getElementById('filter-loaiAn')) document.getElementById('filter-loaiAn').value = "";
+    var startDate = getStatisticalStartDate();
+    if(document.getElementById('filter-start')) document.getElementById('filter-start').value = startDate;
+    if(document.getElementById('filter-end')) document.getElementById('filter-end').value = "";
+    
+    G_Filter = { keyword: "", category: "ALL", start: startDate, end: "", loaiAn: "" };
+    setFilter('category', 'ALL');
+  }
+
+  function runFilterEngine() {
+    if (!G_An || G_An.length === 0) { renderCaseTable([]); return; }
+    
+    var startFilterStr = G_Filter.start || getStatisticalStartDate();
+    var sTime = new Date(startFilterStr).getTime();
+    var eTime = G_Filter.end ? new Date(G_Filter.end).getTime() + 86399999 : Infinity;
+    var isPeriodFilter = (G_Filter.start || G_Filter.end);
+
+    var cuChuyenSang = 0, thuLyMoi = 0, cFinished = 0, cPending = 0, cTDC = 0, cUrgent = 0, cOverdue = 0, cFrozen = 0;
+    var cHGDT_Total = 0, cHGDT_Success = 0;
+    var warnings = [], displayList = [];
+    var q = G_Filter.keyword ? G_Filter.keyword.toLowerCase().trim() : "";
+
+    for (var j = 0; j < G_An.length; j++) {
+      var an = G_An[j];
+
+      if (G_Filter.loaiAn) {
+        if (G_Filter.loaiAn === 'HGĐT' && !an.isHGDT) continue;
+        if (G_Filter.loaiAn !== 'HGĐT' && an.loaiAn.toLowerCase().indexOf(G_Filter.loaiAn.toLowerCase()) === -1) continue;
+      }
+
+      var hasResult = (an.ketQuaGiaiQuyet && an.ketQuaGiaiQuyet.trim() !== "" && an.ketQuaGiaiQuyet.indexOf("---") === -1);
+      var kqDateTS = hasResult ? parseVNDate(an.ketQuaGiaiQuyet) : null;
+      if (isPeriodFilter) {
+        if (an.rawDate > eTime || (hasResult && kqDateTS < sTime)) continue;
+      }
+
+      if (an.isHGDT) {
+        cHGDT_Total++;
+        if (an.liveStatus === "Đã giải quyết") cHGDT_Success++;
+      } else {
+        if (an.rawDate < sTime) cuChuyenSang++; else thuLyMoi++;
+        
+        if (an.liveStatus === "Đã giải quyết") {
+          cFinished++;
+        } else {
+          cPending++;
+          if (an.liveStatus === "Tạm đình chỉ") cTDC++;
+          else if (an.liveStatus === "Sắp quá hạn") { cUrgent++; warnings.push(`⚠️ SẮP HẠN: ${an.soTL}`); }
+          else if (an.liveStatus === "Đã quá hạn") { cOverdue++; warnings.push(`🛑 QUÁ HẠN: ${an.soTL}`); }
+          if (an.isFrozen) cFrozen++;
+        }
+      }
+
+      var passCat = false;
+      if (G_Filter.category === 'ALL') passCat = true;
+      else if (G_Filter.category === 'ACTIVE' && an.liveStatus !== "Đã giải quyết" && !an.isHGDT) passCat = true;
+      else if (G_Filter.category === 'FINISHED' && an.liveStatus === "Đã giải quyết" && !an.isHGDT) passCat = true;
+      else if (G_Filter.category === 'HOAGIAI' && an.isHGDT) passCat = true;
+      else if (G_Filter.category === 'FROZEN' && (an.liveStatus === "Tạm đình chỉ" || an.liveStatus === "Đóng băng") && !an.isHGDT) passCat = true;
+      else if (G_Filter.category === 'URGENT' && an.liveStatus === "Sắp quá hạn" && !an.isHGDT) passCat = true;
+      else if (G_Filter.category === 'OVERDUE' && an.liveStatus === "Đã quá hạn" && !an.isHGDT) passCat = true;
+
+      if (passCat && q) {
+        if (an.soTL.toLowerCase().indexOf(q) === -1 && an.nguyenDon.toLowerCase().indexOf(q) === -1 &&
+            an.biDon.toLowerCase().indexOf(q) === -1 && an.quanHe.toLowerCase().indexOf(q) === -1) passCat = false;
+      }
+      if (passCat) displayList.push(an);
+    }
+
+    var totalAn = cuChuyenSang + thuLyMoi;
+    if(document.getElementById('stat-total')) document.getElementById('stat-total').innerText = totalAn;
+    if(document.getElementById('stat-sub-total')) document.getElementById('stat-sub-total').innerText = "Mới: " + thuLyMoi + " | Cũ: " + cuChuyenSang;
+    if(document.getElementById('stat-active')) document.getElementById('stat-active').innerText = cPending;
+    if(document.getElementById('stat-urgent')) document.getElementById('stat-urgent').innerText = cUrgent;
+    if(document.getElementById('stat-overdue')) document.getElementById('stat-overdue').innerText = cOverdue;
+    if(document.getElementById('stat-frozen')) document.getElementById('stat-frozen').innerText = cTDC + cFrozen;
+    if(document.getElementById('stat-finished')) document.getElementById('stat-finished').innerText = cFinished;
+    if(document.getElementById('stat-hgdt-total')) document.getElementById('stat-hgdt-total').innerText = cHGDT_Total;
+    if(document.getElementById('stat-hgdt-success')) document.getElementById('stat-hgdt-success').innerText = cHGDT_Success;
+    var tyLe = (totalAn > 0) ? Math.round((cFinished / totalAn) * 100) : 0;
+    if(document.getElementById('stat-rate-text')) document.getElementById('stat-rate-text').innerText = tyLe + "%";
+
+    initNotificationSystem(warnings);
+    window.requestAnimationFrame(() => renderCaseTable(displayList));
+  }
+
+  function initNotificationSystem(warnings) {
+    if (notificationInterval) clearInterval(notificationInterval);
+    var notifyText = document.getElementById('notification-text');
+    var notifyHub = document.getElementById('notification-hub');
+    
+    if (!notifyText || !notifyHub) return;
+
+    if (warnings.length === 0) {
+      notifyText.innerText = "Hệ thống ổn định. Không có án quá hạn.";
+      notifyText.classList.remove('fade-cycle');
+      notifyText.classList.replace('text-danger', 'text-success');
+      notifyHub.style.borderColor = '#34a853';
+      return;
+    }
+
+    notifyText.classList.add('fade-cycle');
+    notifyText.classList.replace('text-success', 'text-danger');
+    notifyHub.style.borderColor = '#ea4335';
+    currentAlertIndex = 0;
+    notifyText.innerText = warnings[currentAlertIndex];
+    
+    notificationInterval = setInterval(function() {
+      currentAlertIndex = (currentAlertIndex + 1) % warnings.length;
+      notifyText.innerText = warnings[currentAlertIndex];
+    }, 7000);
+  }
+
+  function renderCaseTable(data) {
+    var tbody = document.getElementById('list-data');
+    if (!tbody) return;
+    
+    if (!data || data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center p-5 text-muted small"><i class="fas fa-box-open fa-2x mb-2 opacity-50 d-block"></i>Không tìm thấy hồ sơ phù hợp.</td></tr>`;
+      const btnDelete = document.getElementById('btn-bulk-delete');
+      if (btnDelete) btnDelete.classList.add('d-none');
+      return;
+    }
+
+    var htmlRows = [];
+    for (var i = 0; i < data.length; i++) {
+      var an = data[i];
+      var borderLeft = '#1a73e8';
+      if (an.isHGDT) borderLeft = '#6f42c1';
+      else if (an.liveStatus === "Đã giải quyết") borderLeft = '#188038';
+      else if (an.liveStatus === "Đã quá hạn") borderLeft = '#d93025';
+      else if (an.liveStatus === "Sắp quá hạn") borderLeft = '#f9ab00';
+      else if (an.liveStatus === "Đóng băng" || an.liveStatus === "Tạm đình chỉ") borderLeft = '#5f6368';
+
+      var statusContent = "";
+      if (an.liveStatus === "Đã giải quyết") {
+        var resLines = an.ketQuaGiaiQuyet ? an.ketQuaGiaiQuyet.split('\n') : ["Đã giải quyết", "---", "---"];
+        statusContent = `
+          <div class="fw-bold text-success text-truncate" style="font-size:12px; max-width: 180px;">
+            <i class="fas fa-check-circle me-1"></i>${resLines[0] || '---'}
+          </div>
+          <div class="text-dark mt-1" style="font-size:11.5px;">Số: <b>${resLines[1] || '---'}</b></div>
+          <div class="text-muted" style="font-size:11px;">Ngày: ${resLines[2] || '---'}</div>`;
+      } else {
+        statusContent = `
+          <div class="badge bg-light border ${an.liveClass}" style="font-size: 10px; padding: 4px 8px; border-radius: 4px;">
+            ${an.liveStatus}
+          </div>
+          <div class="text-muted mt-2" style="font-size:11px">
+            <i class="${an.liveStatus === 'Tạm đình chỉ' ? 'fas fa-pause-circle' : 'far fa-calendar-alt'} me-1"></i>
+            HẠN: <b>${dateVN(an.rawHanDate)}</b>
+          </div>`;
+      }
+
+      var qltaBadge = (an.qltaStatus !== 'Xong')
+        ? `<div class="badge bg-danger-subtle text-danger-emphasis mt-1" style="cursor:pointer; font-size:9px;" onclick="event.stopPropagation(); updateSystemTag('${an.id}', 'QLTA')" title="Click để đánh dấu đã nhập QLTA">Chưa QLTA</div>`
+        : '';
+      
+      var cbBadge = (an.liveStatus === "Đã giải quyết" && an.congBoStatus !== 'Đã đăng')
+        ? `<div class="badge bg-warning-subtle text-warning-emphasis mt-1" style="cursor:pointer; font-size:9px;" onclick="event.stopPropagation(); updateSystemTag('${an.id}', 'CONGBO')" title="Click để đánh dấu đã Công bố">Chưa Công bố</div>`
+        : '';
+
+      htmlRows.push(`
+        <tr style="border-left: 4px solid ${borderLeft}; transition: background 0.2s; cursor: pointer;" onclick="moChiTiet('${an.id}')">
+          <td class="text-center" onclick="event.stopPropagation();">
+             <input type="checkbox" class="form-check-input case-select-checkbox shadow-sm" data-id="${an.id}" style="cursor: pointer; width: 1.1rem; height: 1.1rem;">
+          </td>
+          <td>
+            <div class="fw-bold text-primary" style="font-size:13.5px">${an.soTL}</div>
+            <div class="text-muted small mt-1"><i class="fas fa-calendar-day me-1"></i>${dateVN(an.rawDate)}</div>
+            <div class="d-flex gap-1 mt-1">${qltaBadge} ${cbBadge}</div>
+          </td>
+          <td>
+            <div class="fw-bold text-danger text-truncate" style="font-size: 12.5px; max-width: 230px;" title="${an.nguyenDon}">${an.nguyenDon}</div>
+            <div class="fw-bold text-dark text-truncate mt-1" style="font-size: 12.5px; max-width: 230px;" title="${an.biDon}">${an.biDon}</div>
+          </td>
+          <td>
+            <div class="fw-bold text-dark text-truncate" style="font-size: 12.5px; max-width: 230px;" title="${an.quanHe}">${an.quanHe}</div>
+            <div class="text-muted fst-italic mt-1" style="font-size:10.5px">${an.loaiAn}</div>
+          </td>
+          <td>${statusContent}</td>
+          <td class="text-center">
+            <div class="d-flex justify-content-center gap-1">
+              <button class="btn btn-sm btn-light border shadow-sm text-primary" onclick="event.stopPropagation(); moChiTiet('${an.id}')" title="Mở chi tiết" style="width: 32px; height: 32px; border-radius: 8px;"><i class="fas fa-folder-open"></i></button>
+              <button class="btn btn-sm btn-light border shadow-sm text-info" onclick="event.stopPropagation(); openEditCaseModal('${an.id}')" title="Sửa" style="width: 32px; height: 32px; border-radius: 8px;"><i class="fas fa-edit"></i></button>
+              <button class="btn btn-sm btn-light border shadow-sm text-danger" onclick="event.stopPropagation(); confirmDeleteSingleCase('${an.id}')" title="Xóa" style="width: 32px; height: 32px; border-radius: 8px;"><i class="fas fa-trash-alt"></i></button>
+            </div>
+          </td>
+        </tr>
+      `);
+    }
+    
+    tbody.innerHTML = htmlRows.join('');
+    const selectAllCb = document.getElementById('select-all-checkbox');
+    if (selectAllCb) selectAllCb.checked = false;
+    const btnDelete = document.getElementById('btn-bulk-delete');
+    if (btnDelete) btnDelete.classList.add('d-none');
+  }
+
+  function updateSystemTag(idVuAn, type) {
+    if (event) event.stopPropagation();
+    
+    var title = type === 'QLTA' ? "Xác nhận phần mềm QLTA" : "Xác nhận Công bố Bản án";
+    var msg = type === 'QLTA' ? "Đánh dấu hồ sơ này đã được nhập lên phần mềm QLTA?" : "Đánh dấu hồ sơ này đã được Công bố lên Cổng TTĐT?";
+    
+    AppUI.confirm(title, msg, 'primary', function() {
+        AppUI.showToast("Đang cập nhật thẻ đánh dấu...", "");
+        google.script.run
+          .withSuccessHandler(function(res){
+            if(res.success) {
+              var an = G_An.find(c => c.id === idVuAn);
+              if (an) {
+                if (type === 'QLTA') an.qltaStatus = 'Xong';
+                if (type === 'CONGBO') an.congBoStatus = 'Đã đăng';
+                runFilterEngine();
+              }
+              AppUI.showToast("Đã cập nhật trạng thái!", "success");
+              window.open(type === 'QLTA' ? "https://qlta.toaan.gov.vn/Launcher.aspx" : "https://congbo.toaan.gov.vn", "_blank");
+            } else { AppUI.showToast("Lỗi: " + res.error, "error"); }
+          })
+          .withFailureHandler(function(err) { AppUI.showToast("Lỗi mạng: " + err.message, "error"); })
+          .api_UpdateSystemStatus(idVuAn, type);
+    });
+  }
+
+  // =========================================================
+  // XỬ LÝ SỔ ĐƠN (TIỀN TỐ TỤNG)
+  // =========================================================
+  function loadDanhSachDon(isForceRefresh) {
+    if (G_Don && G_Don.length > 0 && !isForceRefresh) { 
+        runFilterDonEngine(); 
+        return; 
+    }
+    
+    var tbody = document.getElementById('don-list-data');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center p-5"><div class="spinner-border text-info me-2"></div><span class="text-muted fw-bold">Đang tải Sổ nhận đơn...</span></td></tr>';
+
+    google.script.run
+      .withSuccessHandler(function(data) {
+        if (data && data.error) {
+          if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center p-5 text-danger">' + data.error + '</td></tr>';
+          return;
+        }
+        G_Don = data || [];
+        window.requestAnimationFrame(() => runFilterDonEngine());
+      })
+      .withFailureHandler(function(err) {
+         if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center p-5 text-danger">Lỗi kết nối Server: ' + err.message + '</td></tr>';
+      })
+      .api_LayDanhSachDon();
+  }
+
+  function runFilterDonEngine() {
+    if (!G_Don || G_Don.length === 0) { renderDonTable([]); return; }
+    
+    // Đọc filter từ UI_DanhSach_Don.html
+    var donSearchEl = document.getElementById('don_txtSearch');
+    var donStartEl = document.getElementById('don_filter_start');
+    var donEndEl = document.getElementById('don_filter_end');
+
+    var q = donSearchEl ? donSearchEl.value.toLowerCase().trim() : "";
+    var sTime = (donStartEl && donStartEl.value) ? new Date(donStartEl.value).getTime() : 0;
+    var eTime = (donEndEl && donEndEl.value) ? new Date(donEndEl.value).getTime() + 86399999 : Infinity;
+
+    var displayList = [];
+    var cTotal = 0, cPending = 0, cUrgent = 0, cDone = 0, cReturned = 0;
+    var todayTime = new Date().getTime();
+
+    for (var i = 0; i < G_Don.length; i++) {
+        var don = G_Don[i];
+        
+        // Lọc theo ngày
+        if (don.rawDate < sTime || don.rawDate > eTime) continue;
+        
+        // Lọc theo từ khóa
+        if (q) {
+            if (don.soDon.toLowerCase().indexOf(q) === -1 && 
+                don.nguoiKhoiKien.toLowerCase().indexOf(q) === -1 &&
+                don.nguoiBiKien.toLowerCase().indexOf(q) === -1 && 
+                don.quanHe.toLowerCase().indexOf(q) === -1) {
+                continue;
+            }
+        }
+
+        displayList.push(don);
+        cTotal++;
+
+        var tt = don.trangThai ? don.trangThai.toLowerCase() : "";
+        if (tt.includes("đã thụ lý")) {
+            cDone++;
+        } else if (tt.includes("trả lại") || tt.includes("chuyển")) {
+            cReturned++;
+        } else {
+            cPending++;
+            // Đơn mới nhận có thời hạn xử lý 8 ngày làm việc (Tính nhẩm ~ 10 ngày dương lịch)
+            var diffDays = Math.ceil((todayTime - don.rawDate) / 86400000);
+            if (diffDays >= 8) cUrgent++; 
+        }
+    }
+
+    // Cập nhật Dashboard Đơn
+    if(document.getElementById('don_stat_total')) document.getElementById('don_stat_total').innerText = cTotal;
+    if(document.getElementById('don_stat_pending')) document.getElementById('don_stat_pending').innerText = cPending;
+    if(document.getElementById('don_stat_urgent')) document.getElementById('don_stat_urgent').innerText = cUrgent;
+    if(document.getElementById('don_stat_done')) document.getElementById('don_stat_done').innerText = cDone;
+    if(document.getElementById('don_stat_returned')) document.getElementById('don_stat_returned').innerText = cReturned;
+
+    renderDonTable(displayList);
+  }
+
+  function renderDonTable(data) {
+    var tbody = document.getElementById('don-list-data');
+    if (!tbody) return;
+    
+    if (!data || data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center p-5 text-muted small"><i class="fas fa-box-open fa-2x mb-2 d-block opacity-25"></i>Không có dữ liệu đơn phù hợp.</td></tr>`;
+      return;
+    }
+
+    var htmlRows = data.map(function(don) {
+      var badgeClass = "bg-primary";
+      var tt = (don.trangThai || "").toLowerCase();
+      
+      if (tt.includes("thụ lý") || tt.includes("thành án")) badgeClass = "bg-success";
+      else if (tt.includes("trả") || tt.includes("chuyển")) badgeClass = "bg-secondary";
+      else if (tt.includes("bổ sung")) badgeClass = "bg-warning text-dark";
+
+      var warningStyle = "";
+      if (!tt.includes("thụ lý") && !tt.includes("trả") && !tt.includes("chuyển")) {
+          var diff = (new Date().getTime() - don.rawDate) / (1000 * 60 * 60 * 24);
+          if (diff >= 8) warningStyle = "border-left: 4px solid #ef4444;";
+      }
+
+      return `
+        <tr style="cursor: pointer; ${warningStyle}" onclick="moChiTietDon('${don.id}')">
+          <td class="ps-3">
+            <div class="fw-bold text-primary">${don.soDon || '---'}</div>
+            <div class="text-muted small mt-1"><i class="far fa-calendar-alt me-1"></i>${don.ngayNhan}</div>
+          </td>
+          <td>
+            <div class="fw-bold text-danger text-truncate" style="max-width: 250px;">${don.nguoiKhoiKien || '---'}</div>
+          </td>
+          <td>
+            <div class="fw-bold text-dark text-truncate" style="max-width: 250px;">${don.nguoiBiKien || '---'}</div>
+          </td>
+          <td>
+            <div class="text-dark fw-bold text-truncate" style="max-width: 250px;">${don.quanHe}</div>
+            <div class="text-muted small italic">${don.loaiAn}</div>
+          </td>
+          <td class="text-center">
+            <span class="badge ${badgeClass} shadow-sm px-3 py-2" style="font-size: 10px; border-radius: 6px;">
+              ${don.trangThai || 'Chưa xử lý'}
+            </span>
+          </td>
+        </tr>
+      `;
+    });
+
+    tbody.innerHTML = htmlRows.join('');
+  }
+
+  // =========================================================
+  // LOGIC KHỞI ĐỘNG CHÍNH (ONLOAD)
+  // =========================================================
+  window.onload = function() {
+    try {
+      startSplashScreen();
+      loadJudgeIdentity();
+      
+      var startDate = getStatisticalStartDate();
+      G_Filter.start = startDate;
+      if(document.getElementById('filter-start')) document.getElementById('filter-start').value = startDate;
+      if(document.getElementById('filter-end')) document.getElementById('filter-end').valueAsDate = new Date();
+      
+      // Mặc định khởi động vào SỔ THỤ LÝ
+      appNavigate('view-list'); 
+
+    } catch(e) {
+      AppUI.alert("Lỗi khởi tạo", e.message);
+      hideSplashScreen();
+    }
+  };
+</script>

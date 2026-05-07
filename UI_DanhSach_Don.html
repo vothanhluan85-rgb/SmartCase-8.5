@@ -1,0 +1,114 @@
+<!--
+  HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V7.6 - GIAO DIỆN DANH SÁCH ĐƠN
+  FILE: UI_DanhSach_Don.html (BẢN SẠCH - KHÔNG CHỨA SCRIPT)
+-->
+
+<div class="animate-fadeIn p-2 p-md-3">
+
+  <!-- 1. DASHBOARD THỐNG KÊ ĐƠN -->
+  <div class="row g-2 mb-3">
+    <div class="col-6 col-md-4 col-xl">
+      <div class="stat-card" style="border-left: 4px solid var(--primary);">
+        <div class="stat-title">TỔNG ĐƠN NHẬN</div>
+        <div class="stat-main-val text-primary" id="don_stat_total">0</div>
+        <div class="stat-sub-val">Trong kỳ báo cáo</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl">
+      <div class="stat-card" style="border-left: 4px solid #f59e0b;">
+        <div class="stat-title">ĐANG XỬ LÝ</div>
+        <div class="stat-main-val text-warning" id="don_stat_pending">0</div>
+        <div class="stat-sub-val">Chưa ra quyết định</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl">
+      <div class="stat-card" style="border-left: 4px solid #ef4444;">
+        <div class="stat-title">SẮP HẾT HẠN</div>
+        <div class="stat-main-val text-danger" id="don_stat_urgent">0</div>
+        <div class="stat-sub-val">Quá 8 ngày làm việc</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl">
+      <div class="stat-card" style="border-left: 4px solid #10b981;">
+        <div class="stat-title">ĐÃ THỤ LÝ ÁN</div>
+        <div class="stat-main-val text-success" id="don_stat_done">0</div>
+        <div class="stat-sub-val">Đã chuyển thành án</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl">
+      <div class="stat-card" style="border-left: 4px solid #64748b;">
+        <div class="stat-title">TRẢ LẠI / CHUYỂN</div>
+        <div class="stat-main-val text-secondary" id="don_stat_returned">0</div>
+        <div class="stat-sub-val">Đã giải quyết xong đơn</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. THANH CÔNG CỤ TÁC NGHIỆP -->
+  <div class="bg-white p-2 mb-3 shadow-sm" style="border-radius: 12px; border: 1px solid #eef2f7;">
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+      
+      <!-- Tìm kiếm -->
+      <div class="flex-grow-1" style="min-width: 250px;">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
+          <input type="text" id="don_txtSearch" class="form-control border-start-0 ps-0 fw-bold" 
+                 placeholder="Tìm theo số đơn, tên đương sự, quan hệ tranh chấp..." oninput="runFilterDonEngine()">
+        </div>
+      </div>
+
+      <!-- Lọc ngày -->
+      <div class="d-flex align-items-center gap-2">
+        <span class="small text-muted fw-bold">Từ:</span>
+        <div style="width: 140px;">
+          <input type="date" id="don_filter_start" class="form-control form-control-sm text-muted" onchange="runFilterDonEngine()">
+        </div>
+        <span class="small text-muted fw-bold">Đến:</span>
+        <div style="width: 140px;">
+          <input type="date" id="don_filter_end" class="form-control form-control-sm text-muted" onchange="runFilterDonEngine()">
+        </div>
+      </div>
+
+      <div class="vr mx-1 d-none d-lg-block"></div>
+
+      <!-- Nút bấm -->
+      <button class="btn btn-sm btn-primary fw-bold px-3 shadow-sm" onclick="moModalThemDonMoi()">
+        <i class="fas fa-plus-circle me-1"></i> NHẬN ĐƠN MỚI
+      </button>
+      
+      <button class="btn btn-sm btn-outline-success fw-bold px-3" onclick="AppUI.alert('Tính năng', 'Tính năng đồng bộ Excel cho Đơn đang được cập nhật...')">
+        <i class="fas fa-file-excel me-1"></i> EXCEL
+      </button>
+
+      <button class="btn btn-sm btn-light border px-2" onclick="loadDanhSachDon(true)" title="Tải lại dữ liệu">
+        <i class="fas fa-sync-alt"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- 3. BẢNG DỮ LIỆU ĐƠN -->
+  <div class="bg-white shadow-sm overflow-hidden" style="border-radius: 12px; border: 1px solid #eef2f7;">
+    <div class="table-responsive" style="max-height: calc(100vh - 300px);">
+      <table class="table table-hover gs-table align-middle m-0" style="min-width: 1100px;">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3" style="width: 15%;">SỐ / NGÀY NHẬN</th>
+            <th style="width: 23%;">NGƯỜI KHỞI KIỆN / YÊU CẦU</th>
+            <th style="width: 23%;">NGƯỜI BỊ KIỆN / BỊ YÊU CẦU</th>
+            <th style="width: 24%;">QUAN HỆ TRANH CHẤP</th>
+            <th class="text-center" style="width: 15%;">TRẠNG THÁI</th>
+          </tr>
+        </thead>
+        <tbody id="don-list-data">
+          <!-- Dữ liệu nạp bằng Javascript -->
+          <tr>
+            <td colspan="5" class="text-center p-5 text-muted">
+              <div class="spinner-border spinner-border-sm me-2 text-primary"></div> Đang tải sổ nhận đơn...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>

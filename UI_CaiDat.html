@@ -1,0 +1,214 @@
+<!--
+  HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V7.5.3 - GROQ AI EDITION
+  FILE: UI_CaiDat.html
+  ------------------------------------------------------------
+  BẢN CẬP NHẬT THEO YÊU CẦU:
+  - Loại bỏ hoàn toàn khối AI tạo biểu mẫu cũ.
+  - Bổ sung công cụ Download file JSON chứa dữ liệu Placeholder cho việc đối chiếu (Req 6.2).
+-->
+
+<div class="animate-fadeIn p-2 p-md-4">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+      
+      <!-- ==========================================
+           PHẦN 1: BRANDING & LOGO
+      =========================================== -->
+      <div class="text-center mb-5">
+        <div class="position-relative d-inline-block">
+          <i class="fas fa-scale-balanced text-primary mb-2" style="font-size: 60px; filter: drop-shadow(0 4px 6px rgba(26,115,232,0.3));"></i>
+          <i class="fas fa-bolt text-warning position-absolute" style="font-size: 24px; bottom: 0; right: -10px;"></i>
+        </div>
+        <h3 class="fw-bold text-dark mt-2 mb-1" style="letter-spacing: 1px; font-size: 24px;">TRỢ LÝ THẨM PHÁN V7.5 <span class="text-primary">GROQ AI</span></h3>
+        <p class="text-muted fst-italic" style="font-size: 14px; font-weight: 500;">
+          "Phiên bản Groq Edition — Tốc độ xử lý cực nhanh, trích xuất chính xác"
+        </p>
+        <div class="mx-auto" style="width: 60px; height: 3px; background: var(--primary); border-radius: 2px;"></div>
+      </div>
+
+      <!-- KHỐI 1: ĐỊNH DANH NGHIỆP VỤ -->
+      <div class="bg-white shadow-sm mb-4" style="border-radius: 15px; border: 1px solid #e0e0e0; overflow: hidden;">
+        <div class="p-3 border-bottom bg-light d-flex align-items-center">
+          <i class="fas fa-id-badge text-primary me-2"></i>
+          <h6 class="fw-bold m-0 text-dark text-uppercase" style="font-size: 12px;">1. Thông tin định danh hệ thống</h6>
+        </div>
+        <div class="p-3 p-md-4">
+          <div class="row g-3">
+            <div class="col-12 col-md-8">
+              <label class="small-label">Họ và tên Thẩm phán *</label>
+              <input type="text" id="set_tenTP" class="form-control fw-bold border-primary" placeholder="Nhập họ tên đầy đủ...">
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="small-label">Chức vụ hiện tại</label>
+              <input type="text" id="set_chucVu" class="form-control" value="Thẩm phán">
+            </div>
+            <div class="col-12 col-md-4">
+              <label class="small-label">Tên Tòa án *</label>
+              <input type="text" id="set_tenToa" class="form-control" placeholder="TAND Khu vực 2...">
+            </div>
+            <div class="col-12 col-md-8">
+              <label class="small-label">Địa chỉ Tòa án *</label>
+              <input type="text" id="set_diaChiToa" class="form-control" placeholder="Quốc lộ 20, Đức Trọng, Lâm Đồng...">
+            </div>
+            <div class="col-12">
+              <label class="small-label">Họ tên Thư ký (Nếu có)</label>
+              <input type="text" id="set_tenTK" class="form-control" placeholder="Điền để tự động hóa biên bản...">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KHỐI 2: CẤU HÌNH LƯU TRỮ ĐÁM MÂY -->
+      <div class="bg-white shadow-sm mb-4" style="border-radius: 15px; border: 1px solid #e0e0e0; overflow: hidden;">
+        <div class="p-3 border-bottom bg-light d-flex align-items-center">
+          <i class="fab fa-google-drive text-success me-2"></i>
+          <h6 class="fw-bold m-0 text-dark text-uppercase" style="font-size: 12px;">2. Kết nối Google Drive</h6>
+        </div>
+        <div class="p-3 p-md-4">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="small-label text-primary">ID Thư mục "Hồ Sơ Vụ Án" (Lưu trữ gốc)</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light"><i class="fas fa-folder text-primary"></i></span>
+                <input type="text" id="set_idRoot" class="form-control fw-bold text-primary" placeholder="Dán ID thư mục gốc từ đường link Drive...">
+              </div>
+              <div class="form-text" style="font-size: 11px;">Đây là nơi hệ thống tạo các thư mục con theo loại án và năm.</div>
+            </div>
+            <div class="col-12">
+              <label class="small-label text-success">ID Thư mục "Biểu mẫu Văn Bản" (.docx)</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light"><i class="fas fa-file-word text-success"></i></span>
+                <input type="text" id="set_idTemplate" class="form-control fw-bold text-success" placeholder="Dán ID thư mục chứa các file mẫu...">
+                <button class="btn btn-outline-success fw-bold" onclick="testDriveLink()"><i class="fas fa-external-link-alt"></i> Mở thử</button>
+              </div>
+              <div class="form-text" style="font-size: 11px;">Nơi lưu trữ các file mẫu để thực hiện trộn văn bản (Mail Merge).</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KHỐI 3: CẤU HÌNH AI (DUY NHẤT GROQ) -->
+      <div class="bg-white shadow-sm mb-4" style="border-radius: 15px; border: 1px solid #e0e0e0; overflow: hidden;">
+        <div class="p-3 border-bottom bg-danger-subtle d-flex align-items-center">
+          <i class="fas fa-bolt text-danger me-2"></i>
+          <h6 class="fw-bold m-0 text-dark text-uppercase" style="font-size: 12px;">3. Cấu hình Trí tuệ nhân tạo (GROQ AI)</h6>
+        </div>
+        <div class="p-3 p-md-4">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="small-label text-danger">GROQ API KEY (Bắt buộc để sử dụng AI Quét & Trích xuất)</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light"><i class="fas fa-key text-danger"></i></span>
+                <input type="password" id="set_groqKey" class="form-control fw-bold border-danger text-danger" placeholder="Dán mã API Key của Groq vào đây...">
+              </div>
+              <div class="form-text" style="font-size: 11px;">
+                Lấy khóa miễn phí tại <a href="https://console.groq.com/keys" target="_blank" class="fw-bold">Groq Cloud Console</a>.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ĐÃ SỬA: KHỐI 4 TẢI TỪ ĐIỂN PLACEHOLDER (Req 6.2, Req 7) -->
+      <div class="bg-white shadow-sm mb-4" style="border-radius: 15px; border: 1px solid #e0e0e0; overflow: hidden;">
+        <div class="p-3 border-bottom bg-info-subtle d-flex align-items-center">
+          <i class="fas fa-book text-info me-2"></i>
+          <h6 class="fw-bold m-0 text-dark text-uppercase" style="font-size: 12px;">4. Từ điển Placeholder Trộn văn bản</h6>
+        </div>
+        <div class="p-3 p-md-4 text-center">
+          <p class="text-muted mb-3" style="font-size: 13px;">
+            Hệ thống cung cấp sẵn bảng từ điển chứa toàn bộ các biến số (Placeholder) hỗ trợ tự động điền thông tin vào File Word.<br>
+            Bạn có thể tải danh sách này về để dễ dàng tra cứu hoặc đối chiếu với cấu hình trên Sheet <b>6_Placeholder</b>.
+          </p>
+          <button type="button" class="btn btn-info text-white fw-bold px-4 py-2 shadow-sm" onclick="downloadPlaceholderDict()">
+             <i class="fas fa-download me-2"></i> TẢI VỀ TỪ ĐIỂN PLACEHOLDER (.JSON)
+          </button>
+        </div>
+      </div>
+
+      <!-- NÚT LƯU CẤU HÌNH -->
+      <div class="d-flex justify-content-center mb-5 mt-4">
+        <button class="btn btn-primary px-5 py-3 shadow-lg fw-bold" style="border-radius: 12px; font-size: 16px;" onclick="saveSettings()">
+          <i class="fas fa-save me-2"></i> LƯU TOÀN BỘ CẤU HÌNH
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .small-label { font-size: 11px; font-weight: 700; color: #5f6368; text-transform: uppercase; display: block; margin-bottom: 5px; }
+  .form-control:focus, .form-select:focus { box-shadow: none; border-color: var(--primary); }
+</style>
+
+<script>
+  function loadSettingsData() {
+    google.script.run.withSuccessHandler(function(config) {
+      if (config) {
+        document.getElementById('set_tenTP').value = config.TEN_THAM_PHAN || "";
+        document.getElementById('set_tenToa').value = config.TEN_TOA_AN || "";
+        document.getElementById('set_diaChiToa').value = config.DIA_CHI_TOA || "";
+        document.getElementById('set_chucVu').value = config.CHUC_VU || "Thẩm phán";
+        document.getElementById('set_tenTK').value = config.TEN_THU_KY || "";
+        document.getElementById('set_idRoot').value = config.ID_THUMUC_AN || "";
+        document.getElementById('set_idTemplate').value = config.ID_THUMUC_MAU || "";
+        
+        if(document.getElementById('set_groqKey')) {
+          document.getElementById('set_groqKey').value = config.GROQ_API_KEY || "";
+        }
+      }
+    }).api_GetAppIdentity();
+  }
+
+  function saveSettings() {
+    const data = {
+      TEN_THAM_PHAN: document.getElementById('set_tenTP').value.trim(),
+      TEN_TOA_AN: document.getElementById('set_tenToa').value.trim(),
+      DIA_CHI_TOA: document.getElementById('set_diaChiToa').value.trim(),
+      CHUC_VU: document.getElementById('set_chucVu').value.trim(),
+      TEN_THU_KY: document.getElementById('set_tenTK').value.trim(),
+      ID_THUMUC_AN: document.getElementById('set_idRoot').value.trim(),
+      ID_THUMUC_MAU: document.getElementById('set_idTemplate').value.trim(),
+      GROQ_API_KEY: document.getElementById('set_groqKey') ? document.getElementById('set_groqKey').value.trim() : ""
+    };
+    
+    AppUI.showToast("Đang lưu cấu hình...", "");
+    google.script.run.withSuccessHandler(function(success) {
+      if (success) {
+        AppUI.showToast("Đã cập nhật cài đặt thành công!", "success");
+        if (typeof loadJudgeIdentity === 'function') loadJudgeIdentity();
+      }
+      else {
+        AppUI.showToast("Lỗi: Không thể lưu dữ liệu.", "error");
+      }
+    }).api_SaveAppSettings(data);
+  }
+
+  function testDriveLink() {
+    var id = document.getElementById('set_idTemplate').value.trim();
+    if(id) window.open("https://drive.google.com/drive/folders/" + id, '_blank');
+    else AppUI.alert("Thiếu thông tin", "Vui lòng nhập ID Thư mục mẫu trước!");
+  }
+
+  // ĐÃ SỬA: Hàm gọi server lấy Json Placeholder và tự động ép Browser tải về (Req 6.2 / Req 7)
+  function downloadPlaceholderDict() {
+     AppUI.showToast("Đang chuẩn bị file tải về...", "");
+     google.script.run.withSuccessHandler(function(list) {
+         if(!list || list.length === 0) {
+             AppUI.alert("Lỗi", "Không tìm thấy dữ liệu từ điển.");
+             return;
+         }
+         var jsonStr = JSON.stringify(list, null, 2);
+         var blob = new Blob([jsonStr], { type: "application/json" });
+         var url = window.URL.createObjectURL(blob);
+         var a = document.createElement("a");
+         a.href = url;
+         a.download = "TuDien_Placeholder_V7.5.json";
+         document.body.appendChild(a);
+         a.click();
+         document.body.removeChild(a);
+         window.URL.revokeObjectURL(url);
+         AppUI.hideToast();
+     }).backend_GetAllPlaceholders();
+  }
+</script>

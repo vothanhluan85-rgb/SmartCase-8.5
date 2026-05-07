@@ -1,0 +1,286 @@
+<!--
+  HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V7.5.4 - GROQ AI EDITION
+  FILE: UI_ChiTiet.html (ĐÃ BỎ 2 NÚT TAKV2 VÀ LỊCH XX)
+-->
+
+<div class="animate-fadeIn p-2 p-md-3">
+ 
+  <!-- 1. THANH ĐIỀU HƯỚNG -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <button class="btn btn-outline-secondary shadow-sm fw-bold" style="border-radius: 20px; font-size: 12px; height: 38px;" onclick="appNavigate('view-list')">
+      <i class="fas fa-chevron-left me-2"></i>QUAY LẠI SỔ THỤ LÝ
+    </button>
+    <div class="d-flex gap-2">
+      <button class="btn btn-light border shadow-sm fw-bold px-3 py-2" onclick="openEditCaseModal()" style="border-radius: 8px; font-size: 12px; color: #f97316;"><i class="fas fa-edit me-1"></i> SỬA ÁN</button>
+      <button class="btn btn-light border shadow-sm fw-bold px-3 py-2 text-danger" onclick="confirmDeleteCase()" style="border-radius: 8px; font-size: 12px;"><i class="fas fa-trash-alt me-1"></i> XÓA ÁN</button>
+    </div>
+  </div>
+
+  <!-- 2. BANNER TÓM TẮT (Đã xóa 2 nút TAKV2 và Lịch XX) -->
+  <div class="shadow-sm border-0 position-relative animate-fadeIn bg-white mb-3 p-3 p-md-0" id="banner-status-border" style="border-radius: 12px; border-left: 5px solid #1a73e8;">
+    <div class="row g-0 align-items-center">
+      <div class="col-12 col-md-3 banner-block has-border ps-md-4 py-md-3">
+        <span class="label-slim">Số thụ lý sơ thẩm</span>
+        <div class="val-bold text-primary text-truncate" id="det-so" data-id="" style="font-size: 18px;">---</div>
+      </div>
+      <div class="col-6 col-md-2 banner-block has-border py-md-3 px-md-3"><span class="label-slim">Ngày thụ lý</span><div class="val-bold" id="det-ngay" style="font-size: 14px;">--/--/----</div></div>
+      <div class="col-12 col-md-3 banner-block has-border py-md-3 px-md-3"><span class="label-slim">Quan hệ / Tội danh</span><div class="val-bold text-truncate" id="det-quanhe" style="font-size: 14px;">---</div></div>
+      <div class="col-6 col-md-2 banner-block has-border text-md-center py-md-3 px-md-3"><span class="label-slim">Trạng thái</span><div class="val-bold text-success text-truncate" id="det-trangthai" style="font-size: 14px;">---</div></div>
+      <div class="col-6 col-md-2 banner-block text-md-center py-md-3 px-md-3"><span class="label-slim">Hạn cuối</span><div class="val-bold text-danger" id="det-thoihan" style="font-size: 14px;">--/--/----</div></div>
+    </div>
+  </div>
+
+  <!-- 3. NÚT NGHIỆP VỤ NHANH -->
+  <div class="d-flex justify-content-end gap-2 mb-4 animate-fadeIn">
+    <button class="btn btn-primary shadow-sm fw-bold px-3 py-2" onclick="openDraftingModal('CURRENT_CASE')" style="border-radius: 8px; font-size: 12px;"><i class="fas fa-file-signature me-2"></i> SOẠN THẢO VĂN BẢN</button>
+    <button class="btn btn-success shadow-sm fw-bold px-3 py-2" onclick="openResolutionModal()" style="border-radius: 8px; font-size: 12px;"><i class="fas fa-gavel me-2"></i> CẬP NHẬT KẾT QUẢ</button>
+  </div>
+
+  <!-- 4. KHÔNG GIAN TÁC NGHIỆP CHÍNH -->
+  <div class="row g-4">
+    <div class="col-lg-8 col-xl-9">
+      <div class="bg-white shadow-sm h-100" style="border-radius: 12px; border: 1px solid #e0e0e0;">
+        <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+            <h6 class="fw-bold m-0 text-primary" style="font-size: 14px;"><i class="fas fa-users-cog me-2"></i>THÀNH PHẦN ĐƯƠNG SỰ</h6>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-info px-3 fw-bold shadow-sm" style="font-size: 11px;" onclick="triggerUpdateScan()"><i class="fas fa-brain me-1"></i> AI QUÉT & CẬP NHẬT</button>
+                <button class="btn btn-sm btn-outline-primary px-3 fw-bold shadow-sm" style="font-size: 11px;" onclick="moModalQuanLyDuongSu()"><i class="fas fa-edit me-1"></i> QUẢN LÝ ĐƯƠNG SỰ</button>
+                <input type="file" id="case-update-scan-input" class="d-none" accept=".doc,.docx,.pdf" onchange="handleCaseUpdateScan(this)">
+            </div>
+        </div>
+        <div class="table-responsive">
+          <table class="gs-table w-100 mb-0" style="min-width: 700px;">
+            <thead>
+              <tr>
+                <th style="width: 20%;">TƯ CÁCH</th>
+                <th style="width: 30%;">HỌ TÊN / NHÂN THÂN</th>
+                <th style="width: 35%;">ĐỊA CHỈ & LIÊN HỆ</th>
+                <th style="width: 15%;" class="text-center">THAO TÁC</th>
+              </tr>
+            </thead>
+            <tbody id="det-party-list">
+              <tr><td colspan="4" class="text-center p-5 text-muted small italic">Đang tải danh sách đương sự...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4 col-xl-3 d-flex flex-column gap-4">
+      <!-- HỒ SƠ DRIVE -->
+      <div class="bg-white shadow-sm p-3" style="border-radius: 12px; border: 1px solid #e0e0e0;">
+        <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+          <h6 class="fw-bold m-0 text-dark" style="font-size: 13px;"><i class="fas fa-folder-open me-2 text-warning"></i>HỒ SƠ DRIVE</h6>
+          <button class="btn btn-sm p-1 text-muted border-0 bg-light rounded-circle" style="width: 28px; height: 28px;" onclick="refreshDetailFiles()" title="Làm mới"><i class="fas fa-sync-alt"></i></button>
+        </div>
+        <div id="det-files" class="d-flex flex-column gap-1" style="max-height: 250px; overflow-y: auto; padding-right: 5px;"></div>
+        <div class="mt-3 pt-3 border-top">
+          <button id="btn-open-drive" class="btn btn-sm btn-outline-success w-100 fw-bold mb-2 py-2" style="font-size: 11px;" onclick="openDetailDrive()"><i class="fab fa-google-drive me-2"></i> MỞ DRIVE VỤ ÁN</button>
+          <input type="file" id="local-file-uploader" multiple style="display:none;" onchange="handleLocalFileUpload(this)">
+          <button class="btn btn-sm btn-primary w-100 fw-bold shadow-sm py-2" style="font-size: 11px;" onclick="document.getElementById('local-file-uploader').click()"><i class="fas fa-cloud-upload-alt me-2"></i> TẢI FILE LÊN DRIVE</button>
+        </div>
+      </div>
+
+      <!-- GHI CHÚ NGHIỆP VỤ -->
+      <div class="shadow-sm h-100 flex-grow-1" style="border-radius: 12px; background: #fffdf2; border: 1px solid #ffeeba;">
+        <div class="p-3 h-100 d-flex flex-column">
+          <div class="fw-bold border-bottom pb-2" style="font-size: 12px; color: #856404; margin-bottom: 12px; border-color: #f6e297 !important;">
+            <i class="far fa-sticky-note me-2"></i>GHI CHÚ NGHIỆP VỤ
+          </div>
+          <textarea id="det-quick-note" class="form-control border-0 bg-transparent shadow-none flex-grow-1 px-0" style="font-size: 13px; color: #333; resize: none; line-height: 1.6; min-height: 150px;" placeholder="Nhập ghi chú nhanh (Tự động lưu)..." onblur="saveQuickNote()"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .banner-block { padding: 10px 0; }
+  .label-slim { font-size: 10px; font-weight: 800; color: #5f6368; text-transform: uppercase; display: block; margin-bottom: 3px; }
+  @media (min-width: 768px) { .banner-block.has-border { border-right: 1px solid #e0e0e0; } }
+</style>
+
+<script>
+  var currentCaseId = null;
+  var currentCaseData = null;
+
+  function confirmDeleteCase() {
+    if (!currentCaseId) return;
+    const msg = "⚠️ <b>CẢNH BÁO XÓA VĨNH VIỄN!</b>\nBạn sắp xóa hồ sơ này.\nMọi dữ liệu và thư mục Drive sẽ bị xóa sạch.\n\nBạn có chắc chắn muốn thực hiện không?";
+    AppUI.confirm("Xác nhận Xóa Hồ sơ", msg, 'danger', function() {
+        AppUI.showToast("Đang xóa hồ sơ...", "");
+        google.script.run.withSuccessHandler(res => {
+            if (res.success) { AppUI.showToast("Đã xóa hồ sơ thành công.", "success"); appNavigate('view-list'); loadCaseList(true); } 
+            else { AppUI.showToast("Lỗi: " + res.error, "error"); }
+        }).withFailureHandler(err => { AppUI.showToast("Lỗi kết nối: " + err.message, "error"); }).api_DeleteCase(currentCaseId);
+    });
+  }
+
+  function saveQuickNote() {
+    var elSo = document.getElementById('det-so');
+    var elNote = document.getElementById('det-quick-note');
+    if (elSo && elNote) {
+      var idAn = elSo.getAttribute('data-id');
+      var note = elNote.value;
+      if (idAn) {
+        google.script.run.withSuccessHandler(() => {
+          if (currentCaseData) currentCaseData.info.ghiChu = note;
+          let an = G_Cases.find(c => c.id === idAn);
+          if(an) an.ghiChu = note;
+        }).api_UpdateQuickNote(idAn, note);
+      }
+    }
+  }
+
+  function refreshDetailFiles() {
+    const folderUrl = document.getElementById('btn-open-drive').getAttribute('data-url');
+    if (!folderUrl) return;
+    document.getElementById('det-files').innerHTML = '<div class="text-center p-3 text-primary small"><div class="spinner-border spinner-border-sm me-2"></div>Đang quét file...</div>';
+    google.script.run.withSuccessHandler(files => {
+      document.getElementById('det-files').innerHTML = files.map(f => `<a href="${f.url}" target="_blank" class="file-item d-flex align-items-center p-2 mb-1 border rounded bg-light text-decoration-none"><i class="${f.icon} fa-lg" style="width:30px"></i><div class="ms-2"><div class="fw-bold text-dark small text-truncate" style="max-width:180px;">${f.name}</div><div class="text-muted" style="font-size:9px;">${f.size} • ${f.date}</div></a>`).join('');
+    }).api_GetDriveFiles(folderUrl);
+  }
+
+  function handleLocalFileUpload(input) {
+    const files = input.files; if (!files.length) return;
+    const folderUrl = document.getElementById('btn-open-drive').getAttribute('data-url');
+    if (!folderUrl) return AppUI.alert("Thiếu thư mục", "Hồ sơ này chưa có thư mục Drive!");
+    AppUI.showToast(`Đang tải lên ${files.length} file...`, "");
+    Array.from(files).forEach((file, index) => {
+      const r = new FileReader();
+      r.onload = (e) => {
+        google.script.run.withSuccessHandler(() => {
+          if(index === files.length - 1) { AppUI.showToast("Tải lên hoàn tất!", "success"); refreshDetailFiles(); }
+        }).api_UploadFileToDrive(file.name, file.type, e.target.result.split(',')[1], folderUrl);
+      };
+      r.readAsDataURL(file);
+    });
+    input.value = ''; 
+  }
+
+  function xoaPartyLe(idAn, hoTen, tuCach) {
+     AppUI.confirm("Xóa đương sự", `Bạn có chắc chắn muốn xóa đương sự [${hoTen}]?`, "danger", function() {
+         AppUI.showToast("Đang xóa đương sự...", "");
+         google.script.run.withSuccessHandler(res => {
+               if(res.success) { AppUI.showToast("Đã xóa đương sự", "success"); loadCaseList(true); setTimeout(() => moChiTiet(idAn), 1000); } 
+               else { AppUI.showToast("Lỗi: " + res.error, "error"); }
+           }).withFailureHandler(err => { AppUI.showToast("Lỗi mạng", "error"); }).api_DeleteParty(idAn, hoTen, tuCach);
+     });
+  }
+
+  function moChiTiet(idAn) {
+    if (!idAn) return;
+    currentCaseId = idAn;
+    let caseFromRAM = G_Cases ? G_Cases.find(c => c.id === idAn) : null;
+   
+    if (caseFromRAM) {
+        if(document.getElementById('det-so')) {
+          document.getElementById('det-so').innerText = caseFromRAM.soTL;
+          document.getElementById('det-so').setAttribute('data-id', caseFromRAM.id);
+        }
+        if(document.getElementById('det-ngay')) document.getElementById('det-ngay').innerText = caseFromRAM.ngayTL;
+        if(document.getElementById('det-quanhe')) document.getElementById('det-quanhe').innerText = caseFromRAM.quanHe;
+       
+        var isDone = caseFromRAM.liveStatus === "Đã giải quyết";
+        var isTDC = caseFromRAM.liveStatus === "Tạm đình chỉ";
+        var elTrangThai = document.getElementById('det-trangthai');
+        var elThoiHan = document.getElementById('det-thoihan');
+       
+        if (isDone) {
+          if(elTrangThai) { elTrangThai.innerText = "Đã giải quyết"; elTrangThai.className = "val-bold text-success text-truncate"; }
+          if(elThoiHan) { elThoiHan.innerText = "Hoàn tất"; elThoiHan.className = "val-bold text-muted"; }
+        } else if (isTDC) {
+          if(elTrangThai) { elTrangThai.innerText = "Tạm đình chỉ"; elTrangThai.className = "val-bold text-secondary text-truncate"; }
+          if(elThoiHan) { elThoiHan.innerText = "Đã dừng đếm"; elThoiHan.className = "val-bold text-secondary"; }
+        } else {
+          if(elTrangThai) { elTrangThai.innerText = "Đang giải quyết"; elTrangThai.className = "val-bold text-primary text-truncate"; }
+          if(elThoiHan) { elThoiHan.innerText = caseFromRAM.hanGQ; elThoiHan.className = "val-bold text-danger"; }
+        }
+
+        var elDrive = document.getElementById('btn-open-drive');
+        if (elDrive) {
+          if (caseFromRAM.folderUrl && caseFromRAM.folderUrl.includes("http")) {
+            elDrive.setAttribute('data-url', caseFromRAM.folderUrl); elDrive.classList.remove('disabled');
+          } else {
+            elDrive.setAttribute('data-url', ''); elDrive.classList.add('disabled');
+          }
+        }
+       
+        var dsBody = document.getElementById('det-party-list');
+        if(dsBody) dsBody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-primary small"><div class="spinner-border spinner-border-sm me-2"></div>Đang tải dữ liệu đương sự...</td></tr>';
+       
+        var fileArea = document.getElementById('det-files');
+        if(fileArea) fileArea.innerHTML = '<div class="text-center p-4 text-primary small"><div class="spinner-border spinner-border-sm me-2"></div>Đang quét file...</div>';
+        appNavigate('view-detail');
+    } else { AppUI.showToast("Đang mở hồ sơ...", ""); }
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!caseFromRAM) AppUI.hideToast();
+        if (!res || res.error) { if (!caseFromRAM) AppUI.alert("Lỗi", "Không thể tải chi tiết hồ sơ"); return; }
+       
+        currentCaseData = res;
+        var info = res.info;
+        if(document.getElementById('det-quick-note')) document.getElementById('det-quick-note').value = info.ghiChu || "";
+
+        var dsBody = document.getElementById('det-party-list');
+        if (dsBody) {
+          if (res.ds.length === 0) {
+            dsBody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-muted small">Chưa có thông tin đương sự.</td></tr>';
+          } else {
+            var htmlDs = res.ds.map(d => {
+              let repDisplay = '';
+              if (d.daiDien) {
+                try {
+                  let reps = JSON.parse(d.daiDien);
+                  if (Array.isArray(reps) && reps.length > 0) { repDisplay = reps.map(r => `<i class="fas fa-user-shield me-1 mt-1 text-secondary"></i>ĐD: <b>${r.hoTen}</b> (${r.tuCach})`).join('<br>'); } 
+                  else { repDisplay = `<i class="fas fa-user-shield me-1 mt-1 text-secondary"></i>ĐD: ${d.daiDien}`; }
+                } catch(e) { repDisplay = `<i class="fas fa-user-shield me-1 mt-1 text-secondary"></i>ĐD: ${d.daiDien}`; }
+                repDisplay = `<br>${repDisplay}`;
+              }
+
+              return `
+              <tr>
+                <td><span class="badge bg-light text-primary border border-primary shadow-sm" style="font-size:9px">${d.tuCach}</span></td>
+                <td>
+                  <div class="fw-bold text-dark" style="font-size: 13px;">${d.hoTen}</div>
+                  <div class="small text-muted mt-1">${d.xungHo} - ${d.namSinh || '---'}</div>
+                </td>
+                <td class="text-muted" style="font-size: 11.5px; line-height: 1.4;">
+                  ${d.diaChi}<br><i class="fas fa-phone-alt me-1 mt-1 text-secondary"></i>${d.sdt || '---'}
+                  ${d.cccd ? '<br><i class="fas fa-id-card me-1 mt-1 text-secondary"></i>' + d.cccd : ''}
+                  ${repDisplay}
+                </td>
+                <td class="text-center">
+                  <button class="btn btn-sm btn-light border shadow-sm text-primary me-1" style="border-radius: 6px;" onclick="moModalQuanLyDuongSu()" title="Sửa (Quản lý chung)"><i class="far fa-edit"></i></button>
+                  <button class="btn btn-sm btn-light border shadow-sm text-danger" style="border-radius: 6px;" onclick="xoaPartyLe('${info.id}', '${d.hoTen}', '${d.tuCach}')" title="Xóa"><i class="fas fa-trash-alt"></i></button>
+                </td>
+              </tr>
+            `}).join('');
+            dsBody.innerHTML = htmlDs;
+          }
+        }
+       
+        var fileArea = document.getElementById('det-files');
+        if (fileArea) {
+          if (info.folderUrl && info.folderUrl.includes("http")) {
+            google.script.run.withSuccessHandler(function(filesDrive) {
+                if (filesDrive.length === 0) { fileArea.innerHTML = '<div class="text-center p-3 text-muted small">Thư mục này hiện đang trống.</div>'; } 
+                else {
+                  fileArea.innerHTML = filesDrive.map(f => `
+                    <a href="${f.url}" target="_blank" class="file-item animate-fadeIn d-flex align-items-center p-2 mb-1 border rounded bg-light text-decoration-none">
+                      <i class="${f.icon} fa-lg" style="width: 30px; text-align: center;"></i>
+                      <div class="ms-2">
+                        <div class="fw-bold text-dark text-truncate" style="font-size: 11.5px; max-width: 180px;">${f.name}</div>
+                        <div class="text-muted mt-1" style="font-size: 9px;">${f.size} • ${f.date}</div>
+                      </div>
+                    </a>
+                  `).join('');
+                }
+              }).api_GetDriveFiles(info.folderUrl);
+          } else { fileArea.innerHTML = '<div class="text-center p-3 text-danger small">Hồ sơ chưa liên kết Drive.</div>'; }
+        }
+      })
+      .withFailureHandler(function(err) { if (!caseFromRAM) AppUI.hideToast(); AppUI.alert("Lỗi Mạng", "Lỗi tải chi tiết: " + err.message); }).api_LayDuLieuChiTietAn(idAn);
+  }
+</script>

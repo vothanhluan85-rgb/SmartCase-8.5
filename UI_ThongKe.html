@@ -1,0 +1,317 @@
+<!--
+  HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V7.5.3 - GROQ AI EDITION
+  FILE: UI_ThongKe.html (TRUNG TÂM PHÂN TÍCH & THỐNG KÊ)
+  ------------------------------------------------------------
+  BẢN CẬP NHẬT THEO YÊU CẦU:
+  - Bổ sung nút lọc nhanh "Tháng trước".
+  - Phân tích đa chiều: Biểu đồ mỗi loại án chia thành Mới thụ lý / Giải quyết / Tồn.
+  - Tối ưu lại mật độ hiển thị (Information Density) giúp trang gọn gàng hơn.
+-->
+
+<div class="animate-fadeIn p-2 p-md-3">
+  <div class="row justify-content-center">
+    <div class="col-12">
+     
+      <!-- KHỐI 1: TRUNG TÂM ĐIỀU KHIỂN BÁO CÁO -->
+      <div class="gs-card shadow-sm border-0 mb-3" style="background: #fff; border-radius: 10px; border-left: 5px solid #1a73e8 !important; padding: 15px 20px;">
+          <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+            <div>
+               <h6 class="fw-bold text-dark m-0 text-uppercase" style="font-size: 13px;"><i class="fas fa-chart-line me-2 text-primary"></i>TRUNG TÂM PHÂN TÍCH DỮ LIỆU</h6>
+               <div class="text-muted mt-1" style="font-size: 11px;">Báo cáo số liệu theo thời gian thực (Real-time Analytics)</div>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+              <button class="btn btn-sm btn-outline-primary shadow-sm" style="font-size: 11px; font-weight: 700;" onclick="setPresetDate('nam_cong_tac')">Năm công tác</button>
+              <button class="btn btn-sm btn-outline-secondary shadow-sm" style="font-size: 11px; font-weight: 700;" onclick="setPresetDate('month')">Tháng này</button>
+              <!-- ĐÃ SỬA: Thêm nút Tháng trước (Req 7) -->
+              <button class="btn btn-sm btn-outline-secondary shadow-sm" style="font-size: 11px; font-weight: 700;" onclick="setPresetDate('last_month')">Tháng trước</button>
+              <button class="btn btn-sm btn-outline-secondary shadow-sm" style="font-size: 11px; font-weight: 700;" onclick="setPresetDate('year')">Năm dương lịch</button>
+            </div>
+          </div>
+         
+          <div class="row g-2 align-items-end bg-light p-2 mt-2 rounded border" style="max-width: 700px;">
+            <div class="col-5">
+              <label class="small text-muted fw-bold mb-1" style="font-size: 10px; text-transform: uppercase;">Ngày bắt đầu kỳ</label>
+              <input type="date" id="rep_start" class="form-control form-control-sm fw-bold border-primary shadow-none" onchange="runClientSideStats()">
+            </div>
+            <div class="col-5">
+              <label class="small text-muted fw-bold mb-1" style="font-size: 10px; text-transform: uppercase;">Ngày chốt số liệu</label>
+              <input type="date" id="rep_end" class="form-control form-control-sm fw-bold border-primary shadow-none" onchange="runClientSideStats()">
+            </div>
+            <div class="col-2">
+              <button class="btn btn-sm btn-primary w-100 fw-bold shadow-sm" style="height: 31px;" onclick="runClientSideStats()" title="Làm mới">
+                <i class="fas fa-sync-alt"></i>
+              </button>
+            </div>
+          </div>
+      </div>
+
+      <!-- KHỐI 2: KẾT QUẢ TỔNG HỢP (DASHBOARD CARDS) -->
+      <div id="rep_result_area" class="animate-fadeIn">
+        <div class="row g-2 mb-3">
+         
+          <div class="col-6 col-lg-3">
+            <div class="p-3 bg-white shadow-sm rounded h-100" style="border-top: 3px solid #1a73e8;">
+              <span class="text-primary fw-bold d-block mb-1" style="font-size: 11px; text-transform: uppercase;">Tổng thụ lý (Không HGĐT)</span>
+              <div class="h2 fw-bolder text-primary mb-1" id="res_total">0</div>
+              <div class="d-flex justify-content-between pt-1 mt-1 border-top">
+                <div class="sub-stat"><span>Cũ</span><b id="res_cu">0</b></div>
+                <div class="sub-stat"><span>Mới</span><b id="res_moi">0</b></div>
+              </div>
+            </div>
+          </div>
+         
+          <div class="col-6 col-lg-3">
+            <div class="p-3 bg-white shadow-sm rounded h-100" style="border-top: 3px solid #188038;">
+              <span class="text-success fw-bold d-block mb-1" style="font-size: 11px; text-transform: uppercase;">Đã giải quyết</span>
+              <div class="h2 fw-bolder text-success mb-1" id="res_resolved">0</div>
+              <div class="text-end pt-1 mt-1 border-top">
+                <div class="sub-stat justify-content-end text-success"><span>Tỷ lệ GQ</span><b id="res_rate">0%</b></div>
+              </div>
+            </div>
+          </div>
+         
+          <div class="col-6 col-lg-3">
+            <div class="p-3 bg-white shadow-sm rounded h-100" style="border-top: 3px solid #d93025;">
+              <span class="text-danger fw-bold d-block mb-1" style="font-size: 11px; text-transform: uppercase;">Án tồn (Đang GQ)</span>
+              <div class="h2 fw-bolder text-danger mb-1" id="res_pending">0</div>
+              <div class="d-flex justify-content-between pt-1 mt-1 border-top">
+                <div class="sub-stat text-danger" title="Quá thời hạn"><span>Q.Hạn</span><b id="det_overdue_card">0</b></div>
+                <div class="sub-stat text-warning text-dark" title="Còn dưới 15 ngày"><span>Sắp</span><b id="det_urgent_card">0</b></div>
+              </div>
+            </div>
+          </div>
+         
+          <div class="col-6 col-lg-3">
+            <div class="p-3 bg-white shadow-sm rounded h-100" style="border-top: 3px solid #6f42c1;">
+              <span class="text-purple fw-bold d-block mb-1" style="font-size: 11px; text-transform: uppercase;">Hòa giải - Đối thoại</span>
+              <div class="h2 fw-bolder text-purple mb-1" id="res_hgdt">0</div>
+              <div class="text-end pt-1 mt-1 border-top">
+                 <div class="sub-stat justify-content-end text-purple"><span>Thành công</span><b id="res_hgdt_success">0</b></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- KHỐI 3: PHÂN TÍCH CHI TIẾT -->
+        <div class="row g-2">
+          <div class="col-lg-4">
+            <div class="bg-white p-3 shadow-sm rounded h-100" style="border: 1px solid #e0e0e0;">
+              <h6 class="fw-bold text-dark mb-3 text-uppercase" style="font-size: 12px;"><i class="fas fa-exclamation-triangle me-2 text-warning"></i>Phân tích Trạng thái Án tồn</h6>
+             
+              <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                <div><span class="badge bg-danger me-2 shadow-sm" style="width: 70px;">Quá hạn</span><span class="small text-muted fw-bold" style="font-size: 11px;">Vượt thời hạn</span></div>
+                <div class="text-end"><span class="h6 fw-bold text-danger mb-0" id="det_overdue">0</span><span class="small text-muted ms-1 fw-bold" id="per_overdue" style="font-size: 10px;">(0%)</span></div>
+              </div>
+             
+              <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                <div><span class="badge bg-warning text-dark me-2 shadow-sm" style="width: 70px;">Sắp hạn</span><span class="small text-muted fw-bold" style="font-size: 11px;">Còn &lt; 15 ngày</span></div>
+                <div class="text-end"><span class="h6 fw-bold text-warning mb-0" id="det_urgent">0</span><span class="small text-muted ms-1 fw-bold" id="per_urgent" style="font-size: 10px;">(0%)</span></div>
+              </div>
+             
+              <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                <div><span class="badge bg-secondary me-2 shadow-sm" style="width: 70px;">Tạm Đ.Chỉ</span><span class="small text-muted fw-bold" style="font-size: 11px;">Đã ra QĐ</span></div>
+                <div class="text-end"><span class="h6 fw-bold text-secondary mb-0" id="det_suspended">0</span><span class="small text-muted ms-1 fw-bold" id="per_suspended" style="font-size: 10px;">(0%)</span></div>
+              </div>
+             
+              <div class="d-flex justify-content-between align-items-center">
+                <div><span class="badge bg-dark me-2 shadow-sm" style="width: 70px;">Đóng băng</span><span class="small text-muted fw-bold" style="font-size: 11px;">&gt; 15 ngày im lặng</span></div>
+                <div class="text-end"><span class="h6 fw-bold text-dark mb-0" id="det_frozen">0</span><span class="small text-muted ms-1 fw-bold" id="per_frozen" style="font-size: 10px;">(0%)</span></div>
+              </div>
+            </div>
+          </div>
+         
+          <div class="col-lg-8">
+            <div class="bg-white p-3 shadow-sm rounded h-100" style="border: 1px solid #e0e0e0;">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h6 class="fw-bold text-dark m-0 text-uppercase" style="font-size: 12px;"><i class="fas fa-layer-group me-2 text-info"></i>Cơ cấu từng loại án</h6>
+                  <div class="d-flex gap-3 small fw-bold" style="font-size: 10px;">
+                      <div><span style="display:inline-block; width:10px; height:10px; background:#1a73e8; margin-right:4px; border-radius:2px;"></span>Mới thụ lý</div>
+                      <div><span style="display:inline-block; width:10px; height:10px; background:#188038; margin-right:4px; border-radius:2px;"></span>Đã GQ</div>
+                      <div><span style="display:inline-block; width:10px; height:10px; background:#d93025; margin-right:4px; border-radius:2px;"></span>Đang tồn</div>
+                  </div>
+              </div>
+              <div id="chart-types-container" class="pe-2 overflow-auto" style="max-height: 250px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .sub-stat { display: flex; align-items: baseline; gap: 5px; }
+  .sub-stat span { font-size: 10px; font-weight: 700; color: #5f6368; text-transform: uppercase; }
+  .sub-stat b { font-size: 14px; font-weight: 900; color: #202124; }
+  .text-purple { color: #6f42c1; }
+  
+  /* Style cho biểu đồ đa tầng (Req 7) */
+  .bar-chart-row { margin-bottom: 12px; }
+  .bar-chart-label { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; color: #334155; margin-bottom: 4px; }
+  .bar-chart-track { display: flex; height: 10px; border-radius: 5px; background-color: #f1f5f9; overflow: hidden; }
+  .bar-segment { height: 100%; transition: width 0.8s ease; display: flex; align-items: center; justify-content: center; font-size: 8px; color: white; font-weight: bold; overflow: hidden; }
+</style>
+
+<script>
+  function loadStatsPage() { setPresetDate('nam_cong_tac'); }
+
+  function formatDateForInput(dateObj) {
+    var y = dateObj.getFullYear();
+    var m = ("0" + (dateObj.getMonth() + 1)).slice(-2);
+    var d = ("0" + dateObj.getDate()).slice(-2);
+    return y + "-" + m + "-" + d;
+  }
+
+  function setPresetDate(type) {
+    var today = new Date();
+    var start, end;
+    if (type === 'month') {
+      start = new Date(today.getFullYear(), today.getMonth(), 1);
+      end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    } else if (type === 'last_month') {
+      // ĐÃ SỬA: Lọc tháng trước (Req 7)
+      start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      end = new Date(today.getFullYear(), today.getMonth(), 0);
+    } else if (type === 'year') {
+      start = new Date(today.getFullYear(), 0, 1);
+      end = today;
+    } else if (type === 'nam_cong_tac') {
+      var startYear = today.getMonth() < 9 ? today.getFullYear() - 1 : today.getFullYear();
+      start = new Date(startYear, 9, 1);
+      end = today;
+    } else {
+      document.getElementById('rep_start').value = "";
+      document.getElementById('rep_end').value = "";
+      runClientSideStats();
+      return;
+    }
+    document.getElementById('rep_start').value = formatDateForInput(start);
+    document.getElementById('rep_end').value = formatDateForInput(end);
+    runClientSideStats();
+  }
+
+  function runClientSideStats() {
+    if (typeof G_Cases === 'undefined' || G_Cases.length === 0) return;
+   
+    var startVal = document.getElementById('rep_start').value;
+    var endVal = document.getElementById('rep_end').value;
+    var sTime = startVal ? new Date(startVal).getTime() : 0;
+    var eTime = endVal ? new Date(endVal).getTime() + 86399999 : Infinity;
+    var todayTime = new Date().getTime();
+   
+    var stats = {
+      cuChuyenSang: 0, thuLyMoi: 0, total: 0, resolved: 0,
+      pending: 0, overdue: 0, urgent: 0, suspended: 0, frozen: 0,
+      hgdtTotal: 0, hgdtSuccess: 0, 
+      types: {} // ĐÃ SỬA: Cấu trúc object phức tạp hơn để gom 3 chỉ số cho từng loại án (Req 7)
+    };
+
+    for (var i = 0; i < G_Cases.length; i++) {
+      var c = G_Cases[i];
+      var hasResult = (c.ketQuaGiaiQuyet && c.ketQuaGiaiQuyet.trim() !== "");
+      var kqDateTS = hasResult ? parseVNDate(c.ketQuaGiaiQuyet) : null;
+      var acceptedTime = c.rawDate;
+
+      if (acceptedTime > eTime) continue;
+      if (hasResult && kqDateTS < sTime) continue;
+
+      var isResolvedInPeriod = (hasResult && kqDateTS <= eTime);
+
+      var loaiGoc = c.loaiAn.split('. ')[1] ? c.loaiAn.split('. ')[1].trim() : c.loaiAn;
+      if (!stats.types[loaiGoc]) stats.types[loaiGoc] = { total: 0, new: 0, resolved: 0, pending: 0 };
+      stats.types[loaiGoc].total++;
+
+      if (c.isHGDT) {
+        stats.hgdtTotal++;
+        if (isResolvedInPeriod) {
+            stats.hgdtSuccess++;
+            stats.types[loaiGoc].resolved++;
+        } else {
+            stats.types[loaiGoc].pending++;
+        }
+        if (acceptedTime >= sTime) stats.types[loaiGoc].new++;
+      } else {
+        if (acceptedTime < sTime) stats.cuChuyenSang++; 
+        else {
+            stats.thuLyMoi++;
+            stats.types[loaiGoc].new++;
+        }
+        
+        stats.total++;
+       
+        if (isResolvedInPeriod) {
+          stats.resolved++;
+          stats.types[loaiGoc].resolved++;
+        } else {
+          stats.pending++;
+          stats.types[loaiGoc].pending++;
+          
+          if (c.trangThai.indexOf('Tạm đình chỉ') !== -1) {
+            stats.suspended++;
+          } else {
+            if (c.rawHanDate > 0) {
+              var diffDays = Math.ceil((c.rawHanDate - todayTime) / 86400000);
+              if (diffDays < 0) stats.overdue++; else if (diffDays <= 15) stats.urgent++;
+            }
+            if (c.isFrozen || c.frozenDays > 15) stats.frozen++;
+          }
+        }
+      }
+    }
+
+    document.getElementById('res_total').innerText = stats.total;
+    document.getElementById('res_cu').innerText = stats.cuChuyenSang;
+    document.getElementById('res_moi').innerText = stats.thuLyMoi;
+    document.getElementById('res_resolved').innerText = stats.resolved;
+    document.getElementById('res_pending').innerText = stats.pending;
+    document.getElementById('det_overdue_card').innerText = stats.overdue;
+    document.getElementById('det_urgent_card').innerText = stats.urgent;
+    var rate = stats.total > 0 ? Math.round((stats.resolved / stats.total) * 100) : 0;
+    document.getElementById('res_rate').innerText = rate + "%";
+    document.getElementById('res_hgdt').innerText = stats.hgdtTotal;
+    document.getElementById('res_hgdt_success').innerText = stats.hgdtSuccess;
+
+    var p = stats.pending || 1;
+    document.getElementById('det_overdue').innerText = stats.overdue;
+    document.getElementById('per_overdue').innerText = "(" + Math.round((stats.overdue / p) * 100) + "%)";
+    document.getElementById('det_urgent').innerText = stats.urgent;
+    document.getElementById('per_urgent').innerText = "(" + Math.round((stats.urgent / p) * 100) + "%)";
+    document.getElementById('det_suspended').innerText = stats.suspended;
+    document.getElementById('per_suspended').innerText = "(" + Math.round((stats.suspended / p) * 100) + "%)";
+    document.getElementById('det_frozen').innerText = stats.frozen;
+    document.getElementById('per_frozen').innerText = "(" + Math.round((stats.frozen / p) * 100) + "%)";
+
+    // ĐÃ SỬA: Vẽ biểu đồ đa tầng hiển thị 3 chỉ số (Mới / Đã GQ / Tồn) (Req 7)
+    var chartHtml = "";
+    var sortableTypes = [];
+    for (var type in stats.types) sortableTypes.push({ name: type, data: stats.types[type] });
+    sortableTypes.sort(function(a, b) { return b.data.total - a.data.total; });
+
+    sortableTypes.forEach(function(item) {
+      if (item.data.total === 0) return;
+      
+      var tName = item.name;
+      var d = item.data;
+      var maxScale = d.total; 
+      
+      var pctNew = maxScale > 0 ? (d.new / maxScale) * 100 : 0;
+      var pctRes = maxScale > 0 ? (d.resolved / maxScale) * 100 : 0;
+      var pctPen = maxScale > 0 ? (d.pending / maxScale) * 100 : 0;
+      
+      chartHtml += `
+      <div class="bar-chart-row">
+        <div class="bar-chart-label">
+           <span>${tName}</span>
+           <span class="text-muted"><b class="text-primary">${d.new}</b> / <b class="text-success">${d.resolved}</b> / <b class="text-danger">${d.pending}</b> (Tổng: ${d.total})</span>
+        </div>
+        <div class="bar-chart-track">
+           <div class="bar-segment" style="width: ${pctNew}%; background-color: #1a73e8;" title="Mới: ${d.new}">${d.new > 0 && pctNew > 5 ? d.new : ''}</div>
+           <div class="bar-segment" style="width: ${pctRes}%; background-color: #188038;" title="Đã GQ: ${d.resolved}">${d.resolved > 0 && pctRes > 5 ? d.resolved : ''}</div>
+           <div class="bar-segment" style="width: ${pctPen}%; background-color: #d93025;" title="Tồn: ${d.pending}">${d.pending > 0 && pctPen > 5 ? d.pending : ''}</div>
+        </div>
+      </div>`;
+    });
+    
+    document.getElementById('chart-types-container').innerHTML = chartHtml || "<div class='text-muted small italic p-3 bg-light rounded text-center border'>Không có dữ liệu trong giai đoạn này.</div>";
+  }
+</script>
