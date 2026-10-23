@@ -8,6 +8,7 @@
  *   + Cơ chế đồng bộ Excel INSERT-ONLY: Chỉ nạp thêm đơn mới, KHÔNG BAO GIỜ xóa trắng.
  *   + Tự động suy luận danh xưng (Ông/Bà) cho đương sự nếu dữ liệu gốc bị khuyết.
  *   + Chuẩn hóa rút trích đơn sang thụ lý và phân nhóm đương sự chính xác.
+ *   + ĐẤU NỐI ĐỒNG BỘ: Chuyển giao toàn bộ việc trộn thư sang Master Merge Engine (6_VanBan.gs).
  * =========================================================================
  */
 
@@ -22,7 +23,7 @@ var DON_CONFIG = {
 function don_detectHonorific(name, currentXh) {
   var xh = String(currentXh || "").trim();
   if (xh === "Ông" || xh === "Bà" || xh === "Anh" || xh === "Chị") return xh;
-  if (xh === "Tổ chức" || xh === "Pháp nhân") return "Tổ chức";
+  if (xh === "Tổ chức" || xh === "Pháp nhân" || xh === "Công ty") return "Tổ chức";
 
   var nLower = String(name || "").toLowerCase().trim();
   if (!nLower) return "Ông/Bà";
@@ -33,7 +34,8 @@ function don_detectHonorific(name, currentXh) {
       nLower.includes("nhị") || nLower.includes("hằng") || nLower.includes("nga") ||
       nLower.includes("hoa") || nLower.includes("hương") || nLower.includes("lan") ||
       nLower.includes("mai") || nLower.includes("cúc") || nLower.includes("ngọc") ||
-      nLower.includes("liên") || nLower.includes("loan") || nLower.includes("phượng")) {
+      nLower.includes("liên") || nLower.includes("loan") || nLower.includes("phượng") ||
+      nLower.includes("duyên") || nLower.includes("thảo") || nLower.includes("phương")) {
     return "Bà";
   }
 
@@ -42,7 +44,8 @@ function don_detectHonorific(name, currentXh) {
       nLower.includes("hùng") || nLower.includes("thắng") || nLower.includes("thân") ||
       nLower.includes("dũng") || nLower.includes("tuấn") || nLower.includes("minh") ||
       nLower.includes("cường") || nLower.includes("hoàng") || nLower.includes("long") ||
-      nLower.includes("trọng") || nLower.includes("đức") || nLower.includes("hải")) {
+      nLower.includes("trọng") || nLower.includes("đức") || nLower.includes("hải") ||
+      nLower.includes("quân") || nLower.includes("kiên") || nLower.includes("khang")) {
     return "Ông";
   }
 
@@ -358,7 +361,6 @@ function logic_DongBoDonTuExcel() {
           continue;
         }
 
-        // Đánh dấu để chống trùng lặp ngay trong các dòng của file Excel
         existingSoDonSet.add(cleanCheckNo);
         existingSoDonSet.add(rawSoDon.toLowerCase());
 
@@ -661,10 +663,16 @@ function api_XoaNhieuDon(ids) {
 }
 
 // =========================================================================
-// 6. TRỘN THƯ CHO ĐƠN & GỘP LUỒNG
+// 6. TRỘN THƯ ĐƠN HỢP NHẤT (CHUYỂN GIAO CHO MASTER ENGINE 6_VanBan.gs)
 // =========================================================================
 
 function logic_TronThuChoDon_V2(payload) {
+  // Chuyển giao trực tiếp cho Động cơ Master Merge Engine tại 6_VanBan.gs
+  if (typeof api_RunMailMergeDon_Logic === 'function') {
+    return api_RunMailMergeDon_Logic(payload);
+  }
+
+  // Dự phòng trường hợp độc lập
   try {
     var config = (typeof getConfigFromSheet === 'function') ? getConfigFromSheet() : {};
     var rootFolderId = extractFolderId(config["ID_THUMUC_DON"]);
@@ -687,8 +695,8 @@ function logic_TronThuChoDon_V2(payload) {
         api_LuuLichMoi_Logic({ 
           idVuAn: "GENERAL", 
           ngay: payload.trieuTapDate, 
-          gio: payload.trieuTapTime || "08:00", 
-          noiDung: `08h00 - Báo đơn ${cleanNo}\nMời: ${payload.firstNKKName}` 
+          gio: payload.trieuTapTime || "08:30", 
+          noiDung: `[Đơn ${cleanNo}] Tiếp nhận & Xử lý: ${payload.firstNKKName}` 
         }); 
       } catch (e) {}
     }
@@ -745,7 +753,9 @@ function logic_TronThuChoDon_V2(payload) {
         }
       });
 
-      sanitizeMergedDocumentDon(body);
+      if (typeof sanitizeMergedDocument === 'function') {
+        sanitizeMergedDocument(body);
+      }
       doc.saveAndClose();
 
       createdFiles.push({ 
@@ -761,79 +771,26 @@ function logic_TronThuChoDon_V2(payload) {
   }
 }
 
-function sanitizeMergedDocumentDon(body) {
-  try {
-    body.replaceText("ngày\\s+ngày\\s+", "ngày ");
-    body.replaceText("ngày\\s+Ngày\\s+", "ngày ");
-    body.replaceText("Ngày\\s+ngày\\s+", "Ngày ");
-
-    body.replaceText(":\\s*[ \\t\\u00A0]{2,}", ": ");
-    body.replaceText(":\\s*[ \\t\\u00A0]+", ": ");
-    body.replaceText("[ \\t\\u00A0]{2,}", " ");
-    body.replaceText("\\s+,", ",");
-    body.replaceText("\\s+\\.", ".");
-    body.replaceText("\\s+;", ";");
-
-    body.replaceText(":\\s*ông\\s+", ": Ông ");
-    body.replaceText(":\\s*bà\\s+", ": Bà ");
-    body.replaceText(":\\s*anh\\s+", ": Anh ");
-    body.replaceText(":\\s*chị\\s+", ": Chị ");
-
-    body.replaceText("\\.\\s+ông\\s+", ". Ông ");
-    body.replaceText("\\.\\s+bà\\s+", ". Bà ");
-    body.replaceText("\\.\\s+anh\\s+", ". Anh ");
-    body.replaceText("\\.\\s+ngày\\s+", ". Ngày ");
-
-    body.replaceText("(?m)^-\\s*bà\\s+", "- Bà ");
-    body.replaceText("(?m)^-\\s*ông\\s+", "- Ông ");
-
-    body.replaceText(",\\s*sinh năm\\s*,", ",");
-    body.replaceText(",\\s*sinh năm\\s*;", ";");
-    body.replaceText(",\\s*sinh năm\\s*\\.", ".");
-    body.replaceText(",\\s*địa chỉ:\\s*;", ";");
-    body.replaceText("(?:;|,) và\\s*\\.", ".");
-    body.replaceText("(?:;|,) và\\s*;", ";");
-    body.replaceText("và\\s*\\.", ".");
-    body.replaceText("\\(\\s*\\)", "");
-    body.replaceText("(?i)\\{[^\\}]+\\}", "");
-
-    var paragraphs = body.getParagraphs();
-    for (var i = 0; i < paragraphs.length; i++) {
-      var p = paragraphs[i];
-      var text = p.getText();
-      if (!text || text.length === 0) continue;
-
-      if (text.startsWith(" ") || text.startsWith("\t")) {
-        var numSpaces = 0;
-        while (numSpaces < text.length && (text.charAt(numSpaces) === " " || text.charAt(numSpaces) === "\t")) {
-          numSpaces++;
-        }
-        if (numSpaces > 0 && numSpaces < text.length) {
-          p.editAsText().deleteText(0, numSpaces - 1);
-          text = p.getText();
-        }
-      }
-
-      if (text.startsWith("ông ")) p.editAsText().replaceText("^ông ", "Ông ");
-      else if (text.startsWith("bà ")) p.editAsText().replaceText("^bà ", "Bà ");
-      else if (text.startsWith("ngày ")) p.editAsText().replaceText("^ngày ", "Ngày ");
-    }
-  } catch (e) {}
-}
-
 function logic_LuuVaTronThuDon_SuperFast(payloadData, payloadMerge) {
   try {
+    // 1. Lưu hoặc Cập nhật thông tin đơn vào CSDL
     var saveResult = logic_LuuThongTinDon(payloadData);
-    if (!saveResult.success) return { success: false, error: "Lỗi Lưu Data: " + saveResult.error };
+    if (!saveResult.success) return { success: false, error: "Lỗi Lưu CSDL Đơn: " + saveResult.error };
 
-    if (payloadMerge.idDon.includes("TEMP_")) payloadMerge.idDon = saveResult.idDon;
+    if (!payloadMerge) payloadMerge = {};
+    if (payloadMerge.idDon && payloadMerge.idDon.includes("TEMP_")) payloadMerge.idDon = saveResult.idDon;
+    if (!payloadMerge.idDon) payloadMerge.idDon = saveResult.idDon;
 
-    var mergeResult = logic_TronThuChoDon_V2(payloadMerge);
-    if (!mergeResult.success) return { success: false, error: "Lỗi Trộn thư: " + mergeResult.error };
+    // 2. Chuyển giao trực tiếp cho Động cơ Master Merge Engine tại 6_VanBan.gs
+    var mergeResult = (typeof api_RunMailMergeDon_Logic === 'function')
+      ? api_RunMailMergeDon_Logic(payloadMerge)
+      : logic_TronThuChoDon_V2(payloadMerge);
+
+    if (!mergeResult.success) return { success: false, error: "Lỗi Trộn văn bản: " + mergeResult.error };
 
     return { success: true, idDon: saveResult.idDon, files: mergeResult.files };
   } catch (e) {
-    return { success: false, error: "Lỗi Gộp luồng: " + e.toString() };
+    return { success: false, error: "Lỗi Gộp luồng Đơn: " + e.toString() };
   }
 }
 

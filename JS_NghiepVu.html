@@ -4,15 +4,15 @@
  * HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.0 - MASTER BUSINESS CONTROLLER (PRODUCTION)
  * TỆP: JS_NghiepVu.html - ĐIỀU HÀNH NGHIỆP VỤ XỬ LÝ ÁN, SOẠN THẢO, A4 & OCR AI
  * -------------------------------------------------------------------------
- * - BỔ SUNG ĐẦY ĐỦ window.scanDocumentForInfo & window.mergeAndShowReviewParties.
+ * - ĐÃ CHUẨN HÓA: Kế thừa toàn bộ hàm tiện ích NLP từ JS_HeThong.html.
  * - TỰ ĐỘNG LẤP ĐẦY NĂM SINH, ĐỊA CHỈ, SĐT, CCCD VÀO a4State VÀ CSDL 2_DUONGSU.
  * - KẾT NỐI LIỀN MẠCH: LỊCH CÔNG TÁC ◄──► SOẠN THẢO VĂN BẢN ◄──► GOOGLE CALENDAR.
- * - TRẢI NGHIỆM SOẠN THẢO A4 IN-PLACE VÀ TRỘN THƯ MAIL MERGE V3 KHÔNG LỖI.
+ * - TRẢI NGHIỆM SOẠN THẢO A4 IN-PLACE VÀ TRỘN THƯ MAIL MERGE V3 TOÀN NĂNG.
  * =========================================================================
  */
 
 // =========================================================================
-// 1. TỪ ĐIỂN ÁNH XẠ CÔNG VIỆC TÒA ÁN & BIẾN TOÀN CỤC
+// 1. TỪ ĐIỂN ÁNH XẠ CÔNG VIỆC TÒA ÁN & BIẾN TOÀN CỤC PHÂN HỆ ÁN
 // =========================================================================
 const TASK_TO_SUMMONS_DICT = {
   "lấy lời khai đương sự": "Cung cấp lời khai và giao nộp tài liệu, chứng cứ liên quan đến vụ án.",
@@ -71,84 +71,8 @@ window.currentStagedAITplFile = null;
 window.currentPendingEvidence = null;
 
 // =========================================================================
-// 2. TIỆN ÍCH CHUẨN HÓA VĂN BẢN & DANH XƯNG
+// 2. NHẬN DIỆN VAI TRÒ TỐ TỤNG THEO NGÀNH ÁN
 // =========================================================================
-
-window.standardizeResolutionAbbr = function(raw) {
-  if (!raw) return "";
-  var s = String(raw).trim();
-  var sLow = window.removeAccents ? window.removeAccents(s.toLowerCase()) : s.toLowerCase();
-
-  if (sLow.includes("thuan tinh ly hon") || sLow.includes("cong nhan thuan tinh")) return "QĐCN-TTLH";
-  if (sLow.includes("su thoa thuan") || sLow.includes("thoa thuan") || sLow.includes("hoa giai thanh")) {
-    if (sLow.includes("hgdt") || sLow.includes("doi thoai")) return "QĐCN-HGĐT";
-    return "QĐCNTT";
-  }
-  if (sLow.includes("ban an") || sLow.includes("xet xu")) return "Bản án";
-  if (sLow.includes("tam dinh chi")) return "Tạm đình chỉ";
-  if (sLow.includes("dinh chi")) return "Đình chỉ";
-  if (sLow.includes("tra ho so") || sLow.includes("dieu tra bo sung")) return "Trả HS ĐTBS";
-  if (sLow.includes("gia han")) return "Gia hạn";
-  if (sLow.includes("tiep tuc")) return "Tiếp tục giải quyết";
-  if (sLow.includes("chuyen ho so") || sLow.includes("chuyen vu an")) return "Chuyển hồ sơ";
-  if (sLow.includes("nhap vu an") || sLow.includes("nhap vu viec")) return "Nhập vụ án";
-  if (sLow.includes("viec dan su") || sLow.includes("giai quyet viec")) return "QĐGQ-VDS";
-
-  return s;
-};
-
-window.cleanHonorificFromName = function(name) {
-  if (!name) return "";
-  return String(name).replace(/^(Ông|Bà|Anh|Chị|ông|bà|anh|chị)\s+/i, '').trim();
-};
-
-window.isIndividualHonorific = function(xh) {
-  if (!xh) return false;
-  var x = String(xh).trim().toLowerCase();
-  if (x === "tổ chức" || x === "pháp nhân" || x === "công ty" || x === "doanh nghiệp") return false;
-  return (x === "ông" || x === "bà" || x === "anh" || x === "chị" || x === "ông/bà");
-};
-
-window.toTitleCase = function(str) {
-  if (!str) return "";
-  var keepUpper = [
-    "TMCP", "TNHH", "CP", "MTV", "UBND", "TAND", "VKSND", "VN", "JSC", "BHTG", 
-    "HTX", "NHCSXH", "NHTMCP", "NH", "BIDV", "ACB", "MB", "VPBANK", "VIETINBANK", 
-    "VIETCOMBANK", "AGRIBANK", "SHB", "TPBANK", "HDBANK", "VIB", "MSB", "OCB", 
-    "SEABANK", "LPBANK", "SCB", "SACOMBANK", "ABBANK", "BAB", "NCB", "QLTA"
-  ];
-  var words = String(str).trim().split(/\s+/);
-  return words.map(function(w) {
-    var upperW = w.toUpperCase();
-    if (keepUpper.includes(upperW)) return upperW;
-    if (w.includes("'") || w.includes("’")) {
-      var parts = w.split(/['’]/);
-      return parts.map(function(p) {
-        if (!p) return "";
-        return p.charAt(0).toUpperCase() + p.slice(1).toLowerCase();
-      }).join("'");
-    }
-    return upperW.charAt(0) + w.slice(1).toLowerCase();
-  }).join(" ");
-};
-window.toTitleCaseLocal = window.toTitleCase;
-
-window.formatPhoneNumber = function(phone) {
-  if (!phone) return "";
-  var str = String(phone).trim().replace(/[^0-9+]/g, '');
-  if (str.length > 0 && str.charAt(0) !== '0' && str.charAt(0) !== '+') str = '0' + str;
-  return str;
-};
-
-window.formatPhoneVNInput = function(input) {
-  if (!input) return;
-  var val = input.value.replace(/\D/g, '');
-  if (val.length > 10) val = val.substring(0, 10);
-  var formatted = val;
-  if (val.length > 7) formatted = val.substring(0,4) + '.' + val.substring(4,7) + '.' + val.substring(7);
-  else if (val.length > 4) formatted = val.substring(0,4) + '.' + val.substring(4);
-  input.value = formatted;
-};
 
 window.getProceduralRoleInfo = function(loaiAn, quanHe) {
   var loaiAnClean = window.removeAccents ? window.removeAccents(String(loaiAn || '')).toLowerCase() : String(loaiAn || '').toLowerCase();
@@ -174,10 +98,10 @@ window.getProceduralRoleInfo = function(loaiAn, quanHe) {
 };
 
 // =========================================================================
-// 3. CỔNG XỬ LÝ TỆP TIN & TRÍCH XUẤT TÀI LIỆU AI OCR (FIXED)
+// 3. CỔNG XỬ LÝ TỆP TIN & TRÍCH XUẤT TÀI LIỆU AI OCR
 // =========================================================================
 
-// Tác vụ 1: Quét đơn / thông báo scan tự động điền vào form thụ lý mới
+// Quét đơn / thông báo scan tự động điền vào form thụ lý mới
 window.scanDocumentForInfo = function(input) {
   if (!input.files || input.files.length === 0) return;
   var file = input.files[0];
@@ -202,7 +126,6 @@ window.scanDocumentForInfo = function(input) {
             window.handleCaseTypeChangeV3();
           }
 
-          // Xóa trắng và điền đương sự 2 bên
           ['ND', 'BD'].forEach(t => { 
             var el = document.getElementById('container-' + t); 
             if (el) el.innerHTML = ""; 
@@ -234,7 +157,7 @@ window.scanDocumentForInfo = function(input) {
   input.value = "";
 };
 
-// Tác vụ 2: Quét bóc tách danh sách đương sự hàng loạt
+// Quét bóc tách danh sách đương sự hàng loạt
 window.mergeAndShowReviewParties = function(partiesData) {
   if (!partiesData || !Array.isArray(partiesData) || partiesData.length === 0) {
     AppUI.showToast("Không tìm thấy đương sự nào trong tài liệu.", "info");
@@ -251,7 +174,7 @@ window.mergeAndShowReviewParties = function(partiesData) {
   window.handleIngestedEvidenceResult(pseudoRes, "Tài liệu đương sự scan");
 };
 
-// Tác vụ 3: Tiếp nhận bóc tách nguyên liệu & lấp đầy thông tin đương sự
+// Tiếp nhận bóc tách nguyên liệu & lấp đầy thông tin đương sự
 window.handleIngestedEvidenceResult = function(res, fileName) {
   var idVuAn = window.currentCaseId;
   if (!idVuAn || !res) return;
@@ -1942,9 +1865,9 @@ window.doActualMailMergePostflight = function() {
 
 function analyzeTemplateRequirements(selectedTpls) {
   var requirements = {
-    needsSchedule: false,      // Cần ngày/giờ triệu tập, làm việc
-    needsAgreement: false,     // Cần nội dung thỏa thuận, hòa giải thành
-    needsPartyDetails: false,  // Cần nhân thân chi tiết (năm sinh, địa chỉ)
+    needsSchedule: false,
+    needsAgreement: false,
+    needsPartyDetails: false,
     scheduleTemplates: [],
     agreementTemplates: []
   };
@@ -1955,7 +1878,6 @@ function analyzeTemplateRequirements(selectedTpls) {
     var matchNum = rawName.match(/^\s*0*(\d+)[a-zA-Z]?\s*\./);
     var num = matchNum ? parseInt(matchNum[1], 10) : 0;
 
-    // Chỉ nhóm biểu mẫu Triệu tập / Phiên họp / Xét xử mới cần ngày giờ
     var isScheduleTpl = (num === 4 || num === 16 || num === 18 || num === 31 || num === 32 || num === 34 || num === 36 || num === 48 || num === 54) ||
                         (nameLower.includes("triệu tập") || nameLower.includes("phiên họp") || nameLower.includes("đưa vụ án ra xét xử") || nameLower.includes("phiên tòa"));
     
@@ -1964,7 +1886,6 @@ function analyzeTemplateRequirements(selectedTpls) {
       requirements.scheduleTemplates.push(rawName);
     }
 
-    // Nhóm biểu mẫu Quyết định thỏa thuận / Ly hôn cần nội dung thỏa thuận
     var isAgreementTpl = (num === 22 || num === 25 || num === 44 || num === 45 || num === 57 || num === 58 || num === 61 || num === 62) ||
                          (nameLower.includes("công nhận sự thỏa thuận") || nameLower.includes("thuận tình ly hôn") || nameLower.includes("kết quả hòa giải"));
     
@@ -1973,7 +1894,6 @@ function analyzeTemplateRequirements(selectedTpls) {
       requirements.agreementTemplates.push(rawName);
     }
 
-    // Nhóm thông báo thụ lý cần nhân thân đầy đủ
     if (num === 3 || num === 41 || num === 46 || num === 53 || nameLower.includes("thụ lý")) {
       requirements.needsPartyDetails = true;
     }
@@ -1982,9 +1902,6 @@ function analyzeTemplateRequirements(selectedTpls) {
   return requirements;
 }
 
-// =========================================================================
-// 2. HÀM THỰC THI SOẠN THẢO V3 (TIỀN KIỂM CHỌN LỌC & BẢO TOÀN 100% NGHIỆP VỤ)
-// =========================================================================
 window.executeMailMergeV3 = function() {
   if (isMergingDocument) return;
 
@@ -2007,7 +1924,6 @@ window.executeMailMergeV3 = function() {
   var extXhThuKy = document.getElementById('ext_xhThuKy') ? document.getElementById('ext_xhThuKy').value : "";
   var extTenThuKy = document.getElementById('ext_tenThuKy') ? document.getElementById('ext_tenThuKy').value : "";
 
-  // Phân loại nghiệp vụ phán quyết & Mốc thời hạn 24h
   var reminderDays = 0, reminderText = "";
   var isStatusChanger = false, changerType = "";
   var isThongBaoThuLy = false;
@@ -2045,7 +1961,6 @@ window.executeMailMergeV3 = function() {
 
   var isFormalPromulgation = isStatusChanger && Boolean(soPhatHanh);
 
-  // Lấy danh sách đương sự từ RAM Client
   var currentA4Parties = [];
   if (window.currentCaseData && window.currentCaseData.info && window.currentCaseData.info.id === idAn) {
     currentA4Parties = window.getA4StateAsPartiesArray();
@@ -2058,17 +1973,14 @@ window.executeMailMergeV3 = function() {
     window.compileDynamicVariables(window.currentCaseVariables, currentA4Parties);
   }
 
-  // Tiền kiểm tại chỗ 0ms
   var req = analyzeTemplateRequirements(selectedTpls);
   var missingWarnings = [];
 
-  // Chỉ cảnh báo nếu mẫu được chọn thực sự cần ngày/giờ làm việc
   if (req.needsSchedule && (!extNgay || !extGio)) {
     var tplNamesStr = req.scheduleTemplates.map(function(s) { return `"${s}"`; }).join(", ");
     missingWarnings.push(`Chưa nhập Ngày và Giờ triệu tập (Cần thiết cho: ${tplNamesStr}).`);
   }
 
-  // Chỉ cảnh báo nếu mẫu được chọn là Quyết định thỏa thuận mà chưa có nội dung thỏa thuận
   if (req.needsAgreement) {
     var availableVars = window.currentCaseVariables || {};
     var hasAgreementText = availableVars["{Nội dung thỏa thuận}"] || availableVars["{nội dung thỏa thuận}"] ||
@@ -2079,7 +1991,6 @@ window.executeMailMergeV3 = function() {
     }
   }
 
-  // Cảnh báo nếu mẫu thụ lý bị khuyết năm sinh/địa chỉ
   if (req.needsPartyDetails) {
     (currentA4Parties || []).forEach(function(p) {
       if (p.xungHo !== "Tổ chức" && (!p.namSinh || String(p.namSinh).trim() === "")) {
@@ -2138,6 +2049,7 @@ window.executeMailMergeV3 = function() {
     window.doActualMailMergePostflight();
   }
 };
+
 // =========================================================================
 // 8. THỤ LÝ, CẬP NHẬT KẾT QUẢ & QLTA
 // =========================================================================
@@ -2299,6 +2211,7 @@ window.thucHienRutTrichTuDon = function() {
 };
 
 window.fillDonDataToThuLyForm = function(don) {
+  if (!don) return;
   var modalEl = document.getElementById('modalThemMoi');
   if (modalEl && don.id) modalEl.setAttribute('data-bridge-don-id', don.id);
 

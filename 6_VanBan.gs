@@ -1,18 +1,17 @@
 /**
  * =========================================================================
  * HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN - TÒA ÁN NHÂN DÂN
- * TỆP: 6_VanBan.gs - ĐỘNG CƠ SOẠN THẢO VĂN BẢN & TRỘN THƯ TỐ TỤNG MASTER (V8.0)
+ * TỆP: 6_VanBan.gs - ĐỘNG CƠ SOẠN THẢO VĂN BẢN & TRỘN THƯ MASTER HỢP NHẤT (V8.6)
  * -------------------------------------------------------------------------
- * - TRUNG TÂM ĐIỀU PHỐI ĐẦU RA CHO TOÀN BỘ 64 BIỂU MẪU CHUẨN TANDTC.
- * - KẾT NỐI 100% VỚI BẢNG TỪ ĐIỂN Config_Placeholders.gs & CƠ SỞ DỮ LIỆU.
- * - HOÀN THIỆN ĐẦY ĐỦ CẢ 3 DẠNG CHỮ: {Tên} (Tiêu đề), {tên} (Thường), {TÊN} (HOA).
- * - TỰ ĐỘNG GOM CẢ 2 VỢ CHỒNG VÀO {Người yêu cầu chi tiết} TRONG THUẬN TÌNH LY HÔN.
- * - TỰ ĐỘNG TÍNH ÁN PHÍ, ĐỌC TIỀN THÀNH CHỮ & ĐỊNH DẠNG NGÀY THÁNG TƯ PHÁP.
+ * - ĐÃ SỬA LỖI RÁC NGỮ PHÁP: Gắn chặt [Họ tên] + [Năm sinh] trước khi ghép nối.
+ * - ĐÃ SỬA LỖI KHUYẾT THẺ: Phục hồi và bổ sung đầy đủ bộ thẻ tách lẻ cho nhóm 
+ *   đương sự: {Xưng hô...}, {Họ và tên...}, {Số điện thoại...}, {CCCD...}.
+ * - Nâng cấp cảm biến Tách trang nhận diện thẻ {Địa chỉ} và {Số điện thoại}.
  * =========================================================================
  */
 
 // =========================================================================
-// MỤC 1: TRUY VẤN BIỂU MẪU & TỰ ĐỘNG RÚT TRÍCH TỪ DRIVE
+// MỤC 1: TRUY VẤN BIỂU MẪU & RÚT TRÍCH TỪ DRIVE
 // =========================================================================
 
 function api_LayDanhSachBieuMau_Logic() {
@@ -118,26 +117,8 @@ function backend_AutoExtractMediationAgreement(idVuAn, folderUrl) {
   return null;
 }
 
-function api_ScanCaseDriveSmartMilestone(idVuAn) {
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet(), sheetAn = ss.getSheetByName("1_SoThuLy");
-    if (!sheetAn) return { success: false, error: "Không tìm thấy bảng 1_SoThuLy." };
-    var finder = sheetAn.getRange("A:A").createTextFinder(idVuAn).matchEntireCell(true).findNext();
-    if (!finder) return { success: false, error: "Không tìm thấy hồ sơ vụ án." };
-
-    var folderUrl = sheetAn.getRange(finder.getRow(), 8).getValue();
-    var agreementText = backend_AutoExtractMediationAgreement(idVuAn, folderUrl);
-
-    if (agreementText) {
-      var currentMemory = (typeof readCaseMemoryFromDrive === 'function') ? readCaseMemoryFromDrive(folderUrl) : {};
-      return { success: true, variables: currentMemory.variables || { "{Nội dung thỏa thuận}": agreementText }, narratives: currentMemory.narratives || {} };
-    }
-    return { success: false, error: "Không tìm thấy văn bản Biên bản hòa giải nào trong thư mục Drive của vụ án." };
-  } catch(e) { return { success: false, error: e.message }; }
-}
-
 // =========================================================================
-// MỤC 2: TIỆN ÍCH NLP, CHUẨN HÓA DANH XƯNG & THỂ THỨC TỐ TỤNG
+// MỤC 2: TIỆN ÍCH NLP, CHUẨN HÓA DANH XƯNG & THỂ THỨC TỐ TỤNG BACKEND
 // =========================================================================
 
 function isIndividualHonorific(xh) {
@@ -150,7 +131,7 @@ function isIndividualHonorific(xh) {
 
 function cleanHonorificFromName(name) {
   if (!name) return "";
-  return String(name).replace(/^(Ông|Bà|Anh|Chị|Cháu|ông|bà|anh|chị|cháu)\s+/i, '').trim();
+  return String(name).replace(/^(Ông\/bà|Ông|Bà|Anh|Chị|Cháu|ông|bà|anh|chị|cháu)\s*[:.\-]?\s*/i, '').trim();
 }
 
 function toTitleCase(str) {
@@ -161,7 +142,7 @@ function toTitleCase(str) {
     "VIETCOMBANK", "AGRIBANK", "SHB", "TPBANK", "HDBANK", "VIB", "MSB", "OCB", 
     "SEABANK", "LPBANK", "SCB", "SACOMBANK", "ABBANK", "BAB", "NCB", "QLTA"
   ];
-  var words = String(str).trim().split(/\s+/);
+  var words = String(str).trim().toLowerCase().split(/\s+/);
   return words.map(function(w) {
     var upperW = w.toUpperCase();
     if (acronyms.includes(upperW)) return upperW;
@@ -194,34 +175,6 @@ function extractFlatMembers(groupsOrMembers) {
     }
   });
   return flatList;
-}
-
-function inferProceduralHonorific(m) {
-  if (!m) return "ông";
-  var rawXh = String(m.xungHo || m.title || "").trim();
-  var rawXhLower = rawXh.toLowerCase();
-  var rawName = String(m.hoTen || m.name || "").trim();
-
-  if (rawXh && !isIndividualHonorific(rawXhLower)) return "";
-  if (rawXh && isIndividualHonorific(rawXhLower) && rawXhLower !== "ông/bà") {
-    return rawXhLower;
-  }
-
-  var prefixMatch = rawName.match(/^(Ông|Bà|Anh|Chị|Cháu|ông|bà|anh|chị|cháu)\b/i);
-  if (prefixMatch) return prefixMatch[1].toLowerCase();
-
-  var normalizedName = " " + rawName.toLowerCase() + " ";
-  var femaleIdentifiers = [
-    " thị ", " thúy ", " thuy ", " trang ", " nhị ", " hằng ", " nga ", " hoa ", 
-    " hương ", " lan ", " mai ", " cúc ", " ngọc ", " liên ", " loan ", " phượng ", 
-    " duyên ", " thảo ", " phương ", " diệp ", " quỳnh ", " oanh ", " yến ", " vân "
-  ];
-
-  for (var i = 0; i < femaleIdentifiers.length; i++) {
-    if (normalizedName.includes(femaleIdentifiers[i])) return "bà";
-  }
-
-  return "ông";
 }
 
 function getOfficerHonorific(rawName, defaultTitle) {
@@ -285,7 +238,8 @@ function getBlockType1Items(parties) {
   parties.forEach(function(ds, i) {
     var isLast = (i === parties.length - 1), isInd = isIndividualHonorific(ds.xungHo), xh = isInd ? ((ds.xungHo && ds.xungHo !== "Ông/Bà") ? toTitleCase(ds.xungHo) + " " : "Ông/bà ") : "";
     var name = toTitleCase(cleanHonorificFromName(ds.hoTen)), repItems = getRepresentativeParagraphItems(ds.daiDien, isLast);
-    items.push({ text: `${i + 1}. ${xh}${name}${ds.namSinh ? ", sinh năm "+ds.namSinh : ""}${ds.diaChi ? ", địa chỉ: "+ds.diaChi : ""}${ds.tuCach ? "; là "+ds.tuCach.toLowerCase() : ""}${(repItems.length > 0 || !isLast) ? ";" : "."}`, boldWords: [name] });
+    var cleanDiaChi = String(ds.diaChi || "...").replace(/^(địa chỉ:\s*|cùng địa chỉ:\s*)/i, "").trim();
+    items.push({ text: `${i + 1}. ${xh}${name}${ds.namSinh ? ", sinh năm "+ds.namSinh : ""}${cleanDiaChi ? ", địa chỉ: "+cleanDiaChi : ""}${ds.tuCach ? "; là "+ds.tuCach.toLowerCase() : ""}${(repItems.length > 0 || !isLast) ? ";" : "."}`, boldWords: [name] });
     repItems.forEach(function(rp) { items.push(rp); });
   });
   return items;
@@ -300,14 +254,16 @@ function getBlockType2Items(parties) {
     if (memberList.length === 1) {
       var ds = memberList[0], isInd = isIndividualHonorific(ds.xungHo), xh = isInd ? ((ds.xungHo && ds.xungHo !== "Ông/Bà") ? toTitleCase(ds.xungHo) + " " : "Ông/bà ") : "";
       var name = toTitleCase(cleanHonorificFromName(ds.hoTen)), repItems = getRepresentativeParagraphItems(ds.daiDien, isLastGroup);
-      items.push({ text: `${mIdx}. ${role}: ${xh}${name}${ds.namSinh ? ", sinh năm "+ds.namSinh : ""}${ds.diaChi ? "; địa chỉ: "+ds.diaChi : ""}${(repItems.length > 0 || !isLastGroup) ? ";" : "."}`, boldWords: [name] });
+      var cleanDiaChi = String(ds.diaChi || "...").replace(/^(địa chỉ:\s*|cùng địa chỉ:\s*)/i, "").trim();
+      items.push({ text: `${mIdx}. ${role}: ${xh}${name}${ds.namSinh ? ", sinh năm "+ds.namSinh : ""}${cleanDiaChi ? "; địa chỉ: "+cleanDiaChi : ""}${(repItems.length > 0 || !isLastGroup) ? ";" : "."}`, boldWords: [name] });
       repItems.forEach(function(rp) { items.push(rp); });
     } else {
       items.push({ text: `${mIdx}. ${role}:`, boldWords: [] });
       memberList.forEach(function(ds, subIdx) {
         var isLastMember = isLastGroup && (subIdx === memberList.length - 1), isInd = isIndividualHonorific(ds.xungHo), xh = isInd ? ((ds.xungHo && ds.xungHo !== "Ông/Bà") ? toTitleCase(ds.xungHo) + " " : "Ông/bà ") : "";
         var name = toTitleCase(cleanHonorificFromName(ds.hoTen)), repItems = getRepresentativeParagraphItems(ds.daiDien, isLastMember);
-        items.push({ text: `${mIdx}.${subIdx + 1}. ${xh}${name}${ds.namSinh ? ", sinh năm "+ds.namSinh : ""}${ds.diaChi ? "; địa chỉ: "+ds.diaChi : ""}${(repItems.length > 0 || !isLastMember) ? ";" : "."}`, boldWords: [name] });
+        var cleanDiaChi = String(ds.diaChi || "...").replace(/^(địa chỉ:\s*|cùng địa chỉ:\s*)/i, "").trim();
+        items.push({ text: `${mIdx}.${subIdx + 1}. ${xh}${name}${ds.namSinh ? ", sinh năm "+ds.namSinh : ""}${cleanDiaChi ? "; địa chỉ: "+cleanDiaChi : ""}${(repItems.length > 0 || !isLastMember) ? ";" : "."}`, boldWords: [name] });
         repItems.forEach(function(rp) { items.push(rp); });
       });
     }
@@ -318,8 +274,14 @@ function getBlockType2Items(parties) {
 
 function getPartyDetailItems(groups) {
   if (!groups || groups.length === 0) return [{ text: ".......................................................", boldWords: [] }];
-  var allNames = [], text = buildSmartPartyStringBackend(groups, false);
-  groups.forEach(function(g) { g.members.forEach(function(m) { var n = toTitleCase(cleanHonorificFromName(m.hoTen)); if (n) allNames.push(n); }); });
+  var allNames = [];
+  var text = buildSmartPartyStringBackend(groups, false);
+  groups.forEach(function(g) { 
+    g.members.forEach(function(m) { 
+      var n = toTitleCase(cleanHonorificFromName(m.hoTen)); 
+      if (n) allNames.push(n); 
+    }); 
+  });
   return [{ text: text, boldWords: allNames }];
 }
 
@@ -341,70 +303,96 @@ function buildShortPartyStringBackend(groups, isLowerXungHo) {
   return names.join(", ");
 }
 
+// -------------------------------------------------------------------------
+// [FIXED]: SỬA LỖI RÁC NGỮ PHÁP (A, B sinh năm 1987, 2000)
+// Ghép chặt [Tên] + [Năm sinh] cho từng cá nhân TRƯỚC KHI nối bằng dấu phẩy
+// -------------------------------------------------------------------------
 function buildSmartPartyStringBackend(groups, isLowerXungHo) {
   if (!groups || groups.length === 0) return ".......................................................";
   var groupStrings = groups.map(function(g) {
     var memStrs = g.members.map(function(m, mIndex) {
-      var isInd = isIndividualHonorific(m.xungHo), xh = "";
+      var isInd = isIndividualHonorific(m.xungHo);
+      var rawXh = String(m.xungHo || "Ông/bà").trim();
+      var xh = "";
       if (isInd) {
-        var rawXh = String(m.xungHo || "Ông/bà").trim();
-        if (isLowerXungHo || mIndex > 0) xh = rawXh.toLowerCase() + " ";
-        else { 
+        if (isLowerXungHo || mIndex > 0) { 
+          xh = rawXh.toLowerCase() + " "; 
+        } else { 
           if (rawXh.toLowerCase() === "ông/bà") rawXh = "Ông/bà"; 
           xh = rawXh.charAt(0).toUpperCase() + rawXh.slice(1).toLowerCase() + " "; 
         }
       }
-      return xh + toTitleCase(cleanHonorificFromName(m.hoTen)) + (m.namSinh && isInd ? `, sinh năm ${m.namSinh}` : "");
+      var cleanName = toTitleCase(cleanHonorificFromName(m.hoTen));
+      var ns = (m.namSinh && isInd) ? (", sinh năm " + m.namSinh) : "";
+      return xh + cleanName + ns;
     });
+
     var groupStr = "";
+    var cleanDiaChi = String(g.diaChi || "").replace(/^(địa chỉ:\s*|cùng địa chỉ:\s*)/i, "").trim();
+
     if (memStrs.length === 1) { 
       groupStr = memStrs[0]; 
-      if (g.diaChi) groupStr += `, địa chỉ: ${g.diaChi}`; 
+      if (cleanDiaChi) groupStr += `, địa chỉ: ${cleanDiaChi}`; 
     } else { 
-      groupStr = memStrs.join(", "); 
-      if (g.diaChi) groupStr += ` (cùng địa chỉ: ${g.diaChi})`; 
+      var lastMem = memStrs.pop();
+      groupStr = memStrs.join(", ") + " và " + lastMem; 
+      if (cleanDiaChi) groupStr += ` (cùng địa chỉ: ${cleanDiaChi})`; 
     }
     return groupStr;
   });
   return groupStrings.join("; ");
 }
 
+// -------------------------------------------------------------------------
+// [FIXED]: SỬA LỖI KHUYẾT THẺ KÍNH GỬI (Họ và tên người khởi kiện, SĐT...)
+// Cung cấp đầy đủ biến phân rã cho cá nhân và tổ hợp cho nhóm
+// -------------------------------------------------------------------------
 function backend_buildExactPlaceholders(phMap, roleKey, groups) {
   var allMembers = extractFlatMembers(groups);
+  var rLow = roleKey.toLowerCase();
+  var rUp = roleKey.toUpperCase();
+
+  // 1. Cấp độ cá nhân (Nguyên đơn 1, Nguyên đơn 2...)
   for (var idx = 0; idx < Math.max(allMembers.length, 3); idx++) {
     var num = idx + 1, m = allMembers[idx];
-    var pNameHoa = `{Họ và tên ${roleKey} ${num}}`, pNameThuong = `{họ và tên ${roleKey.toLowerCase()} ${num}}`, pNameUpper = `{HỌ VÀ TÊN ${roleKey.toUpperCase()} ${num}}`;
-    var pRoleHoa = `{${roleKey} ${num}}`, pRoleThuong = `{${roleKey.toLowerCase()} ${num}}`, pRoleUpper = `{${roleKey.toUpperCase()} ${num}}`;
-    var pXhHoa = `{Xưng hô ${roleKey} ${num}}`, pXhThuong = `{xưng hô ${roleKey.toLowerCase()} ${num}}`;
-    var pNsHoa = `{Năm sinh ${roleKey} ${num}}`, pNsThuong = `{năm sinh ${roleKey.toLowerCase()} ${num}}`;
-    var pDcHoa = `{Địa chỉ ${roleKey} ${num}}`, pDcThuong = `{địa chỉ ${roleKey.toLowerCase()} ${num}}`;
-    var pSdtHoa = `{Số điện thoại ${roleKey} ${num}}`, pSdtThuong = `{số điện thoại ${roleKey.toLowerCase()} ${num}}`;
-    var pCccdHoa = `{CCCD ${roleKey} ${num}}`, pCccdThuong = `{cccd ${roleKey.toLowerCase()} ${num}}`;
+    
+    var pNameHoa = `{Họ và tên ${roleKey} ${num}}`, pNameThuong = `{họ và tên ${rLow} ${num}}`, pNameUpper = `{HỌ VÀ TÊN ${rUp} ${num}}`, pNameSent = `{Họ và tên ${rLow} ${num}}`;
+    var pRoleHoa = `{${roleKey} ${num}}`, pRoleThuong = `{${rLow} ${num}}`, pRoleUpper = `{${rUp} ${num}}`;
+    var pXhHoa = `{Xưng hô ${roleKey} ${num}}`, pXhThuong = `{xưng hô ${rLow} ${num}}`, pXhSent = `{Xưng hô ${rLow} ${num}}`;
+    var pNsHoa = `{Năm sinh ${roleKey} ${num}}`, pNsThuong = `{năm sinh ${rLow} ${num}}`, pNsSent = `{Năm sinh ${rLow} ${num}}`;
+    var pDcHoa = `{Địa chỉ ${roleKey} ${num}}`, pDcThuong = `{địa chỉ ${rLow} ${num}}`, pDcSent = `{Địa chỉ ${rLow} ${num}}`;
+    var pSdtHoa = `{Số điện thoại ${roleKey} ${num}}`, pSdtThuong = `{số điện thoại ${rLow} ${num}}`, pSdtSent = `{Số điện thoại ${rLow} ${num}}`;
+    var pCccdHoa = `{CCCD ${roleKey} ${num}}`, pCccdThuong = `{cccd ${rLow} ${num}}`, pCccdSent = `{CCCD ${rLow} ${num}}`;
 
     if (m) {
       var isInd = isIndividualHonorific(m.xungHo), titleCaseName = toTitleCase(cleanHonorificFromName(m.hoTen));
       var xhRaw = (m.xungHo && m.xungHo !== "Ông/Bà") ? m.xungHo.trim() : "Ông/bà";
       var xhHoa = isInd ? (xhRaw.charAt(0).toUpperCase() + xhRaw.slice(1).toLowerCase()) : "", xhThuong = isInd ? xhRaw.toLowerCase() : "";
       
-      phMap[pNameHoa] = phMap[pNameThuong] = titleCaseName; 
+      phMap[pNameHoa] = phMap[pNameThuong] = phMap[pNameSent] = titleCaseName; 
       phMap[pNameUpper] = titleCaseName.toUpperCase();
       phMap[pRoleHoa] = (xhHoa ? xhHoa + " " : "") + titleCaseName; 
       phMap[pRoleThuong] = (xhThuong ? xhThuong + " " : "") + titleCaseName; 
       phMap[pRoleUpper] = phMap[pRoleHoa].toUpperCase();
-      phMap[pXhHoa] = xhHoa; 
+      phMap[pXhHoa] = phMap[pXhSent] = xhHoa; 
       phMap[pXhThuong] = xhThuong;
-      phMap[pNsHoa] = phMap[pNsThuong] = m.namSinh ? ("sinh năm " + m.namSinh) : "";
-      phMap[pDcHoa] = phMap[pDcThuong] = m._diaChiGoc || "";
-      phMap[pSdtHoa] = phMap[pSdtThuong] = m.sdt ? formatPhoneNumber(m.sdt) : "";
-      phMap[pCccdHoa] = phMap[pCccdThuong] = m.cccd || "";
+      phMap[pNsHoa] = phMap[pNsThuong] = phMap[pNsSent] = m.namSinh ? ("sinh năm " + m.namSinh) : "";
+      phMap[pDcHoa] = phMap[pDcThuong] = phMap[pDcSent] = m._diaChiGoc || "";
+      phMap[pSdtHoa] = phMap[pSdtThuong] = phMap[pSdtSent] = m.sdt ? formatPhoneNumber(m.sdt) : "";
+      phMap[pCccdHoa] = phMap[pCccdThuong] = phMap[pCccdSent] = m.cccd || "";
 
-      // Hỗ trợ từ viết tắt NYC1, nyc1, NYC2, nyc2
       if (roleKey === "Người yêu cầu") {
         phMap["{NYC" + num + "}"] = phMap[pRoleHoa];
         phMap["{nyc" + num + "}"] = phMap[pRoleThuong];
       }
     } else {
-      phMap[pNameHoa] = phMap[pNameThuong] = phMap[pNameUpper] = phMap[pRoleHoa] = phMap[pRoleThuong] = phMap[pRoleUpper] = phMap[pXhHoa] = phMap[pXhThuong] = phMap[pNsHoa] = phMap[pNsThuong] = phMap[pDcHoa] = phMap[pDcThuong] = phMap[pSdtHoa] = phMap[pSdtThuong] = phMap[pCccdHoa] = phMap[pCccdThuong] = "";
+      phMap[pNameHoa] = phMap[pNameThuong] = phMap[pNameUpper] = phMap[pNameSent] = "";
+      phMap[pRoleHoa] = phMap[pRoleThuong] = phMap[pRoleUpper] = "";
+      phMap[pXhHoa] = phMap[pXhThuong] = phMap[pXhSent] = "";
+      phMap[pNsHoa] = phMap[pNsThuong] = phMap[pNsSent] = "";
+      phMap[pDcHoa] = phMap[pDcThuong] = phMap[pDcSent] = "";
+      phMap[pSdtHoa] = phMap[pSdtThuong] = phMap[pSdtSent] = "";
+      phMap[pCccdHoa] = phMap[pCccdThuong] = phMap[pCccdSent] = "";
       if (roleKey === "Người yêu cầu") {
         phMap["{NYC" + num + "}"] = "";
         phMap["{nyc" + num + "}"] = "";
@@ -412,23 +400,37 @@ function backend_buildExactPlaceholders(phMap, roleKey, groups) {
     }
   }
 
-  var nameKeyHoa = `{Họ và tên ${roleKey}}`, nameKeyThuong = `{họ và tên ${roleKey.toLowerCase()}}`, nameKeyUpper = `{HỌ VÀ TÊN ${roleKey.toUpperCase()}}`;
-  var xhKeyHoa = `{Xưng hô ${roleKey}}`, xhKeyThuong = `{xưng hô ${roleKey.toLowerCase()}}`;
-  var nsKeyHoa = `{Năm sinh ${roleKey}}`, nsKeyThuong = `{năm sinh ${roleKey.toLowerCase()}}`;
-  var dcKeyHoa = `{Địa chỉ ${roleKey}}`, dcKeyThuong = `{địa chỉ ${roleKey.toLowerCase()}}`;
+  // 2. Cấp độ nhóm tổng hợp (Dành cho Kính gửi, Địa chỉ nhóm, SĐT nhóm)
+  var nameKeyHoa = `{Họ và tên ${roleKey}}`, nameKeyThuong = `{họ và tên ${rLow}}`, nameKeyUpper = `{HỌ VÀ TÊN ${rUp}}`, nameKeySent = `{Họ và tên ${rLow}}`;
+  var xhKeyHoa = `{Xưng hô ${roleKey}}`, xhKeyThuong = `{xưng hô ${rLow}}`, xhKeySent = `{Xưng hô ${rLow}}`;
+  var nsKeyHoa = `{Năm sinh ${roleKey}}`, nsKeyThuong = `{năm sinh ${rLow}}`, nsKeySent = `{Năm sinh ${rLow}}`;
+  var dcKeyHoa = `{Địa chỉ ${roleKey}}`, dcKeyThuong = `{địa chỉ ${rLow}}`, dcKeySent = `{Địa chỉ ${rLow}}`;
+  var sdtKeyHoa = `{Số điện thoại ${roleKey}}`, sdtKeyThuong = `{số điện thoại ${rLow}}`, sdtKeySent = `{Số điện thoại ${rLow}}`;
+  var cccdKeyHoa = `{CCCD ${roleKey}}`, cccdKeyThuong = `{cccd ${rLow}}`, cccdKeySent = `{CCCD ${rLow}}`;
 
   if (allMembers.length === 0) {
-    phMap[nameKeyHoa] = phMap[nameKeyThuong] = phMap[nameKeyUpper] = phMap[xhKeyHoa] = phMap[xhKeyThuong] = phMap[nsKeyHoa] = phMap[nsKeyThuong] = phMap[dcKeyHoa] = phMap[dcKeyThuong] = "";
+    phMap[nameKeyHoa] = phMap[nameKeyThuong] = phMap[nameKeyUpper] = phMap[nameKeySent] = "";
+    phMap[xhKeyHoa] = phMap[xhKeyThuong] = phMap[xhKeySent] = "";
+    phMap[nsKeyHoa] = phMap[nsKeyThuong] = phMap[nsKeySent] = "";
+    phMap[dcKeyHoa] = phMap[dcKeyThuong] = phMap[dcKeySent] = "";
+    phMap[sdtKeyHoa] = phMap[sdtKeyThuong] = phMap[sdtKeySent] = "";
+    phMap[cccdKeyHoa] = phMap[cccdKeyThuong] = phMap[cccdKeySent] = "";
     return;
   }
 
   var namesCompound = [];
   var firstXhHoa = "", firstXhThuong = "";
+  var sdtList = [];
+  var cccdList = [];
+  var isAllOrg = true;
+
   for (var i = 0; i < allMembers.length; i++) {
     var mem = allMembers[i];
     var isIndM = isIndividualHonorific(mem.xungHo);
+    if (isIndM) isAllOrg = false;
     var cleanN = toTitleCase(cleanHonorificFromName(mem.hoTen));
     var xhM = (mem.xungHo && mem.xungHo !== "Ông/Bà") ? mem.xungHo.trim() : "Ông/bà";
+    
     if (i === 0) {
       firstXhHoa = isIndM ? (xhM.charAt(0).toUpperCase() + xhM.slice(1).toLowerCase()) : "";
       firstXhThuong = isIndM ? xhM.toLowerCase() : "";
@@ -436,13 +438,27 @@ function backend_buildExactPlaceholders(phMap, roleKey, groups) {
     } else {
       namesCompound.push((isIndM ? (xhM.toLowerCase() + " ") : "") + cleanN);
     }
+
+    if (mem.sdt) {
+      var phoneFmt = formatPhoneNumber(mem.sdt);
+      if (!sdtList.includes(phoneFmt)) sdtList.push(phoneFmt);
+    }
+    if (mem.cccd && !cccdList.includes(mem.cccd)) cccdList.push(mem.cccd);
   }
 
-  phMap[xhKeyHoa] = firstXhHoa;
-  phMap[xhKeyThuong] = firstXhThuong;
+  // Tự động phân tích danh xưng nhóm
+  if (allMembers.length > 1 && !isAllOrg) {
+    phMap[xhKeyHoa] = "Các ông/bà";
+    phMap[xhKeyThuong] = "các ông/bà";
+    phMap[xhKeySent] = "Các ông/bà";
+  } else {
+    phMap[xhKeyHoa] = firstXhHoa;
+    phMap[xhKeyThuong] = firstXhThuong;
+    phMap[xhKeySent] = firstXhHoa;
+  }
 
-  var compoundFullName = namesCompound.join(", ");
-  phMap[nameKeyHoa] = phMap[nameKeyThuong] = compoundFullName;
+  var compoundFullName = namesCompound.length > 1 ? (namesCompound.slice(0, -1).join(", ") + " và " + namesCompound[namesCompound.length - 1]) : namesCompound[0];
+  phMap[nameKeyHoa] = phMap[nameKeyThuong] = phMap[nameKeySent] = compoundFullName;
   phMap[nameKeyUpper] = compoundFullName.toUpperCase();
 
   var nsList = [];
@@ -460,14 +476,17 @@ function backend_buildExactPlaceholders(phMap, roleKey, groups) {
     var allSame = nsList.every(function(y) { return y === nsList[0]; });
     compoundNs = allSame ? ("cùng sinh năm " + nsList[0]) : ("sinh năm " + nsList.join(", "));
   }
-  phMap[nsKeyHoa] = phMap[nsKeyThuong] = compoundNs;
+  phMap[nsKeyHoa] = phMap[nsKeyThuong] = phMap[nsKeySent] = compoundNs;
 
   var dcList = [];
   allMembers.forEach(function(m) {
-    var dc = (m._diaChiGoc || m.diaChi || "").trim();
-    if (dc && !dcList.includes(dc)) dcList.push(dc);
+    var cleanD = String(m._diaChiGoc || m.diaChi || "").replace(/^(địa chỉ:\s*|cùng địa chỉ:\s*)/i, "").trim();
+    if (cleanD && !dcList.includes(cleanD)) dcList.push(cleanD);
   });
-  phMap[dcKeyHoa] = phMap[dcKeyThuong] = dcList.length > 0 ? dcList.join("; ") : "";
+  
+  phMap[dcKeyHoa] = phMap[dcKeyThuong] = phMap[dcKeySent] = dcList.length > 0 ? dcList.join("; ") : "";
+  phMap[sdtKeyHoa] = phMap[sdtKeyThuong] = phMap[sdtKeySent] = sdtList.length > 0 ? sdtList.join("; ") : "";
+  phMap[cccdKeyHoa] = phMap[cccdKeyThuong] = phMap[cccdKeySent] = cccdList.length > 0 ? cccdList.join("; ") : "";
 }
 
 // =========================================================================
@@ -612,7 +631,7 @@ function replaceTimeString(body, searchKey, timeStr) {
 }
 
 // =========================================================================
-// MỤC 5: FAST-FAIL REPLACEMENT, SANITIZE & NHÂN BẢN TRANG
+// MỤC 5: [NÂNG CẤP TWO-PASS SCANNER] ĐIỀN PLACEHOLDER THÔNG MINH
 // =========================================================================
 
 function replaceTextSafe(container, searchKey, replaceStr) {
@@ -624,16 +643,31 @@ function replaceTextSafe(container, searchKey, replaceStr) {
 
 function applyAtomicReplacements(container, dictionaryMap, containerText) {
   if (!containerText) try { containerText = container.getText(); } catch(e) { containerText = ""; }
-  var textLower = containerText.toLowerCase();
+  
+  // LỚP 1: THAY THẾ CHÍNH XÁC 100% (CASE-SENSITIVE) - Bảo vệ người dùng cố tình phân biệt Hoa/Thường
+  Object.keys(dictionaryMap).sort(function(a, b) { return b.length - a.length; }).forEach(function(key) {
+    var val = dictionaryMap[key];
+    if (val !== undefined && val !== null) {
+      if (containerText.includes(key)) {
+        var safeStr = String(val).replace(/\$/g, '$$$$');
+        var regexPattern = "\\{\\s*" + escapeRegex(key.replace(/[{}]/g, "").trim()) + "\\s*\\}";
+        try { container.replaceText(regexPattern, safeStr); } catch(e) { container.replaceText(escapeRegex(key), safeStr); }
+      }
+    }
+  });
 
+  // LỚP 2: QUÉT VÉT BẰNG REGEX KHÔNG PHÂN BIỆT HOA THƯỜNG (?i) VÀ CHO PHÉP KHOẢNG TRẮNG THỪA
+  // Giải quyết triệt để lỗi người dùng gõ sai hoa thường trong file Word như:
+  // {Họ và tên người khởi kiện} thay vì chuẩn TANDTC là {Họ và tên Người khởi kiện}
+  var textLower = containerText.toLowerCase();
   Object.keys(dictionaryMap).sort(function(a, b) { return b.length - a.length; }).forEach(function(key) {
     var val = dictionaryMap[key];
     if (val !== undefined && val !== null) {
       var innerKey = key.replace(/[{}]/g, "").trim().toLowerCase();
       if (textLower.includes(innerKey)) {
         var safeStr = String(val).replace(/\$/g, '$$$$');
-        var regexPattern = "\\{\\s*" + escapeRegex(key.replace(/[{}]/g, "").trim()) + "\\s*\\}";
-        try { container.replaceText(regexPattern, safeStr); } catch(e) { container.replaceText(escapeRegex(key), safeStr); }
+        var regexPattern = "(?i)\\{\\s*" + escapeRegex(key.replace(/[{}]/g, "").trim()) + "\\s*\\}";
+        try { container.replaceText(regexPattern, safeStr); } catch(e) {}
       }
     }
   });
@@ -656,6 +690,11 @@ function sanitizeMergedDocument(body) {
       body.replaceText("(?i)\\b" + prep + "\\s+Anh\\b", prep + " anh");
       body.replaceText("(?i)\\b" + prep + "\\s+Chị\\b", prep + " chị");
     });
+
+    body.replaceText(":\\s*[ \\t\\u00A0]{2,}", ": ");
+    body.replaceText(":\\s*[ \\t\\u00A0]+", ": ");
+    body.replaceText("(?i)địa chỉ:\\s*cùng địa chỉ:", "cùng địa chỉ:");
+    body.replaceText("(?i)địa chỉ:\\s*địa chỉ:", "địa chỉ:");
 
     body.replaceText("\\.{3,}", "...");
     body.replaceText("\\s+,", ","); body.replaceText("\\s+\\.", "."); body.replaceText("\\s+;", ";");
@@ -701,7 +740,7 @@ function appendPageCloneDeep(targetBody, sourceElements) {
 }
 
 // =========================================================================
-// MỤC 6: ĐIỀU PHỐI TIẾN TRÌNH TRỘN THƯ (MASTER DRAFTING ENGINE V8.0)
+// MỤC 6: ĐỘNG CƠ TRỘN THƯ VỤ ÁN CHÍNH THỨC (MASTER MAIL MERGE V3)
 // =========================================================================
 
 function api_RunMailMergeV3_Logic(input) {
@@ -710,11 +749,11 @@ function api_RunMailMergeV3_Logic(input) {
     if (!input || !input.templateIds || input.templateIds.length === 0) return { success: false, error: "Vui lòng chọn ít nhất một biểu mẫu." };
     if (!input.idVuAn) return { success: false, error: "Vui lòng chọn một hồ sơ vụ án." };
 
-    var caseData = layDuLieuChiTiet(input.idVuAn);
+    var caseData = (typeof layDuLieuChiTiet === 'function') ? layDuLieuChiTiet(input.idVuAn) : {};
     if (caseData.error) return { success: false, error: caseData.error };
 
     var parties = (input.partiesOverride && input.partiesOverride.length > 0) ? input.partiesOverride : (caseData.ds || []);
-    var info = caseData.info;
+    var info = caseData.info || {};
     var config = (typeof getConfigFromSheet === 'function') ? getConfigFromSheet() : {};
 
     var allCasePartyNames = parties.map(function(p) { return toTitleCase(cleanHonorificFromName(p.hoTen)); }).filter(Boolean);
@@ -887,6 +926,8 @@ function api_RunMailMergeV3_Logic(input) {
     backend_buildExactPlaceholders(roleMap, "Nguyên đơn", groupsNKK);
     backend_buildExactPlaceholders(roleMap, "Bị đơn", groupsNBK);
     backend_buildExactPlaceholders(roleMap, "Người có quyền lợi, nghĩa vụ liên quan", groupsNLQ);
+    backend_buildExactPlaceholders(roleMap, "Người khởi kiện", groupsNKK);
+    backend_buildExactPlaceholders(roleMap, "Người bị kiện", groupsNBK);
 
     // CÁN BỘ TIẾN HÀNH TỐ TỤNG
     var tenTP_Clean = toTitleCase(cleanHonorificFromName(config["TEN_THAM_PHAN"] || ""));
@@ -1068,26 +1109,15 @@ function api_RunMailMergeV3_Logic(input) {
       var newDocFile = templateFile.makeCopy(baseExportName, destFolder);
       var doc = DocumentApp.openById(newDocFile.getId()), body = doc.getBody(), docTextContent = body.getText();
 
-      var header = doc.getHeader(); 
-      if (header) { 
-        resolvePairedNameAndYearTags(header, roleClusterMap, header.getText()); 
-        applyAtomicReplacements(header, fullMap, header.getText()); 
-        sanitizeMergedDocument(header); 
-      }
-      var footer = doc.getFooter(); 
-      if (footer) { 
-        resolvePairedNameAndYearTags(footer, roleClusterMap, footer.getText()); 
-        applyAtomicReplacements(footer, fullMap, footer.getText()); 
-        sanitizeMergedDocument(footer); 
-      }
-
-      // CHẾ ĐỘ 1: IN TÁCH TRANG HÀNG LOẠT (DÀNH CHO GIẤY TRIỆU TẬP, GIẤY BÁO)
       var isTachTrang = docTextContent.includes("{Họ và tên}") || 
                         docTextContent.includes("{họ và tên}") || 
                         docTextContent.includes("{HỌ VÀ TÊN}") || 
                         docTextContent.includes("{Tư cách}") || 
-                        docTextContent.includes("{tư cách}");
+                        docTextContent.includes("{tư cách}") ||
+                        docTextContent.includes("{Địa chỉ}") ||
+                        docTextContent.includes("{Số điện thoại}");
 
+      // CHẾ ĐỘ 1: IN TÁCH TRANG HÀNG LOẠT
       if (isTachTrang) {
         var indices = (input.selectedIndices && input.selectedIndices.length > 0) ? input.selectedIndices : parties.map((_, i) => i);
         var mergeRecipients = [];
@@ -1144,6 +1174,19 @@ function api_RunMailMergeV3_Logic(input) {
       } 
       // CHẾ ĐỘ 2: TRỘN GỘP VĂN BẢN ÁN (BẢN ÁN, QUYẾT ĐỊNH, BIÊN BẢN HÒA GIẢI...)
       else {
+        var header = doc.getHeader(); 
+        if (header) { 
+          resolvePairedNameAndYearTags(header, roleClusterMap, header.getText()); 
+          applyAtomicReplacements(header, fullMap, header.getText()); 
+          sanitizeMergedDocument(header); 
+        }
+        var footer = doc.getFooter(); 
+        if (footer) { 
+          resolvePairedNameAndYearTags(footer, roleClusterMap, footer.getText()); 
+          applyAtomicReplacements(footer, fullMap, footer.getText()); 
+          sanitizeMergedDocument(footer); 
+        }
+
         resolvePairedNameAndYearTags(body, roleClusterMap, docTextContent);
 
         // Thay thế các khối danh sách đương sự dạng bảng / dạng lặp
@@ -1176,6 +1219,14 @@ function api_RunMailMergeV3_Logic(input) {
           replaceBlockMultiline(body, synTag, fullMap["{Tài liệu kèm theo đơn khởi kiện}"]);
         });
 
+        // Khối đa dòng cho Sửa đổi bổ sung
+        if (fullMap["{Những vấn đề cần sửa chữa bổ sung}"]) {
+          replaceBlockMultiline(body, "{Những vấn đề cần sửa chữa bổ sung}", fullMap["{Những vấn đề cần sửa chữa bổ sung}"]);
+        }
+        if (fullMap["{Yêu cầu sửa đổi bổ sung}"]) {
+          replaceBlockMultiline(body, "{Yêu cầu sửa đổi bổ sung}", fullMap["{Yêu cầu sửa đổi bổ sung}"]);
+        }
+
         // Áp dụng thay thế nguyên tử cho toàn bộ các Placeholder đơn lẻ
         applyAtomicReplacements(body, fullMap, body.getText());
       }
@@ -1199,5 +1250,395 @@ function api_RunMailMergeV3_Logic(input) {
     return { success: true, files: finalFiles };
   } catch (e) { 
     return { success: false, error: e.toString() }; 
+  }
+}
+
+// =========================================================================
+// MỤC 7: ĐỘNG CƠ TRỘN THƯ ĐƠN KHỞI KIỆN HỢP NHẤT (MASTER DON ENGINE)
+// =========================================================================
+
+function backend_LayDuLieuChiTietDon(idDon) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheetDon = ss.getSheetByName("0_SoNhanDon");
+    var sheetDS = ss.getSheetByName("0_DuongSuDon");
+    if (!sheetDon) return { error: "Không tìm thấy sheet 0_SoNhanDon" };
+
+    var finder = sheetDon.getRange("A:A").createTextFinder(idDon).matchEntireCell(true).findNext();
+    if (!finder) return { error: "Không tìm thấy hồ sơ đơn ID: " + idDon };
+
+    var row = finder.getRow();
+    var vals = sheetDon.getRange(row, 1, 1, 11).getValues()[0];
+
+    var info = {
+      id: String(vals[0] || "").trim(),
+      soDon: String(vals[1] || "").trim(),
+      ngayNhan: vals[2],
+      loaiAn: String(vals[3] || "2. Dân sự").trim(),
+      quanHe: String(vals[4] || "").trim(),
+      giaTri: String(vals[5] || "").trim(),
+      huongXuLy: String(vals[6] || "").trim(),
+      thamPhan: String(vals[7] || "").trim(),
+      tamUng: String(vals[8] || "").trim(),
+      trangThai: String(vals[9] || "").trim(),
+      ghiChu: String(vals[10] || "").trim()
+    };
+
+    var dsList = [];
+    if (sheetDS && sheetDS.getLastRow() > 1) {
+      var dsData = sheetDS.getDataRange().getValues();
+      for (var i = 1; i < dsData.length; i++) {
+        if (String(dsData[i][0] || "").trim() === String(idDon).trim()) {
+          dsList.push({
+            tuCach: String(dsData[i][1] || "Người khởi kiện").trim(),
+            xungHo: String(dsData[i][2] || "Ông/Bà").trim(),
+            hoTen: String(dsData[i][3] || "").trim(),
+            namSinh: String(dsData[i][4] || "").replace(/^'/, "").trim(),
+            diaChi: String(dsData[i][5] || "").trim(),
+            sdt: String(dsData[i][6] || "").replace(/^'/, "").trim(),
+            cccd: String(dsData[i][7] || "").replace(/^'/, "").trim(),
+            daiDien: String(dsData[i][8] || "").trim()
+          });
+        }
+      }
+    }
+
+    return { info: info, ds: dsList };
+  } catch (e) {
+    return { error: "Lỗi đọc dữ liệu đơn: " + e.toString() };
+  }
+}
+
+function api_RunMailMergeDon_Logic(input) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    if (!input || !input.templateIds || input.templateIds.length === 0) {
+      return { success: false, error: "Vui lòng chọn ít nhất một biểu mẫu đơn." };
+    }
+    if (!input.idDon) {
+      return { success: false, error: "Vui lòng chọn hồ sơ đơn cần xuất văn bản." };
+    }
+
+    var donData = (input.partiesOverride && input.infoOverride) 
+      ? { info: input.infoOverride, ds: input.partiesOverride } 
+      : backend_LayDuLieuChiTietDon(input.idDon);
+
+    if (donData.error) return { success: false, error: donData.error };
+
+    var info = donData.info || {};
+    var parties = (input.partiesOverride && input.partiesOverride.length > 0) ? input.partiesOverride : (donData.ds || []);
+    var config = (typeof getConfigFromSheet === 'function') ? getConfigFromSheet() : {};
+
+    // 1. Quản lý thư mục lưu trữ Đơn trên Drive
+    var rootFolderId = extractFolderId(config["ID_THUMUC_DON"]);
+    if (!rootFolderId) throw new Error("Chưa cấu hình ID Thư mục lưu Đơn trong Cài đặt.");
+
+    var rootFolder = DriveApp.getFolderById(rootFolderId);
+    var currentYear = "Năm " + new Date().getFullYear();
+    var yFolders = rootFolder.getFoldersByName(currentYear);
+    var yearFolder = yFolders.hasNext() ? yFolders.next() : rootFolder.createFolder(currentYear);
+
+    var cleanNo = info.soDon ? String(info.soDon).split('/')[0].trim() : "Don";
+    var firstNKK = "Chưa rõ";
+
+    var groupsNKK = [], groupsNBK = [], groupsNLQ = [];
+    parties.forEach(function(d) {
+      var tcLower = String(d.tuCach || "").toLowerCase();
+      var type = 'NBK';
+      if (tcLower.includes('khởi kiện') || tcLower.includes('yêu cầu') || tcLower.includes('bị hại') || tcLower.includes('nguyên đơn')) {
+        type = 'NKK';
+        if (firstNKK === 'Chưa rõ') firstNKK = toTitleCase(cleanHonorificFromName(d.hoTen));
+      } else if (tcLower.includes('liên quan')) {
+        type = 'NLQ';
+      }
+
+      var targetGroup = (type === 'NKK') ? groupsNKK : (type === 'NLQ' ? groupsNLQ : groupsNBK);
+      var addrKey = d.diaChi ? d.diaChi.trim().toLowerCase() : "";
+      var found = addrKey ? targetGroup.find(function(g) { return (g.diaChi ? g.diaChi.trim().toLowerCase() : "") === addrKey; }) : null;
+      if (found) found.members.push(d); else targetGroup.push({ diaChi: d.diaChi, members: [d] });
+    });
+
+    var folderName = `${cleanNo} - ${firstNKK}`;
+    var subFolders = yearFolder.getFoldersByName(folderName);
+    var caseFolder = subFolders.hasNext() ? subFolders.next() : yearFolder.createFolder(folderName);
+
+    // 2. Tự động đồng bộ lịch hẹn công tác nếu có ngày giờ làm việc
+    if (input.trieuTapDate) {
+      try {
+        if (typeof api_LuuLichMoi_Logic === 'function') {
+          api_LuuLichMoi_Logic({
+            idVuAn: "GENERAL",
+            ngay: input.trieuTapDate,
+            gio: input.trieuTapTime || "08:30",
+            noiDung: `[Đơn ${cleanNo}] Tiếp nhận & Làm việc: ${firstNKK} (${input.noiDungThem || "Xử lý đơn khởi kiện"})`,
+            ghiChu: input.diaDiemLamViec || config["DIA_CHI_TOA"] || "Trụ sở Tòa án"
+          });
+        }
+      } catch (eLich) {}
+    }
+
+    // 3. Tự động cập nhật trạng thái đơn
+    if (input.newStatus) {
+      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      var sheetDon = ss.getSheetByName("0_SoNhanDon");
+      if (sheetDon) {
+        var finder = sheetDon.getRange("A:A").createTextFinder(input.idDon).matchEntireCell(true).findNext();
+        if (finder) {
+          sheetDon.getRange(finder.getRow(), 7).setValue(input.newStatus);
+          sheetDon.getRange(finder.getRow(), 10).setValue(input.newStatus);
+        }
+      }
+    }
+
+    // 4. Định dạng ngày tháng tư pháp
+    var dBanHanhObj = input.ngayBanHanh ? (LibDate.parse(input.ngayBanHanh) || new Date()) : new Date();
+    var valNgayBanHanhHoa = LibDate.toVNText(dBanHanhObj, true);
+    var valNgayBanHanhThuong = LibDate.toVNText(dBanHanhObj, false);
+
+    var dNgayNhanObj = LibDate.parse(info.ngayNhan) || new Date();
+    var valNgayNhanHoa = LibDate.toVNText(dNgayNhanObj, true);
+    var valNgayNhanThuong = LibDate.toVNText(dNgayNhanObj, false);
+
+    var timeString = (input.trieuTapDate && input.trieuTapTime) 
+      ? LibDate.fmtFullTime(input.trieuTapDate, input.trieuTapTime) 
+      : "....... giờ ....... phút, ngày ....... tháng ....... năm .......";
+
+    var diaDiemRaw = input.diaDiemLamViec || config["DIA_CHI_TOA"] || "Trụ sở Tòa án";
+    var phanLoaiDonStr = info.loaiAn ? (info.loaiAn.split('. ')[1] || info.loaiAn) : "Dân sự";
+
+    // 5. Tính án phí / Tạm ứng án phí NQ 326
+    var keyLoaiAn = "danSu";
+    if (String(info.loaiAn).includes("Kinh doanh")) keyLoaiAn = "kinhDoanh";
+    else if (String(info.loaiAn).includes("Hình sự")) keyLoaiAn = "hinhSu";
+    else if (String(info.loaiAn).includes("Hành chính")) keyLoaiAn = "hanhChinh";
+
+    var feeCalc = calculateCourtFee(keyLoaiAn, String(info.giaTri || "0"));
+
+    // 6. Xây dựng toàn diện từ điển Placeholder Đơn bộ 3 thể thức
+    var donRoleMap = {};
+    backend_buildExactPlaceholders(donRoleMap, "Người khởi kiện", groupsNKK);
+    backend_buildExactPlaceholders(donRoleMap, "Người nộp đơn", groupsNKK);
+    backend_buildExactPlaceholders(donRoleMap, "Người yêu cầu", groupsNKK);
+    backend_buildExactPlaceholders(donRoleMap, "Nguyên đơn", groupsNKK);
+    backend_buildExactPlaceholders(donRoleMap, "Bị đơn", groupsNBK);
+    backend_buildExactPlaceholders(donRoleMap, "Người bị kiện", groupsNBK);
+    backend_buildExactPlaceholders(donRoleMap, "Người bị yêu cầu", groupsNBK);
+    backend_buildExactPlaceholders(donRoleMap, "Người có quyền lợi, nghĩa vụ liên quan", groupsNLQ);
+
+    donRoleMap["{Người khởi kiện}"] = buildShortPartyStringBackend(groupsNKK, false);
+    donRoleMap["{người khởi kiện}"] = buildShortPartyStringBackend(groupsNKK, true);
+    donRoleMap["{NGƯỜI KHỞI KIỆN}"] = donRoleMap["{Người khởi kiện}"].toUpperCase();
+
+    donRoleMap["{Người nộp đơn}"] = donRoleMap["{Người khởi kiện}"];
+    donRoleMap["{người nộp đơn}"] = donRoleMap["{người khởi kiện}"];
+
+    donRoleMap["{Người yêu cầu}"] = donRoleMap["{Người khởi kiện}"];
+    donRoleMap["{người yêu cầu}"] = donRoleMap["{người khởi kiện}"];
+
+    donRoleMap["{Nguyên đơn}"] = donRoleMap["{Người khởi kiện}"];
+    donRoleMap["{nguyên đơn}"] = donRoleMap["{người khởi kiện}"];
+
+    donRoleMap["{Bị đơn}"] = buildShortPartyStringBackend(groupsNBK, false);
+    donRoleMap["{bị đơn}"] = buildShortPartyStringBackend(groupsNBK, true);
+    donRoleMap["{BỊ ĐƠN}"] = donRoleMap["{Bị đơn}"].toUpperCase();
+
+    donRoleMap["{Người bị kiện}"] = donRoleMap["{Bị đơn}"];
+    donRoleMap["{người bị kiện}"] = donRoleMap["{bị đơn}"];
+
+    donRoleMap["{Người có quyền lợi, nghĩa vụ liên quan}"] = buildShortPartyStringBackend(groupsNLQ, false);
+    donRoleMap["{người có quyền lợi, nghĩa vụ liên quan}"] = buildShortPartyStringBackend(groupsNLQ, true);
+
+    var baseDonMap = {
+      "{Số đơn}": String(info.soDon || ""),
+      "{số đơn}": String(info.soDon || "").toLowerCase(),
+      "{SỐ ĐƠN}": String(info.soDon || "").toUpperCase(),
+      "{Số thụ lý rút gọn}": cleanNo,
+      "{số thụ lý rút gọn}": cleanNo,
+
+      "{Ngày ban hành}": valNgayBanHanhThuong,
+      "{ngày ban hành}": valNgayBanHanhThuong,
+      "{NGÀY BAN HÀNH}": valNgayBanHanhHoa.toUpperCase(),
+
+      "{Ngày nhận đơn}": valNgayNhanThuong,
+      "{ngày nhận đơn}": valNgayNhanThuong,
+      "{NGÀY NHẬN ĐƠN}": valNgayNhanHoa.toUpperCase(),
+
+      "{Phân loại đơn}": phanLoaiDonStr,
+      "{phân loại đơn}": phanLoaiDonStr.toLowerCase(),
+      "{PHÂN LOẠI ĐƠN}": phanLoaiDonStr.toUpperCase(),
+
+      "{Quan hệ tranh chấp}": String(info.quanHe || ""),
+      "{quan hệ tranh chấp}": String(info.quanHe || "").toLowerCase(),
+      "{QUAN HỆ TRANH CHẤP}": String(info.quanHe || "").toUpperCase(),
+
+      "{Địa điểm}": diaDiemRaw,
+      "{địa điểm}": diaDiemRaw,
+      "{Địa điểm làm việc}": diaDiemRaw,
+      "{địa điểm làm việc}": diaDiemRaw,
+
+      "{Nội dung làm việc}": input.noiDungThem || "Làm rõ một số vấn đề liên quan đến đơn khởi kiện",
+      "{nội dung làm việc}": (input.noiDungThem || "Làm rõ một số vấn đề liên quan đến đơn khởi kiện").toLowerCase(),
+
+      "{Tạm ứng án phí bằng số}": feeCalc.tamUngSo + " đồng",
+      "{tạm ứng án phí bằng số}": feeCalc.tamUngSo + " đồng",
+      "{Tạm ứng án phí bằng chữ}": feeCalc.tamUngChu,
+      "{tạm ứng án phí bằng chữ}": feeCalc.tamUngChu,
+
+      "{Án phí bằng số}": feeCalc.anPhiSo + " đồng",
+      "{án phí bằng số}": feeCalc.anPhiSo + " đồng",
+      "{Án phí bằng chữ}": feeCalc.anPhiChu,
+      "{án phí bằng chữ}": feeCalc.anPhiChu,
+
+      "{Những vấn đề cần sửa chữa bổ sung}": input.sbsVanDe || "",
+      "{những vấn đề cần sửa chữa bổ sung}": input.sbsVanDe || "",
+      "{Yêu cầu sửa đổi bổ sung}": input.sbsYeuCau || "",
+      "{yêu cầu sửa đổi bổ sung}": input.sbsYeuCau || "",
+
+      "{Thẩm phán}": toTitleCase(cleanHonorificFromName(info.thamPhan || config["TEN_THAM_PHAN"] || "")),
+      "{thẩm phán}": toTitleCase(cleanHonorificFromName(info.thamPhan || config["TEN_THAM_PHAN"] || "")),
+      "{Tòa án}": String(config["TEN_TOA_AN"] || "Tòa án nhân dân"),
+      "{tòa án}": String(config["TEN_TOA_AN"] || "Tòa án nhân dân"),
+      "{TÒA ÁN}": String(config["TEN_TOA_AN"] || "Tòa án nhân dân").toUpperCase(),
+      "{Địa chỉ tòa án}": String(config["DIA_CHI_TOA"] || "Trụ sở Tòa án"),
+      "{địa chỉ tòa án}": String(config["DIA_CHI_TOA"] || "Trụ sở Tòa án")
+    };
+
+    var fullDonMap = Object.assign({}, baseDonMap, donRoleMap, input.compiledPlaceholders || {}, input.customVariables || {});
+
+    // Mở rộng case không phân biệt hoa thường
+    var expandedDonMap = Object.assign({}, fullDonMap);
+    for (var k in fullDonMap) {
+      if (fullDonMap[k] !== undefined && fullDonMap[k] !== null) {
+        var vStr = String(fullDonMap[k]);
+        var lowK = k.toLowerCase(), upK = k.toUpperCase();
+        if (!expandedDonMap.hasOwnProperty(lowK)) expandedDonMap[lowK] = vStr;
+        if (!expandedDonMap.hasOwnProperty(upK)) expandedDonMap[upK] = vStr.toUpperCase();
+      }
+    }
+    fullDonMap = expandedDonMap;
+
+    // 7. Thực hiện trộn từng biểu mẫu đơn
+    var createdFiles = [];
+    var allPartyNames = parties.map(function(p) { return toTitleCase(cleanHonorificFromName(p.hoTen)); }).filter(Boolean);
+
+    input.templateIds.forEach(function(templateId) {
+      var templateFile = DriveApp.getFileById(templateId);
+      var cleanDocName = templateFile.getName().replace(/\.(gdoc|docx|doc)$/i, "").trim();
+      var expectedName = `${cleanDocName} - ${cleanNo}`;
+
+      var existingFiles = caseFolder.getFilesByName(expectedName);
+      while (existingFiles.hasNext()) existingFiles.next().setTrashed(true);
+
+      var newFile = templateFile.makeCopy(expectedName, caseFolder);
+      var doc = DocumentApp.openById(newFile.getId());
+      var body = doc.getBody();
+      var docTextContent = body.getText();
+
+      var isTachTrang = docTextContent.includes("{Họ và tên}") || 
+                        docTextContent.includes("{họ và tên}") || 
+                        docTextContent.includes("{HỌ VÀ TÊN}") || 
+                        docTextContent.includes("{Tư cách}") || 
+                        docTextContent.includes("{tư cách}") ||
+                        docTextContent.includes("{Địa chỉ}") ||
+                        docTextContent.includes("{Số điện thoại}");
+
+      if (isTachTrang) {
+        // [CẮT BỎ ĐOẠN CODE IN TÁCH TRANG Ở ĐÂY CHO ĐƠN GIẢN, BẠN CÓ THỂ GIỮ NGUYÊN NẾU MUỐN]
+        // NẾU GIẤY TRIỆU TẬP, IN TÁCH TRANG TƯƠNG TỰ BÊN ÁN
+        var indices = (input.selectedIndices && input.selectedIndices.length > 0) ? input.selectedIndices : parties.map((_, i) => i);
+        var mergeRecipients = [];
+        parties.filter((_, idx) => indices.includes(idx)).forEach(function(p) {
+          mergeRecipients.push(p);
+          if (p.daiDien) {
+            try { 
+              JSON.parse(p.daiDien).forEach(r => mergeRecipients.push({ 
+                hoTen: r.hoTen, xungHo: r.xungHo || "Ông/Bà", tuCach: (r.tuCach || "Người đại diện") + " của " + p.tuCach + " " + p.hoTen, 
+                diaChi: r.diaChi || p.diaChi, namSinh: r.namSinh || "", sdt: r.sdt || "", cccd: r.cccd || "", daiDien: "" 
+              })); 
+            } catch(e) {}
+          }
+        });
+
+        var originalElements = []; 
+        for (var i = 0; i < body.getNumChildren(); i++) originalElements.push(body.getChild(i).copy());
+        var pagesElementArrays = [[]]; 
+        for (var p1 = 0; p1 < body.getNumChildren(); p1++) pagesElementArrays[0].push(body.getChild(p1));
+        for (var idx = 1; idx < mergeRecipients.length; idx++) pagesElementArrays.push(appendPageCloneDeep(body, originalElements));
+
+        mergeRecipients.forEach(function(ds, rIdx) {
+          var pageElements = pagesElementArrays[rIdx];
+          if (!ds || !pageElements) return;
+          var cleanName = toTitleCase(cleanHonorificFromName(ds.hoTen)), isInd = isIndividualHonorific(ds.xungHo);
+          var xhHoa = isInd ? toTitleCase(ds.xungHo || "Ông/bà") : "";
+          var xhThuong = isInd ? (ds.xungHo ? ds.xungHo.toLowerCase() : "ông/bà") : "";
+
+          var localPartyMap = {
+            "{Xưng hô}": xhHoa, "{xưng hô}": xhThuong, "{XƯNG HÔ}": xhHoa.toUpperCase(),
+            "{Họ và tên}": cleanName, "{họ và tên}": cleanName, "{HỌ VÀ TÊN}": cleanName.toUpperCase(),
+            "{Địa chỉ}": ds.diaChi || "....................", "{địa chỉ}": ds.diaChi || "....................",
+            "{Tư cách}": ds.tuCach || ".........", "{tư cách}": ds.tuCach ? ds.tuCach.toLowerCase() : ".........", "{TƯ CÁCH}": ds.tuCach ? ds.tuCach.toUpperCase() : ".........",
+            "{Năm sinh}": (ds.namSinh && isInd) ? ("sinh năm " + ds.namSinh) : "", "{năm sinh}": (ds.namSinh && isInd) ? ("sinh năm " + ds.namSinh) : "",
+            "{Người đại diện}": formatRepsBlock(ds.daiDien), "{người đại diện}": formatRepsBlock(ds.daiDien),
+            "{CCCD}": ds.cccd || "", "{cccd}": ds.cccd || "",
+            "{Số điện thoại}": ds.sdt ? formatPhoneNumber(ds.sdt) : "", "{số điện thoại}": ds.sdt ? formatPhoneNumber(ds.sdt) : ""
+          };
+
+          var finalMapPage = Object.assign({}, fullDonMap, localPartyMap);
+          var pageTextCache = pageElements.map(e => (typeof e.getText === 'function') ? e.getText() : "").join("\n");
+
+          pageElements.forEach(function(el) {
+            applyAtomicReplacements(el, finalMapPage, pageTextCache);
+            if (el.getType() === DocumentApp.ElementType.PARAGRAPH) applyPrecisionBold(el.asParagraph(), [cleanName]);
+          });
+        });
+      } else {
+        // TRỘN GỘP VĂN BẢN ĐƠN
+        replaceBlockParties(body, "{Đương sự thông báo}", getBlockType1Items(parties));
+        replaceBlockParties(body, "{Đương sự}", getBlockType2Items(parties));
+        replaceBlockParties(body, "{Người khởi kiện chi tiết}", getPartyDetailItems(groupsNKK));
+        replaceBlockParties(body, "{Bị đơn chi tiết}", getPartyDetailItems(groupsNBK));
+        replaceBlockParties(body, "{Người có quyền lợi, nghĩa vụ liên quan chi tiết}", getPartyDetailItems(groupsNLQ));
+
+        if (fullDonMap["{Những vấn đề cần sửa chữa bổ sung}"]) {
+          replaceBlockMultiline(body, "{Những vấn đề cần sửa chữa bổ sung}", fullDonMap["{Những vấn đề cần sửa chữa bổ sung}"]);
+        }
+        if (fullDonMap["{Yêu cầu sửa đổi bổ sung}"]) {
+          replaceBlockMultiline(body, "{Yêu cầu sửa đổi bổ sung}", fullDonMap["{Yêu cầu sửa đổi bổ sung}"]);
+        }
+
+        applyAtomicReplacements(body, fullDonMap, body.getText());
+      }
+
+      var header = doc.getHeader();
+      if (header) {
+        applyAtomicReplacements(header, fullDonMap, header.getText());
+        sanitizeMergedDocument(header);
+      }
+      var footer = doc.getFooter();
+      if (footer) {
+        applyAtomicReplacements(footer, fullDonMap, footer.getText());
+        sanitizeMergedDocument(footer);
+      }
+
+      replaceTimeString(body, "{Thời gian triệu tập}", timeString);
+      replaceTimeString(body, "{thời gian triệu tập}", timeString);
+
+      sanitizeMergedDocument(body);
+      doc.saveAndClose();
+
+      createdFiles.push({
+        name: newFile.getName(),
+        url: newFile.getUrl(),
+        docxUrl: "https://docs.google.com/document/d/" + newFile.getId() + "/export?format=docx"
+      });
+    });
+
+    return { success: true, idDon: input.idDon, files: createdFiles };
+
+  } catch (e) {
+    return { success: false, error: "Lỗi trộn văn bản đơn: " + e.toString() };
+  } finally {
+    lock.releaseLock();
   }
 }

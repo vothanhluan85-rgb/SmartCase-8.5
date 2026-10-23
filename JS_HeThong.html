@@ -2,15 +2,19 @@
 /**
  * =========================================================================
  * HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.0 - MASTER SYSTEM CORE JAVASCRIPT (PRODUCTION)
- * TỆP: JS_HeThong.html - KHỞI TẠO STATE RAM, APPUI, LỌC 0MS & COPILOT ACTION ROUTER
+ * TỆP: JS_HeThong.html - KHỞI TẠO STATE RAM, APPUI, NLP UTILS & COPILOT ROUTER
  * -------------------------------------------------------------------------
- * - ĐÃ SỬA TRIỆT ĐỂ BỘ ĐIỀU PHỐI NÚT LỆNH [ACTION:...] CHO AI COPILOT.
- * - HỖ TRỢ ĐẦY ĐỦ CÁC NÚT: TÍNH ÁN PHÍ, RÀ SOÁT ĐƯƠNG SỰ, MỞ KHO MẪU, THỤ LÝ MỚI.
+ * - SINGLE SOURCE OF TRUTH: Tập trung toàn bộ tiện ích chuỗi, danh xưng & NLP
+ *   dùng chung cho cả phân hệ Án và Đơn (triệt tiêu 100% lỗi xung đột ghi đè).
  * - LỌC 0MS TRÊN RAM CLIENT & TÍNH TỶ LỆ HOÀN THÀNH CHUẨN XÁC KHI LỌC KẾT QUẢ.
- * - TOAST & DIALOG THẨM MỸ EXECUTIVE SLATE CAO CẤP.
+ * - COPILOT ROUTER BẮT TRỌN VẸN CÁC LỆNH ĐIỀU KHIỂN HỆ THỐNG.
+ * - TOAST, DIALOG & BACKGROUND TASK QUEUE CHUẨN EXECUTIVE SLATE.
  * =========================================================================
  */
 
+// =========================================================================
+// 1. BỘ NHỚ RAM THỜI GIAN THỰC (GLOBAL STATE)
+// =========================================================================
 window.G_An = window.G_An || [];
 window.G_Don = window.G_Don || [];
 window.G_LichTrinh = window.G_LichTrinh || [];
@@ -45,14 +49,82 @@ window.CURRENT_APP_CONTEXT = {
 };
 
 // =========================================================================
-// 1. TIỆN ÍCH CHUẨN HÓA DỮ LIỆU & NÉN ẢNH CLIENT-SIDE
+// 2. TIỆN ÍCH NLP, CHUẨN HÓA DANH XƯNG & VĂN BẢN (SINGLE SOURCE OF TRUTH)
 // =========================================================================
 
+// Xóa dấu tiếng Việt phục vụ tìm kiếm nhanh không dấu
 window.removeAccents = function(str) {
   if (!str) return "";
-  return String(str).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+  return String(str)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D');
 };
 
+// Bóc tách danh xưng thừa phía trước tên
+window.cleanHonorificFromName = function(name) {
+  if (!name) return "";
+  return String(name)
+    .trim()
+    .replace(/^(ông\/bà|ông\/bà\.|ông|bà|anh|chị|cô|chú|bác|cháu)\s*[:.\-]?\s+/i, '')
+    .trim();
+};
+
+// Kiểm tra danh xưng cá nhân hợp lệ (loại trừ pháp nhân, cơ quan)
+window.isIndividualHonorific = function(xh) {
+  if (!xh) return false;
+  var x = String(xh).trim().toLowerCase();
+  var legalEntities = ["tổ chức", "pháp nhân", "công ty", "doanh nghiệp", "ubnd", "ngân hàng", "chi nhánh", "hợp tác xã", "cơ quan"];
+  if (legalEntities.includes(x)) return false;
+  return ["ông", "bà", "anh", "chị", "cháu", "ông/bà"].includes(x);
+};
+
+// Chuẩn hóa Title Case (viết hoa chữ cái đầu mỗi từ, bảo toàn viết tắt và tên đồng bào K'bi...)
+window.toTitleCase = function(str) {
+  if (!str) return "";
+  var acronyms = [
+    "TMCP", "TNHH", "CP", "MTV", "UBND", "TAND", "VKSND", "VN", "JSC", "BHTG", 
+    "HTX", "NHCSXH", "NHTMCP", "NH", "BIDV", "ACB", "MB", "VPBANK", "VIETINBANK", 
+    "VIETCOMBANK", "AGRIBANK", "SHB", "TPBANK", "HDBANK", "VIB", "MSB", "OCB", 
+    "SEABANK", "LPBANK", "SCB", "SACOMBANK", "ABBANK", "BAB", "NCB", "QLTA"
+  ];
+  var words = String(str).trim().toLowerCase().split(/\s+/);
+  return words.map(function(w) {
+    var upperW = w.toUpperCase();
+    if (acronyms.includes(upperW)) return upperW;
+    if (w.includes("'") || w.includes("’")) {
+      return w.split(/['’]/).map(function(p) {
+        return p ? p.charAt(0).toUpperCase() + p.slice(1).toLowerCase() : "";
+      }).join("'");
+    }
+    return upperW.charAt(0) + w.slice(1).toLowerCase();
+  }).join(" ");
+};
+window.toTitleCaseLocal = window.toTitleCase;
+window.local_toTitleCase = window.toTitleCase;
+
+// Chuẩn hóa số điện thoại Việt Nam
+window.formatPhoneNumber = function(phone) {
+  if (!phone) return "";
+  var str = String(phone).trim().replace(/[^0-9+]/g, '');
+  if (str.length > 0 && str.charAt(0) !== '0' && str.charAt(0) !== '+') str = '0' + str;
+  return str;
+};
+window.local_formatPhoneNumber = window.formatPhoneNumber;
+
+// Tự động định dạng số điện thoại khi nhập liệu (09xx.xxx.xxx)
+window.formatPhoneVNInput = function(input) {
+  if (!input) return;
+  var val = input.value.replace(/\D/g, '');
+  if (val.length > 10) val = val.substring(0, 10);
+  var formatted = val;
+  if (val.length > 7) formatted = val.substring(0, 4) + '.' + val.substring(4, 7) + '.' + val.substring(7);
+  else if (val.length > 4) formatted = val.substring(0, 4) + '.' + val.substring(4);
+  input.value = formatted;
+};
+
+// Viết tắt chuẩn mực kết quả giải quyết
 window.standardizeResolutionAbbr = function(raw) {
   if (!raw) return "Đã giải quyết";
   var s = String(raw).trim();
@@ -75,6 +147,89 @@ window.standardizeResolutionAbbr = function(raw) {
 
   return s;
 };
+
+// Đọc tiền thành chữ tiếng Việt chuẩn Nghị quyết 326/2016
+window.numberToWordsVi = function(so) {
+  if (so === 0 || so === "0" || so === "") return "Không đồng";
+  so = parseInt(String(so).replace(/[^\d]/g, ''), 10);
+  if (isNaN(so) || so === 0) return "Không đồng";
+
+  var chuSo = ["không", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín"];
+  var donVi = ["", "nghìn", "triệu", "tỷ", "nghìn tỷ", "triệu tỷ"];
+  var numStr = String(so);
+  var blocks = [];
+
+  while (numStr.length > 0) {
+    blocks.push(numStr.slice(-3));
+    numStr = numStr.slice(0, -3);
+  }
+
+  var str = "";
+  for (var i = 0; i < blocks.length; i++) {
+    var blockStr = blocks[i];
+    var val = parseInt(blockStr, 10);
+    if (val > 0) {
+      var isHighest = (i === blocks.length - 1);
+      if (!isHighest) { while (blockStr.length < 3) blockStr = "0" + blockStr; }
+      var tram = blockStr.length === 3 ? parseInt(blockStr[0], 10) : -1;
+      var chuc = blockStr.length >= 2 ? parseInt(blockStr[blockStr.length - 2], 10) : 0;
+      if (blockStr.length === 1) chuc = -1;
+      var donvi = parseInt(blockStr[blockStr.length - 1], 10);
+      var kq = "";
+      if (tram !== -1) kq += chuSo[tram] + " trăm ";
+      if (chuc > 1) {
+        kq += chuSo[chuc] + " mươi ";
+        if (donvi === 1) kq += "mốt"; else if (donvi === 5) kq += "lăm"; else if (donvi > 0) kq += chuSo[donvi];
+      } else if (chuc === 1) {
+        kq += "mười ";
+        if (donvi === 5) kq += "lăm"; else if (donvi > 0) kq += chuSo[donvi];
+      } else if (chuc === 0) {
+        if (donvi > 0) { if (tram !== -1) kq += "lẻ "; kq += chuSo[donvi]; }
+      } else { kq += chuSo[donvi]; }
+      str = kq.trim() + " " + donVi[i] + " " + str;
+    }
+  }
+  return str.replace(/\s+/g, " ").trim().charAt(0).toUpperCase() + str.replace(/\s+/g, " ").trim().slice(1) + " đồng";
+};
+window.local_numberToWordsVi = window.numberToWordsVi;
+
+// Tính án phí và tạm ứng án phí NQ 326 trên Client
+window.calculateCourtFee = function(loaiAn, giaTriRaw) {
+  var fee = 0; var tamUng = 0;
+  var la = String(loaiAn || "").toLowerCase();
+  
+  if (la.includes("hinhsu") || la.includes("hình sự") || la.includes("1.")) {
+    fee = 200000; tamUng = 0;
+  } else if (la.includes("hanhchinh") || la.includes("hành chính") || la.includes("6.")) {
+    fee = 300000; tamUng = 300000;
+  } else {
+    var giaTri = parseInt(String(giaTriRaw).replace(/[^\d]/g, ''), 10) || 0;
+    var isKDTM = la.includes("kinhdoanh") || la.includes("kinh doanh") || la.includes("4.");
+    var noPriceFee = isKDTM ? 3000000 : 300000;
+
+    if (giaTri <= 0) {
+      fee = noPriceFee;
+    } else {
+      if (giaTri <= 6000000) fee = 300000;
+      else if (giaTri <= 400000000) fee = isKDTM ? (3000000 + (giaTri - 6000000) * 0.05) : (giaTri * 0.05);
+      else if (giaTri <= 800000000) fee = (isKDTM ? 22700000 : 20000000) + (giaTri - 400000000) * 0.04;
+      else if (giaTri <= 2000000000) fee = (isKDTM ? 38700000 : 36000000) + (giaTri - 800000000) * 0.03;
+      else if (giaTri <= 4000000000) fee = (isKDTM ? 74700000 : 72000000) + (giaTri - 2000000000) * 0.02;
+      else fee = (isKDTM ? 114700000 : 112000000) + (giaTri - 4000000000) * 0.001;
+    }
+    fee = Math.round(fee);
+    tamUng = fee * 0.5;
+    if (tamUng < noPriceFee) tamUng = noPriceFee;
+    if (giaTri === 0) tamUng = fee;
+  }
+  return {
+    anPhiSo: fee.toLocaleString('vi-VN'),
+    anPhiChu: window.numberToWordsVi(fee),
+    tamUngSo: Math.round(tamUng).toLocaleString('vi-VN'),
+    tamUngChu: window.numberToWordsVi(Math.round(tamUng))
+  };
+};
+window.local_calculateCourtFee = window.calculateCourtFee;
 
 // Nén ảnh Canvas Client-side (< 400KB)
 window.compressImageFile = function(file, maxWidth, quality, callback) {
@@ -122,7 +277,7 @@ window.compressImageFile = function(file, maxWidth, quality, callback) {
 };
 
 // =========================================================================
-// 2. HỆ THỐNG HỘP THOẠI & TOAST THẨM MỸ CAO (APPUI)
+// 3. HỆ THỐNG HỘP THOẠI, TOAST & QUEUE (APPUI)
 // =========================================================================
 
 function ensureAppUIDOM() {
@@ -257,7 +412,7 @@ const AppUI = {
 document.addEventListener("DOMContentLoaded", ensureAppUIDOM);
 
 // =========================================================================
-// 3. COPILOT TRỢ LÝ TỐ TỤNG & BỘ ĐIỀU PHỐI ACTION NÂNG CẤP (FIXED)
+// 4. COPILOT TRỢ LÝ TỐ TỤNG & ROUTER LỆNH ĐIỀU KHIỂN
 // =========================================================================
 
 function ensureCopilotWindowDOM() {
@@ -403,7 +558,7 @@ window.updateCopilotScopeBadge = function() {
   }
 };
 
-// SỬA TRIỆT ĐỂ: Regex bắt toàn bộ các kiểu lệnh Action của Copilot
+// Định dạng văn bản phản hồi Markdown & Nút Action của Copilot
 window.formatCopilotMarkdown = function(text) {
   if (!text) return "";
   var html = text
@@ -413,7 +568,6 @@ window.formatCopilotMarkdown = function(text) {
 
   html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, '<a href="$2" target="_blank" class="fw-bold text-primary text-decoration-underline">$1</a>');
 
-  // Bắt linh hoạt dạng: [ACTION:funcName:p1:p2:Title] hoặc [ACTION:funcName::::Title]
   html = html.replace(/\[ACTION:([^:\]]+)(?::([^:\]]*))?(?::([^:\]]*))?(?::([^\]]+))?\]/g, function(match, fn, p1, p2, title) {
     var fnName = (fn || "").trim();
     var param1 = (p1 || "").trim();
@@ -430,7 +584,7 @@ window.formatCopilotMarkdown = function(text) {
   return html;
 };
 
-// BỔ SUNG ĐẦY ĐỦ BỘ ĐIỀU PHỐI ACTION CHO COPILOT
+// Bộ điều phối lệnh điều khiển hệ thống
 window.handleCopilotAction = function(fnName, p1, p2) {
   if (fnName === 'moChiTiet' || fnName === 'moHoSo') {
     var targetId = p1;
@@ -596,7 +750,7 @@ window.sendCopilotMessage = function() {
 };
 
 // =========================================================================
-// 4. MASTER GLOBAL BRIDGE HANDLERS & CALCULATOR
+// 5. MASTER GLOBAL BRIDGE HANDLERS & CALCULATOR
 // =========================================================================
 
 window.openAnPhiModal = function() {
@@ -673,9 +827,7 @@ window.runCalculator = function() {
 
   var loaiAn = loaiAnEl.value;
   var valRaw = giaTriEl.value;
-  var res = (typeof window.local_calculateCourtFee === 'function') 
-    ? window.local_calculateCourtFee(loaiAn, valRaw)
-    : { anPhiSo: "0", anPhiChu: "(Không đồng)", tamUngSo: "0", tamUngChu: "(Không đồng)" };
+  var res = window.calculateCourtFee(loaiAn, valRaw);
 
   var elAnPhi = document.getElementById('res_anPhi');
   var elAnPhiChu = document.getElementById('res_anPhiChu');
@@ -708,7 +860,7 @@ window.copyFee = function(type) {
 };
 
 // =========================================================================
-// 5. BỘ LỌC ĐA TIÊU CHÍ (LOẠI ÁN & KẾT QUẢ GIẢI QUYẾT)
+// 6. BỘ LỌC ĐA TIÊU CHÍ (LOẠI ÁN & KẾT QUẢ GIẢI QUYẾT)
 // =========================================================================
 
 function normalizeCategoryCode(rawCat) {
@@ -770,7 +922,7 @@ window.clearAllFilters = window.resetFilter = function() {
 };
 
 // =========================================================================
-// 6. ĐIỀU HƯỚNG SPA & HỦY TOÀN BỘ TIMER AUTO-SAVE
+// 7. ĐIỀU HƯỚNG SPA & TIỆN ÍCH NGÀY THÁNG
 // =========================================================================
 
 var dateVN = function(ts) {
@@ -973,7 +1125,7 @@ window.appNavigate = function(viewId) {
 };
 
 // =========================================================================
-// 7. TRUNG TÂM TÍNH HẠN, BỘ LỌC VÀ THỐNG KÊ (0MS TRÊN RAM)
+// 8. TÍNH HẠN, BỘ LỌC VÀ HIỂN THỊ SỔ THỤ LÝ
 // =========================================================================
 
 function checkIsHGDT(an) {
@@ -1269,7 +1421,7 @@ window.runFilterEngine = function() {
 };
 
 // =========================================================================
-// 8. TRỢ LÝ NHẮC VIỆC (3 NGÀY & BACKLOG 7 NGÀY)
+// 9. TRỢ LÝ NHẮC VIỆC (3 NGÀY & BACKLOG 7 NGÀY)
 // =========================================================================
 
 function initNotificationSystem(urgentCasesList) {
@@ -1651,7 +1803,7 @@ window.openBacklogModal = function() {
 window.cycleWarningCases = window.executeCurrentReminderAction;
 
 // =========================================================================
-// 9. RENDER BẢNG SỔ THỤ LÝ
+// 10. RENDER BẢNG SỔ THỤ LÝ
 // =========================================================================
 
 function renderCaseTable(data) {
@@ -1788,7 +1940,7 @@ window.updateSystemTag = function(idVuAn, type) {
 };
 
 // =========================================================================
-// 10. LẮNG NGHE SỰ KIỆN CLICK-OUTSIDE & KHỞI ĐỘNG HỆ THỐNG (ONLOAD)
+// 11. SỰ KIỆN CLICK-OUTSIDE & ONLOAD HỆ THỐNG
 // =========================================================================
 
 document.addEventListener('click', function(e) {
@@ -1818,7 +1970,6 @@ window.onload = function() {
     loadJudgeIdentity();
 
     var startDate = getStatisticalStartDate();
-
     window.G_Filter.start = startDate;
     
     if (document.getElementById('filter-start')) document.getElementById('filter-start').value = startDate;
