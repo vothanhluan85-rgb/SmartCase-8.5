@@ -1,0 +1,2852 @@
+<script>
+/**
+ * =========================================================================
+ * HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.2 - MODULE XỬ LÝ ĐƠN (FRONTEND BUSINESS)
+ * TỆP: JS_NghiepVu_Don.html - TÁC NGHIỆP SỔ ĐƠN & SOẠN THẢO VĂN BẢN SIÊU TỐC
+ * -------------------------------------------------------------------------
+ * - ĐỘNG CƠ TRỘN THƯ V8.2: CHUẨN HÓA BỘ 3 DẠNG {Tên}, {tên}, {TÊN} THEO TANDTC
+ * - KHẮC PHỤC TRIỆT ĐỂ LỖI VIẾT HOA DANH XƯNG GIỮA CÂU VÀ LỖI TÊN IN HOA TOÀN BỘ
+ * - TRIỆT TIÊU LẶP TỪ "địa chỉ: cùng địa chỉ:" VÀ DẤU PHẨY THỪA (, ,)
+ * - TÍNH ÁN PHÍ, LỌC 0MS TRÊN RAM, GỬI FAST SMS VÀ SOẠN THẢO SIÊU TỐC
+ * =========================================================================
+ */
+
+const DICT_QUAN_HE = {
+  "1. Hình sự": [
+    "Tố giác tội phạm", "Đề nghị khởi tố vụ án hình sự", "Kiến nghị khởi tố"
+  ],
+  "2. Dân sự": [
+    "Tranh chấp hợp đồng vay tài sản", "Tranh chấp quyền sở hữu tài sản", 
+    "Tranh chấp quyền sở hữu tài sản thuộc sở hữu chung", "Tranh chấp quyền sử dụng đất", 
+    "Tranh chấp hợp đồng mua bán tài sản", "Tranh chấp hợp đồng mua bán hàng hóa", 
+    "Tranh chấp hợp đồng thuê tài sản", "Tranh chấp di sản thừa kế", 
+    "Tranh chấp hợp đồng chuyển nhượng quyền sử dụng đất", 
+    "Tranh chấp hợp đồng đặt cọc chuyển nhượng quyền sử dụng đất", 
+    "Tranh chấp hợp đồng góp vốn chuyển nhượng quyền sử dụng đất", 
+    "Tranh chấp hợp đồng tín dụng", "Tranh chấp bồi thường thiệt hại ngoài hợp đồng", 
+    "Tranh chấp quyền về tài sản bị kê biên để thi hành án", 
+    "Tranh chấp hợp đồng xây dựng", "Tranh chấp hợp đồng bảo hiểm"
+  ],
+  "3. Hôn nhân": [
+    "Ly hôn", "Ly hôn và giải quyết vấn đề con chung", 
+    "Ly hôn và tranh chấp tài sản chung, nợ chung trong thời kỳ hôn nhân", 
+    "Tranh chấp tài sản chung, nợ chung sau ly hôn", 
+    "Tranh chấp về thay đổi người trực tiếp nuôi con", 
+    "Tranh chấp về cấp dưỡng nuôi con chung", 
+    "Tranh chấp về xác định cha, mẹ cho con", 
+    "Tranh chấp về xác định con cho cha, mẹ", 
+    "Yêu cầu không công nhận là vợ chồng"
+  ],
+  "4. Kinh doanh": [
+    "Tranh chấp hợp đồng mua bán hàng hóa", "Tranh chấp hợp đồng tín dụng", 
+    "Tranh chấp hợp đồng cung ứng dịch vụ", "Tranh chấp hợp đồng đại lý", 
+    "Tranh chấp hợp đồng môi giới thương mại", 
+    "Tranh chấp phát sinh trong hoạt động kinh doanh thương mại"
+  ],
+  "5. Lao động": [
+    "Tranh chấp lao động cá nhân về xử lý kỷ luật theo hình thức sa thải", 
+    "Tranh chấp lao động cá nhân về đơn phương chấm dứt hợp đồng", 
+    "Tranh chấp lao động cá nhân về tiền lương", 
+    "Tranh chấp lao động cá nhân về BHXH, BHYT, BHTN", 
+    "Tranh chấp về học nghề, tập nghề", 
+    "Tranh chấp bồi thường thiệt hại giữa người lao động và doanh nghiệp"
+  ],
+  "6. Hành chính": [
+    "Khiếu kiện Quyết định hành chính", "Khiếu kiện Hành vi hành chính", 
+    "Khiếu kiện Quyết định xử phạt vi phạm hành chính", 
+    "Khiếu kiện Quyết định kỷ luật buộc thôi việc", 
+    "Khiếu kiện Quyết định cá biệt của cơ quan tổ chức"
+  ],
+  "7. Việc dân sự": [
+    "Yêu cầu công nhận thuận tình ly hôn", 
+    "Yêu cầu công nhận sự thỏa thuận về nuôi con", 
+    "Yêu cầu công nhận sự thỏa thuận về chia tài sản chung sau ly hôn", 
+    "Yêu cầu tuyên bố một người mất tích", "Yêu cầu tuyên bố một người đã chết", 
+    "Yêu cầu tuyên bố một người mất năng lực hành vi dân sự", 
+    "Yêu cầu tuyên bố một người bị hạn chế năng lực hành vi dân sự", 
+    "Yêu cầu thông báo tìm kiếm người vắng mặt tại nơi cư trú", 
+    "Yêu cầu công nhận sự thỏa thuận ngoài Tòa án"
+  ],
+  "8. Hòa giải đối thoại": [
+    "Yêu cầu Hòa giải đối thoại tại Tòa án", 
+    "Yêu cầu công nhận kết quả hòa giải thành"
+  ]
+};
+
+window.searchDonTimeout = null;
+window.smsStickyData = { date: "", time: "08:30" };
+window.pendingSBS_Data = null;
+window.currentDonStatusTab = 'ALL';
+
+document.addEventListener("DOMContentLoaded", function() {
+  let dl = document.getElementById('dl_quanhe_tranhchap');
+  if (!dl) {
+    dl = document.createElement('datalist');
+    dl.id = "dl_quanhe_tranhchap";
+    document.body.appendChild(dl);
+  }
+  setTimeout(function() {
+    let inputQH = document.getElementById('don_quanHe');
+    if (inputQH) inputQH.setAttribute('list', 'dl_quanhe_tranhchap');
+  }, 500);
+});
+
+// =========================================================================
+// 1. TIỆN ÍCH CHUẨN HÓA VĂN BẢN, SỐ ĐIỆN THOẠI & TÍNH ÁN PHÍ NQ 326
+// =========================================================================
+
+window.local_formatDateVN = function(dateStr) {
+  if (!dateStr) return "---";
+  var d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "---";
+  return ("0" + d.getDate()).slice(-2) + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + d.getFullYear();
+};
+
+window.local_toVNText = function(dateStr, isCap) {
+  if (!dateStr) return isCap ? "Ngày... tháng... năm..." : "ngày... tháng... năm...";
+  var d = new Date(dateStr);
+  if (isNaN(d.getTime())) return isCap ? "Ngày... tháng... năm..." : "ngày... tháng... năm...";
+  var ngay = ("0" + d.getDate()).slice(-2);
+  var thang = ("0" + (d.getMonth() + 1)).slice(-2);
+  var nam = d.getFullYear();
+  return (isCap ? "Ngày " : "ngày ") + ngay + " tháng " + thang + " năm " + nam;
+};
+
+window.local_fmtFullTime = function(dateStr, timeStr) {
+  if (!dateStr || !timeStr) return ".......giờ.......phút, ngày.......tháng.......năm.......";
+  var t = String(timeStr).split(":");
+  var hh = ("0" + (t[0] || "00")).slice(-2);
+  var mm = ("0" + (t[1] || "00")).slice(-2);
+  return hh + " giờ " + mm + " phút, " + window.local_toVNText(dateStr, false);
+};
+
+// Chuẩn hóa Title Case - Chuyển tên in hoa thành viết hoa đầu từ chuẩn xác
+window.local_toTitleCase = function(str) {
+  if (!str) return "";
+  var words = String(str).trim().toLowerCase().split(/\s+/);
+  var keepUpper = [
+    "TMCP", "TNHH", "CP", "MTV", "UBND", "TAND", "VKSND", "VN", "JSC", "BHTG", 
+    "HTX", "NHCSXH", "NHTMCP", "NH", "BIDV", "ACB", "MB", "VPBANK", "VIETINBANK", 
+    "VIETCOMBANK", "AGRIBANK", "SHB", "TPBANK", "HDBANK", "VIB", "MSB", "OCB", 
+    "SEABANK", "LPBANK", "SCB", "SACOMBANK", "ABBANK", "BAB", "NCB", "QLTA"
+  ];
+  return words.map(function(w) {
+    var upperW = w.toUpperCase();
+    if (keepUpper.includes(upperW)) return upperW;
+    return w.charAt(0).toUpperCase() + w.slice(1);
+  }).join(" ");
+};
+
+// Đồng bộ alias để tránh lỗi gọi nhầm giữa toTitleCase và local_toTitleCase
+window.toTitleCase = window.local_toTitleCase;
+
+window.cleanHonorificFromName = function(name) {
+  if (!name) return "";
+  
+  // Bóc tách toàn diện các danh xưng thông dụng và ký tự ngăn cách phía sau
+  return String(name)
+    .trim()
+    .replace(/^(ông\/bà|ông\/bà\.|ông|bà|anh|chị|cô|chú|bác)\s*[:.\-]?\s+/i, '')
+    .trim();
+};
+
+window.local_formatPhoneNumber = function(phone) {
+  if (!phone) return "";
+  let str = String(phone).trim().replace(/[^0-9+]/g, '');
+  if (str.length > 0 && str.charAt(0) !== '0' && str.charAt(0) !== '+') str = '0' + str;
+  return str;
+};
+
+window.formatPhoneVNInput = function(input) {
+  if (!input) return;
+  let val = input.value.replace(/\D/g, '');
+  if (val.length > 10) val = val.substring(0, 10);
+  let formatted = val;
+  if (val.length > 7) formatted = val.substring(0, 4) + '.' + val.substring(4, 7) + '.' + val.substring(7);
+  else if (val.length > 4) formatted = val.substring(0, 4) + '.' + val.substring(4);
+  input.value = formatted;
+};
+
+window.local_numberToWordsVi = function(so) {
+  if (so === 0 || so === "0" || so === "") return "Không đồng";
+  so = parseInt(String(so).replace(/[^\d]/g, ''), 10);
+  if (isNaN(so) || so === 0) return "Không đồng";
+
+  var chuSo = ["không", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín"];
+  var donVi = ["", "nghìn", "triệu", "tỷ", "nghìn tỷ", "triệu tỷ"];
+  var numStr = String(so);
+  var blocks = [];
+
+  while (numStr.length > 0) {
+    blocks.push(numStr.slice(-3));
+    numStr = numStr.slice(0, -3);
+  }
+
+  var str = "";
+  for (var i = 0; i < blocks.length; i++) {
+    var blockStr = blocks[i];
+    var val = parseInt(blockStr, 10);
+    if (val > 0) {
+      var isHighest = (i === blocks.length - 1);
+      if (!isHighest) { while (blockStr.length < 3) blockStr = "0" + blockStr; }
+      var tram = blockStr.length === 3 ? parseInt(blockStr[0]) : -1;
+      var chuc = blockStr.length >= 2 ? parseInt(blockStr[blockStr.length - 2]) : 0;
+      if (blockStr.length === 1) chuc = -1;
+      var donvi = parseInt(blockStr[blockStr.length - 1]);
+      var kq = "";
+      if (tram !== -1) kq += chuSo[tram] + " trăm ";
+      if (chuc > 1) {
+        kq += chuSo[chuc] + " mươi ";
+        if (donvi === 1) kq += "mốt"; else if (donvi === 5) kq += "lăm"; else if (donvi > 0) kq += chuSo[donvi];
+      } else if (chuc === 1) {
+        kq += "mười ";
+        if (donvi === 5) kq += "lăm"; else if (donvi > 0) kq += chuSo[donvi];
+      } else if (chuc === 0) {
+        if (donvi > 0) { if (tram !== -1) kq += "lẻ "; kq += chuSo[donvi]; }
+      } else { kq += chuSo[donvi]; }
+      str = kq.trim() + " " + donVi[i] + " " + str;
+    }
+  }
+  return str.replace(/\s+/g, " ").trim().charAt(0).toUpperCase() + str.replace(/\s+/g, " ").trim().slice(1) + " đồng";
+};
+
+window.local_calculateCourtFee = function(loaiAn, giaTriRaw) {
+  var fee = 0; var tamUng = 0;
+  if (loaiAn === 'hinhSu') { fee = 200000; tamUng = 0; }
+  else if (loaiAn === 'hanhChinh') { fee = 300000; tamUng = 300000; }
+  else {
+    var giaTri = parseInt(String(giaTriRaw).replace(/[^\d]/g, '')) || 0;
+    var isKDTM = (loaiAn === 'kinhDoanh');
+    var noPriceFee = isKDTM ? 3000000 : 300000;
+
+    if (giaTri <= 0) { fee = noPriceFee; }
+    else {
+      if (giaTri <= 6000000) fee = 300000;
+      else if (giaTri <= 400000000) fee = isKDTM ? (3000000 + (giaTri - 6000000) * 0.05) : (giaTri * 0.05);
+      else if (giaTri <= 800000000) fee = (isKDTM ? 22700000 : 20000000) + (giaTri - 400000000) * 0.04;
+      else if (giaTri <= 2000000000) fee = (isKDTM ? 38700000 : 36000000) + (giaTri - 800000000) * 0.03;
+      else if (giaTri <= 4000000000) fee = (isKDTM ? 74700000 : 72000000) + (giaTri - 2000000000) * 0.02;
+      else fee = (isKDTM ? 114700000 : 112000000) + (giaTri - 4000000000) * 0.001;
+    }
+    fee = Math.round(fee); tamUng = fee * 0.5;
+    if (tamUng < noPriceFee) tamUng = noPriceFee;
+    if (giaTri === 0) tamUng = fee;
+  }
+  return {
+    anPhiSo: fee.toLocaleString('vi-VN'), anPhiChu: window.local_numberToWordsVi(fee),
+    tamUngSo: Math.round(tamUng).toLocaleString('vi-VN'), tamUngChu: window.local_numberToWordsVi(Math.round(tamUng))
+  };
+};
+
+window.setValueSafe = function(id, val) {
+  var el = document.getElementById(id);
+  if (el) el.value = val !== undefined && val !== null ? val : "";
+};
+
+window.formatDateToYMD = function(ts) {
+  var d = ts ? new Date(ts) : new Date();
+  if (isNaN(d.getTime())) d = new Date();
+  return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+};
+
+window.validateDonData = function(parties) {
+  let warnings = [];
+  let quanHeEl = document.getElementById('don_quanHe');
+  let quanHe = quanHeEl ? quanHeEl.value.trim() : "";
+  if (!quanHe || quanHe === "Tranh chấp / Yêu cầu theo đơn" || quanHe === "---") {
+    warnings.push("- Chưa phân loại Quan hệ tranh chấp / Tội danh cụ thể.");
+  }
+
+  let missingDob = false;
+  (parties || []).forEach(p => {
+    if (p.xungHo !== "Tổ chức" && !p.namSinh) missingDob = true;
+  });
+
+  if (missingDob) warnings.push("- Có đương sự cá nhân chưa điền Năm sinh.");
+
+  if (warnings.length > 0) {
+    return "CẢNH BÁO THIẾU THÔNG TIN:\n" + warnings.join("\n") + "\n\nBạn có muốn tiếp tục xử lý không?";
+  }
+  return null;
+};
+
+// =========================================================================
+// 2. KHỐI ĐƯƠNG SỰ ĐƠN & GIAO DIỆN
+// =========================================================================
+
+window.updateQuanHeDatalist = function() {
+  let loaiAnEl = document.getElementById('don_loaiAn');
+  if (!loaiAnEl) return;
+  let loaiAn = loaiAnEl.value;
+  let dl = document.getElementById('dl_quanhe_tranhchap');
+  if (!dl) return;
+  dl.innerHTML = "";
+  let matchedKey = Object.keys(DICT_QUAN_HE).find(k => loaiAn.includes(k));
+  if (matchedKey) DICT_QUAN_HE[matchedKey].forEach(item => dl.appendChild(new Option(item, item)));
+};
+
+window.updateQuickQuanHeDatalist = function() {
+  let loaiAnEl = document.getElementById('quick_don_loaiAn');
+  if (!loaiAnEl) return;
+  let loaiAn = loaiAnEl.value;
+  let dl = document.getElementById('dl_quanhe_tranhchap');
+  if (!dl) return;
+  dl.innerHTML = "";
+  let matchedKey = Object.keys(DICT_QUAN_HE).find(k => loaiAn.includes(k));
+  if (matchedKey) DICT_QUAN_HE[matchedKey].forEach(item => dl.appendChild(new Option(item, item)));
+};
+
+window.toggleNLQSection = function() {
+  var sec = document.getElementById('nlq-section');
+  var btn = document.getElementById('btn-toggle-nlq');
+  if (sec && btn) {
+    if (sec.style.display === 'none') {
+      sec.style.display = 'block';
+      btn.innerHTML = '<i class="fas fa-link-slash me-1"></i> Ẩn Người có quyền lợi, nghĩa vụ liên quan';
+    } else {
+      sec.style.display = 'none';
+      btn.innerHTML = '<i class="fas fa-link me-1"></i> Hiển thị Người có quyền lợi, nghĩa vụ liên quan';
+    }
+  }
+};
+
+window.updateMemberDeleteButtons = function(container) {
+  if (!container) return;
+  let items = container.querySelectorAll('.member-item');
+  items.forEach(function(item) {
+    let btnDel = item.querySelector('.btn-delete-member');
+    if (btnDel) {
+      btnDel.style.display = items.length > 1 ? 'block' : 'none';
+    }
+  });
+};
+
+window.addPartyGroupV76 = function(type, groupData) {
+  var c = document.getElementById('don-party-list-' + type.toLowerCase());
+  if (!c) return;
+
+  var tcMap = {'NKK': 'Người khởi kiện', 'NBK': 'Người bị kiện', 'NLQ': 'Người có quyền lợi, nghĩa vụ liên quan'};
+  var tc = tcMap[type] || 'Người khởi kiện';
+
+  var theme = {
+    border: type === 'NKK' ? '#cce3fd' : (type === 'NBK' ? '#fcdada' : '#e2e8f0'),
+    text: type === 'NKK' ? '#084298' : (type === 'NBK' ? '#842029' : '#475569')
+  };
+
+  var members = [];
+  var diaChi = "", sdt = "", cccd = "";
+
+  if (groupData) {
+    if (Array.isArray(groupData)) {
+      members = groupData;
+      diaChi = groupData[0].diaChi || "";
+      sdt = groupData[0].sdt ? String(groupData[0].sdt).replace(/^'/, '') : "";
+      cccd = groupData[0].cccd ? String(groupData[0].cccd).replace(/^'/, '') : "";
+    } else {
+      members = [groupData];
+      diaChi = groupData.diaChi || "";
+      sdt = groupData.sdt ? String(groupData.sdt).replace(/^'/, '') : "";
+      cccd = groupData.cccd ? String(groupData.cccd).replace(/^'/, '') : "";
+    }
+  } else {
+    members = [ {} ];
+  }
+
+  var safeDiaChi = String(diaChi || '').replace(/"/g, '&quot;');
+  var safeSdt = String(sdt || '').replace(/"/g, '&quot;');
+  var safeCccd = String(cccd || '').replace(/"/g, '&quot;');
+
+  var gId = "group_" + new Date().getTime() + "_" + Math.floor(Math.random()*1000);
+
+  var groupHtml = `
+  <div class="don-party-group p-3 mb-3 position-relative shadow-sm" style="background-color: #ffffff; border: 1px solid ${theme.border}; border-radius: 8px;" id="${gId}">
+    <input type="hidden" class="in-don-tucach" value="${tc}">
+    <div class="position-absolute dropdown" style="top: 5px; right: 5px;">
+      <button class="btn btn-sm btn-light border-0 px-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="background:transparent; box-shadow:none;">
+        <i class="fas fa-ellipsis-v text-secondary" style="pointer-events: none;"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end dropdown-menu-custom">
+        <li><a class="dropdown-item dropdown-item-custom text-primary" onclick="window.addPartyGroupV76('${type}')"><i class="fas fa-layer-group me-2"></i>Thêm Khối đương sự mới</a></li>
+        <li><a class="dropdown-item dropdown-item-custom text-success" onclick="window.addMemberToGroup(this, '${theme.text}')"><i class="fas fa-user-plus me-2"></i>Thêm người cùng địa chỉ</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item dropdown-item-custom dropdown-item-danger text-danger" onclick="this.closest('.don-party-group').remove()"><i class="fas fa-trash-alt me-2"></i>Xóa khối đương sự này</a></li>
+      </ul>
+    </div>
+    <div class="group-members-container" id="${gId}_members"></div>
+    <div class="row g-2 mt-2 pt-2 border-top border-secondary" style="--bs-border-opacity: .2;">
+      <div class="col-12">
+        <label class="small-label mb-1" style="font-size:10px; font-weight:700; color:${theme.text}">Địa chỉ cư trú / Trụ sở</label>
+        <input type="text" class="form-control form-control-sm in-don-diachi text-dark bg-white shadow-sm" placeholder="Số nhà, đường, thôn/tổ, xã/phường, tỉnh/thành..." value="${safeDiaChi}" style="border-color:#cbd5e1;">
+      </div>
+      <div class="col-6">
+        <label class="small-label mb-1" style="font-size:10px; font-weight:700; color:${theme.text}">Số điện thoại</label>
+        <div class="input-group input-group-sm shadow-sm">
+          <input type="text" class="form-control in-don-sdt fw-bold text-dark bg-white border-end-0" placeholder="09xxxx..." value="${safeSdt}" oninput="window.formatPhoneVNInput(this)" style="border-color:#cbd5e1;">
+          <button type="button" class="btn btn-success border-start-0 px-2" onclick="window.sendSMSFromGroup(this)" title="Mở nhanh nhắn tin" style="border-color:#cbd5e1;"><i class="fas fa-paper-plane"></i></button>
+        </div>
+      </div>
+      <div class="col-6">
+        <label class="small-label mb-1" style="font-size:10px; font-weight:700; color:${theme.text}">Số CCCD / CMND</label>
+        <input type="text" class="form-control form-control-sm in-don-cccd text-dark bg-white shadow-sm" placeholder="Số CCCD..." value="${safeCccd}" style="border-color:#cbd5e1;">
+      </div>
+    </div>
+  </div>`;
+
+  var div = document.createElement('div');
+  div.innerHTML = groupHtml;
+  var groupEl = div.firstElementChild;
+  c.appendChild(groupEl);
+
+  var membersContainer = groupEl.querySelector('.group-members-container');
+  members.forEach(function(m) {
+    window.addMemberToGroup(membersContainer, theme.text, m);
+  });
+};
+
+window.addMemberToGroup = function(containerOrBtn, textColor, memberData) {
+  if (typeof memberData === 'string' && memberData === '[object Object]') memberData = {};
+  else memberData = memberData || {};
+
+  var container = (containerOrBtn instanceof HTMLElement && containerOrBtn.classList.contains('group-members-container'))
+    ? containerOrBtn
+    : containerOrBtn.closest(".don-party-group").querySelector(".group-members-container");
+
+  var xhVal = memberData.xungHo || 'Ông/Bà';
+  var rawHoTen = memberData.hoTen || '';
+  var namSinh = memberData.namSinh || '';
+
+  // 1. Tự động nhận diện danh xưng nếu tên có sẵn chữ Bà / Ông
+  if ((!xhVal || xhVal === 'Ông/Bà') && rawHoTen) {
+    if (/^bà\s+/i.test(rawHoTen)) xhVal = 'Bà';
+    else if (/^ông\s+/i.test(rawHoTen)) xhVal = 'Ông';
+    else if (/^chị\s+/i.test(rawHoTen)) xhVal = 'Chị';
+    else if (/^anh\s+/i.test(rawHoTen)) xhVal = 'Anh';
+  }
+
+  // 2. Chuẩn hóa Title Case ngay khi tải vào ô nhập liệu (ĐỀ THỊ KIM LOAN -> Đề Thị Kim Loan)
+  var cleanHoTen = window.local_toTitleCase 
+    ? window.local_toTitleCase(window.cleanHonorificFromName ? window.cleanHonorificFromName(rawHoTen) : rawHoTen) 
+    : rawHoTen;
+
+  var selOng = xhVal === 'Ông' ? 'selected' : '';
+  var selBa = xhVal === 'Bà' ? 'selected' : '';
+  var selTc = xhVal === 'Tổ chức' ? 'selected' : '';
+  var selOngBa = (xhVal === 'Ông/Bà' || !xhVal) ? 'selected' : '';
+
+  var safeHoTen = String(cleanHoTen || '').replace(/"/g, '&quot;');
+  var safeNamSinh = String(namSinh || '').replace(/"/g, '&quot;');
+
+  var memberHtml = `
+  <div class="row g-2 member-item align-items-end mb-2 position-relative pe-4">
+    <button type="button" class="btn-delete-member btn btn-sm text-danger position-absolute" style="right: -10px; top: 22px; width: 20px; padding: 0; display: none; box-shadow:none;" onclick="this.closest('.member-item').remove(); window.updateMemberDeleteButtons(this.closest('.group-members-container'));">
+      <i class="fas fa-times"></i>
+    </button>
+    <div class="col-md-3 col-4">
+      <label class="small-label mb-1" style="font-size:10px; font-weight:700; color:${textColor}">Danh xưng *</label>
+      <select class="form-select form-select-sm in-don-xungho text-dark fw-bold" style="border-color:#cbd5e1;">
+        <option value="Ông/Bà" ${selOngBa}>Ông/Bà</option>
+        <option value="Ông" ${selOng}>Ông</option>
+        <option value="Bà" ${selBa}>Bà</option>
+        <option value="Tổ chức" ${selTc}>Tổ chức</option>
+      </select>
+    </div>
+    <div class="col-md-6 col-8">
+      <label class="small-label mb-1" style="font-size:10px; font-weight:700; color:${textColor}">Họ và Tên *</label>
+      <input type="text" class="form-control form-control-sm fw-bold in-don-hoten text-dark bg-white shadow-sm" 
+        placeholder="Nhập họ và tên..." 
+        value="${safeHoTen}" 
+        style="border-color:#cbd5e1;" 
+        onblur="
+          var v = this.value.trim();
+          var sel = this.closest('.member-item').querySelector('.in-don-xungho');
+          if (sel && sel.value === 'Ông/Bà') {
+            if (/^bà\\s+/i.test(v)) sel.value = 'Bà';
+            else if (/^ông\\s+/i.test(v)) sel.value = 'Ông';
+            else if (/^chị\\s+/i.test(v)) sel.value = 'Bà';
+            else if (/^anh\\s+/i.test(v)) sel.value = 'Ông';
+          }
+          this.value = window.local_toTitleCase ? window.local_toTitleCase(window.cleanHonorificFromName ? window.cleanHonorificFromName(v) : v) : v;
+        ">
+    </div>
+    <div class="col-md-3 col-12 mt-2 mt-md-0">
+      <label class="small-label mb-1" style="font-size:10px; font-weight:700; color:${textColor}">Năm sinh</label>
+      <input type="text" class="form-control form-control-sm in-don-namsinh text-dark bg-white shadow-sm" placeholder="19xx" value="${safeNamSinh}" style="border-color:#cbd5e1;">
+    </div>
+  </div>`;
+
+  var div = document.createElement('div');
+  div.innerHTML = memberHtml;
+  container.appendChild(div.firstElementChild);
+
+  window.updateMemberDeleteButtons(container);
+};
+
+window.calculateDonFee = function() {
+  var loaiAnEl = document.getElementById('don_loaiAn');
+  var valEl = document.getElementById('don_giaTri');
+  if (!loaiAnEl || !valEl) return;
+
+  window.updateQuanHeDatalist();
+
+  var loaiAn = loaiAnEl.value;
+  var val = valEl.value;
+  var key = "danSu";
+  if (loaiAn.includes("Kinh doanh")) key = "kinhDoanh";
+  else if (loaiAn.includes("Hình sự")) key = "hinhSu";
+  else if (loaiAn.includes("Hành chính")) key = "hanhChinh";
+
+  var res = window.local_calculateCourtFee(key, val);
+
+  window.setValueSafe('don_res_anPhi', res.anPhiSo);
+  let chu1 = document.getElementById('don_res_anPhi_chu');
+  if (chu1) chu1.innerText = "(" + res.anPhiChu + ")";
+
+  window.setValueSafe('don_res_tamUng', res.tamUngSo);
+  let chu2 = document.getElementById('don_res_tamUng_chu');
+  if (chu2) chu2.innerText = "(" + res.tamUngChu + ")";
+
+  window.setValueSafe('don_tamUngValue', res.tamUngSo.replace(/\./g, ''));
+};
+
+// =========================================================================
+// 3. XEM CHI TIẾT ĐƠN, THÊM ĐƠN & BỘ LỌC TABS 0MS
+// =========================================================================
+
+window.moModalThemDonMoi = function() {
+  window.setValueSafe('don_id', "");
+  
+  let elSoDon = document.getElementById('don_soDon');
+  let elNgayNhan = document.getElementById('don_ngayNhan');
+  if (elSoDon) { elSoDon.readOnly = false; elSoDon.classList.remove('bg-light', 'text-muted'); }
+  if (elNgayNhan) { elNgayNhan.readOnly = false; elNgayNhan.classList.remove('bg-light', 'text-muted'); elNgayNhan.style.pointerEvents = 'auto'; }
+
+  window.setValueSafe('don_soDon', "");
+  var todayStr = window.formatDateToYMD();
+  window.setValueSafe('don_ngayNhan', todayStr);
+  window.setValueSafe('don_process_ngayBanHanh', todayStr);
+
+  window.setValueSafe('don_loaiAn', "2. Dân sự");
+  window.updateQuanHeDatalist();
+  ['nkk', 'nbk', 'nlq'].forEach(t => { let el = document.getElementById('don-party-list-' + t); if(el) el.innerHTML = ""; });
+
+  let nlqSec = document.getElementById('nlq-section');
+  if (nlqSec) nlqSec.style.display = 'none';
+
+  window.addPartyGroupV76('NKK'); 
+  window.addPartyGroupV76('NBK');
+
+  window.setValueSafe('don_quanHe', ""); 
+  window.setValueSafe('don_thamPhan', "");
+  window.setValueSafe('don_giaTri', ""); 
+  window.setValueSafe('don_tamUngValue', "0");
+  if (document.getElementById('don_res_tamUng')) document.getElementById('don_res_tamUng').value = "0";
+  if (document.getElementById('don_res_anPhi')) document.getElementById('don_res_anPhi').value = "0";
+  if (document.getElementById('don_trangThai_display')) document.getElementById('don_trangThai_display').value = "Chưa xử lý";
+  window.setValueSafe('don_ghiChu', "");
+
+  let headerTitle = document.getElementById('don_header_title');
+  if (headerTitle) headerTitle.innerHTML = "THÊM ĐƠN KHỞI KIỆN MỚI";
+
+  window.CURRENT_APP_CONTEXT = {
+    scope: "DON",
+    caseInfo: null,
+    caseParties: [],
+    donInfo: { soDon: "Đơn mới", loaiAn: "2. Dân sự", quanHe: "", nguoiKhoiKien: "", nguoiBiKien: "" }
+  };
+  if (typeof window.updateCopilotScopeBadge === 'function') {
+    window.updateCopilotScopeBadge();
+  }
+
+  window.loadDonTemplatesForSelect();
+  appNavigate('view-chi-tiet-don');
+};
+
+window.moChiTietDon = function(idDon) {
+  if (!idDon) return;
+  let donRAM = typeof G_Don !== 'undefined' ? G_Don.find(d => d.id === idDon) : null;
+
+  if (donRAM) {
+    window.setValueSafe('don_id', donRAM.id);
+    window.setValueSafe('don_soDon', donRAM.soDon);
+    
+    let elSoDon = document.getElementById('don_soDon');
+    let elNgayNhan = document.getElementById('don_ngayNhan');
+    if (elSoDon) { elSoDon.readOnly = true; elSoDon.classList.add('bg-light', 'text-muted'); }
+    if (elNgayNhan) { elNgayNhan.readOnly = true; elNgayNhan.classList.add('bg-light', 'text-muted'); elNgayNhan.style.pointerEvents = 'none'; }
+
+    window.setValueSafe('don_loaiAn', donRAM.loaiAn || "2. Dân sự");
+    window.updateQuanHeDatalist();
+    window.setValueSafe('don_quanHe', donRAM.quanHe);
+    window.setValueSafe('don_thamPhan', donRAM.thamPhan);
+
+    window.setValueSafe('don_ngayNhan', window.formatDateToYMD(donRAM.rawDate));
+    window.setValueSafe('don_process_ngayBanHanh', window.formatDateToYMD());
+
+    window.setValueSafe('don_giaTri', String(donRAM.giaTri || "0").replace(/\B(?=(\d{3})+(?!\d))/g, "."));
+    window.setValueSafe('don_tamUngValue', donRAM.tamUng || "0");
+
+    let ghiChuVal = String(donRAM.ghiChu || "").trim();
+    if (ghiChuVal === "Đồng bộ từ Sổ gốc") ghiChuVal = "";
+    window.setValueSafe('don_ghiChu', ghiChuVal);
+
+    var cardNote = document.getElementById('don_ghiChu_card');
+    if (ghiChuVal !== "") { if (cardNote) { cardNote.classList.remove('note-empty'); cardNote.classList.add('note-filled'); } } 
+    else { if (cardNote) { cardNote.classList.remove('note-filled'); cardNote.classList.add('note-empty'); } }
+
+    if (document.getElementById('don_trangThai_display')) document.getElementById('don_trangThai_display').value = donRAM.trangThai || "Chưa xử lý";
+    if (document.getElementById('don_res_tamUng')) document.getElementById('don_res_tamUng').value = String(donRAM.tamUng || "0").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+    let ht = document.getElementById('don_header_title');
+    if (ht) ht.innerHTML = "CHI TIẾT HỒ SƠ ĐƠN";
+
+    ['nkk', 'nbk', 'nlq'].forEach(t => { let el = document.getElementById('don-party-list-' + t); if(el) el.innerHTML = ""; });
+
+    var sec = document.getElementById('nlq-section');
+    if (sec) sec.style.display = 'none';
+
+    if (donRAM.chiTietDuongSu && donRAM.chiTietDuongSu.length > 0) {
+      let groups = [];
+      donRAM.chiTietDuongSu.forEach(d => {
+        let roleLower = String(d.tuCach || "").toLowerCase();
+        let type = '';
+        if (roleLower.includes('khởi kiện') || roleLower.includes('yêu cầu') || roleLower.includes('bị hại') || roleLower.includes('nguyên đơn')) type = 'NKK';
+        else if (roleLower.includes('liên quan')) type = 'NLQ';
+        else type = 'NBK';
+
+        let addrKey = (d.diaChi || "").trim().toLowerCase();
+        let found = addrKey ? groups.find(g => g.type === type && (g.diaChi || "").trim().toLowerCase() === addrKey) : null;
+        if (found) { 
+          found.members.push(d); 
+        } else { 
+          groups.push({ type: type, diaChi: d.diaChi || "", sdt: d.sdt || "", cccd: d.cccd || "", members: [d] }); 
+        }
+      });
+
+      groups.forEach(g => {
+        window.addPartyGroupV76(g.type, g.members);
+        if (g.type === 'NLQ' && sec) sec.style.display = 'block';
+      });
+    }
+
+    let nkkList = document.getElementById('don-party-list-nkk');
+    let nbkList = document.getElementById('don-party-list-nbk');
+
+    if (nkkList && nkkList.innerHTML.trim() === "") window.addPartyGroupV76('NKK');
+    if (nbkList && nbkList.innerHTML.trim() === "") window.addPartyGroupV76('NBK');
+
+    window.CURRENT_APP_CONTEXT = {
+      scope: "DON",
+      caseInfo: null,
+      caseParties: [],
+      donInfo: donRAM
+    };
+    if (typeof window.updateCopilotScopeBadge === 'function') {
+      window.updateCopilotScopeBadge();
+    }
+
+    window.loadDonTemplatesForSelect();
+    appNavigate('view-chi-tiet-don');
+  } else { 
+    AppUI.alert("Lỗi", "Không tìm thấy dữ liệu đơn trong bộ nhớ tạm."); 
+  }
+};
+
+window.filterDonByStatus = function(statusCode, btnEl) {
+  document.querySelectorAll('.don-capsule-tab').forEach(function(btn) {
+    btn.classList.remove('active');
+  });
+  if (btnEl) btnEl.classList.add('active');
+
+  window.currentDonStatusTab = statusCode || 'ALL';
+  window.runFilterDonEngine();
+};
+
+window.loadDanhSachDon = function(isForceRefresh) {
+  var tbody = document.getElementById('don-list-data');
+  if (tbody && isForceRefresh) {
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center p-5"><div class="spinner-border text-primary me-2"></div><span class="text-muted fw-bold">Đang tải Sổ nhận đơn...</span></td></tr>';
+  }
+
+  var donStartEl = document.getElementById('don_filter_start');
+  var donEndEl = document.getElementById('don_filter_end');
+  
+  var sTimeTs = (donStartEl && donStartEl.value) ? new Date(donStartEl.value).getTime() : null;
+  var eTimeTs = (donEndEl && donEndEl.value) ? new Date(donEndEl.value).getTime() + 86399999 : null;
+
+  google.script.run
+    .withSuccessHandler(function(data) {
+      if (data && data.error) {
+        if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="text-center p-5 text-danger">LỖI DATA: ' + data.error + '</td></tr>';
+        return;
+      }
+      G_Don = data || [];
+      window.requestAnimationFrame(function() { window.runFilterDonEngine(true); });
+    })
+    .withFailureHandler(function(err) {
+      if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="text-center p-5 text-danger">LỖI MẠNG: Không thể tải sổ đơn: ' + err.message + '</td></tr>';
+    })
+    .api_LayDanhSachDon(sTimeTs, eTimeTs);
+};
+
+window.triggerDonSearch = function() {
+  clearTimeout(window.searchDonTimeout);
+  window.searchDonTimeout = setTimeout(function() { window.runFilterDonEngine(); }, 300);
+};
+
+window.runFilterDonEngine = function(isFromLoad = false) {
+  if (!isFromLoad && typeof event !== 'undefined' && event && event.target && (event.target.id === 'don_filter_start' || event.target.id === 'don_filter_end')) {
+    window.loadDanhSachDon(true);
+    return; 
+  }
+
+  if (!G_Don || G_Don.length === 0) {
+    if (typeof window.renderDonTable === 'function') window.renderDonTable([]);
+    return;
+  }
+
+  var donSearchEl = document.getElementById('don_txtSearch');
+  var q = donSearchEl ? (window.removeAccents ? window.removeAccents(String(donSearchEl.value).toLowerCase().trim()) : String(donSearchEl.value).toLowerCase().trim()) : "";
+  var currentTab = window.currentDonStatusTab || 'ALL';
+  
+  var displayList = [];
+
+  for (var i = 0; i < G_Don.length; i++) {
+    var don = G_Don[i];
+    var ttLower = String(don.trangThai || "").toLowerCase();
+
+    if (currentTab !== 'ALL') {
+      if (currentTab === 'CHUA_XU_LY' && !(ttLower === 'chưa xử lý' || ttLower === 'đang xem xét' || ttLower === '')) continue;
+      if (currentTab === 'BO_SUNG' && !ttLower.includes('bổ sung') && !ttLower.includes('sửa đổi')) continue;
+      if (currentTab === 'DA_HEN_SMS' && !ttLower.includes('hẹn') && !ttLower.includes('sms')) continue;
+      if (currentTab === 'HGDT' && !ttLower.includes('hòa giải') && !ttLower.includes('đối thoại')) continue;
+      if (currentTab === 'DA_THU_LY' && !ttLower.includes('thụ lý')) continue;
+      if (currentTab === 'DA_XONG' && !ttLower.includes('xong') && !ttLower.includes('trả lại') && !ttLower.includes('chuyển đơn')) continue;
+    }
+
+    if (q) {
+      var strSoDon = window.removeAccents ? window.removeAccents(String(don.soDon || "").toLowerCase()) : String(don.soDon || "").toLowerCase();
+      var strNKK = window.removeAccents ? window.removeAccents(String(don.nguoiKhoiKien || "").toLowerCase()) : String(don.nguoiKhoiKien || "").toLowerCase();
+      var strNBK = window.removeAccents ? window.removeAccents(String(don.nguoiBiKien || "").toLowerCase()) : String(don.nguoiBiKien || "").toLowerCase();
+      var strQH = window.removeAccents ? window.removeAccents(String(don.quanHe || "").toLowerCase()) : String(don.quanHe || "").toLowerCase();
+      var strTP = window.removeAccents ? window.removeAccents(String(don.thamPhan || "").toLowerCase()) : String(don.thamPhan || "").toLowerCase();
+
+      if (strSoDon.indexOf(q) === -1 && strNKK.indexOf(q) === -1 && strNBK.indexOf(q) === -1 && strQH.indexOf(q) === -1 && strTP.indexOf(q) === -1) {
+        continue;
+      }
+    }
+
+    displayList.push(don);
+  }
+
+  if (typeof window.renderDonTable === 'function') window.renderDonTable(displayList);
+};
+
+window.renderDonTable = function(data) {
+  var tbody = document.getElementById('don-list-data');
+  if (!tbody) return;
+  if (!data || data.length === 0) {
+    tbody.innerHTML = "<tr><td colspan='7' class='text-center p-5 text-muted small'><i class='fas fa-box-open fa-2x mb-2 d-block opacity-50'></i>Không có dữ liệu đơn phù hợp với bộ lọc.</td></tr>";
+    return;
+  }
+
+  var totalData = data.length;
+  var htmlRows = [];
+
+  data.slice(0, 100).forEach(function(don) {
+    try {
+      var badgeClass = "text-secondary border-secondary";
+      var tt = String(don.trangThai || "").toLowerCase();
+
+      if (tt.includes("đã thụ lý")) badgeClass = "text-success border-success bg-success-subtle";
+      else if (tt.includes("đang xem xét") || tt.includes("chờ ra") || tt.includes("báo xử lý")) badgeClass = "text-primary border-primary bg-primary-subtle";
+      else if (tt.includes("hẹn làm việc") || tt.includes("sms") || tt.includes("hướng dẫn")) badgeClass = "text-info border-info bg-info-subtle";
+      else if (tt.includes("chuyển hòa giải đối thoại") || tt.includes("lựa chọn hòa giải")) badgeClass = "text-info border-info bg-info-subtle";
+      else if (tt.includes("trả lại") || tt.includes("chuyển đơn")) badgeClass = "text-dark border-dark bg-dark-subtle";
+      else if (tt.includes("bổ sung") || tt.includes("làm rõ")) badgeClass = "text-warning-emphasis border-warning bg-warning-subtle";
+      else if (tt.includes("đã xử lý xong")) badgeClass = "text-success border-success bg-success-subtle";
+
+      var warningStyle = "border-left: 4px solid #0dcaf0;";
+      if (!tt.includes("thụ lý") && !tt.includes("trả") && !tt.includes("chuyển") && !tt.includes("xử lý xong") && !tt.includes("hòa giải")) {
+        if (((new Date().getTime() - don.rawDate) / 86400000) >= 8) warningStyle = "border-left: 4px solid #ef4444;";
+      }
+
+      let nkkHtml = "---", nbkHtml = "---";
+      if (don.chiTietDuongSu && don.chiTietDuongSu.length > 0) {
+        let nkks = don.chiTietDuongSu.filter(d => {
+          let tc = String(d.tuCach || "").toLowerCase();
+          return tc.includes('khởi kiện') || tc.includes('yêu cầu') || tc.includes('bị hại') || tc.includes('nguyên đơn');
+        });
+        let nbks = don.chiTietDuongSu.filter(d => {
+          let tc = String(d.tuCach || "").toLowerCase();
+          return tc.includes('bị kiện') || tc.includes('bị cáo') || tc.includes('bị đơn');
+        });
+
+        // Chuẩn hóa Title Case khi hiển thị trên danh sách
+        nkkHtml = nkks.map(d => {
+          let cleanNkk = window.local_toTitleCase 
+            ? window.local_toTitleCase(window.cleanHonorificFromName ? window.cleanHonorificFromName(d.hoTen) : d.hoTen) 
+            : (d.hoTen || 'Chưa rõ');
+          return `<div class="fw-bold text-danger" style="font-size:12px;">${cleanNkk}</div>
+                  <div class="text-muted mt-1" style="font-size:10px; line-height:1.4;">
+                    ${d.namSinh ? 'SN: '+d.namSinh+'<br>' : ''}${d.diaChi || ''}${d.sdt ? '<br><i class="fas fa-phone-alt me-1"></i>'+window.local_formatPhoneNumber(d.sdt) : ''}
+                  </div>`;
+        }).join('<hr class="my-2 border-secondary" style="opacity: 0.2">');
+
+        nbkHtml = nbks.map(d => {
+          let cleanNbk = window.local_toTitleCase 
+            ? window.local_toTitleCase(window.cleanHonorificFromName ? window.cleanHonorificFromName(d.hoTen) : d.hoTen) 
+            : (d.hoTen || 'Chưa rõ');
+          return `<div class="fw-bold text-dark" style="font-size:12px;">${cleanNbk}</div>
+                  <div class="text-muted mt-1" style="font-size:10px; line-height:1.4;">
+                    ${d.namSinh ? 'SN: '+d.namSinh+'<br>' : ''}${d.diaChi || ''}${d.sdt ? '<br><i class="fas fa-phone-alt me-1"></i>'+window.local_formatPhoneNumber(d.sdt) : ''}
+                  </div>`;
+        }).join('<hr class="my-2 border-secondary" style="opacity: 0.2">');
+      } else {
+        let cleanNkkStr = window.local_toTitleCase 
+          ? window.local_toTitleCase(window.cleanHonorificFromName ? window.cleanHonorificFromName(don.nguoiKhoiKien) : don.nguoiKhoiKien) 
+          : (don.nguoiKhoiKien || '---');
+        let cleanNbkStr = window.local_toTitleCase 
+          ? window.local_toTitleCase(window.cleanHonorificFromName ? window.cleanHonorificFromName(don.nguoiBiKien) : don.nguoiBiKien) 
+          : (don.nguoiBiKien || '---');
+        nkkHtml = `<div class="fw-bold text-danger" style="font-size: 12px;">${cleanNkkStr}</div>`;
+        nbkHtml = `<div class="fw-bold text-dark" style="font-size: 12px;">${cleanNbkStr}</div>`;
+      }
+
+      let ghiChuIcon = "";
+      let ghiChuVal = String(don.ghiChu || "").trim();
+      if (ghiChuVal !== "" && ghiChuVal !== "Đồng bộ từ Sổ gốc") {
+        ghiChuIcon = `<i class="fas fa-sticky-note text-warning ms-2 shadow-sm" style="cursor:pointer; font-size:13px;" title="Xem/Sửa Ghi chú" onclick="event.stopPropagation(); window.openNoteModal('${don.id}');"></i>`;
+      }
+
+      htmlRows.push(`
+      <tr style="cursor: pointer; transition: background 0.2s; ${warningStyle}" onclick="window.moChiTietDon('${don.id}')" class="hover-row-elegant">
+        <td class="ps-3 text-center" onclick="event.stopPropagation();">
+          <input type="checkbox" class="form-check-input don-select-checkbox shadow-sm" value="${don.id}" onclick="window.toggleBulkDonButton()" style="cursor: pointer; width: 1.1rem; height: 1.1rem;">
+        </td>
+        <td class="ps-2">
+          <div class="fw-bolder text-dark d-flex align-items-center" style="font-size:13px">${don.soDon || '---'} ${ghiChuIcon}</div>
+          <div class="text-secondary fw-bold mt-1" style="font-size:11px;"><i class="far fa-calendar-alt me-1"></i>${don.ngayNhan}</div>
+        </td>
+        <td>${nkkHtml}</td>
+        <td>${nbkHtml}</td>
+        <td>
+          <div class="text-dark fw-bold text-wrap" style="font-size: 12px; max-width: 250px;">${don.quanHe || '---'}</div>
+          <div class="text-muted fst-italic mt-1" style="font-size:10px">${don.loaiAn || '---'}</div>
+        </td>
+        <td>
+          <div class="fw-bold text-primary" style="font-size: 11px;">${don.thamPhan || 'Chưa PC'}</div>
+        </td>
+        <td class="text-center" onclick="event.stopPropagation();">
+          <div class="badge border ${badgeClass} w-100 mb-2 text-wrap" style="font-size: 10px; padding: 4px 0; border-radius: 4px; line-height:1.2;">${don.trangThai || 'Chưa xử lý'}</div>
+          <div class="d-flex align-items-center justify-content-center gap-1">
+            <button class="btn btn-sm btn-light border shadow-sm p-1 d-flex align-items-center justify-content-center" style="width:26px; height:26px; border-radius:6px;" onclick="event.stopPropagation(); window.chuyenDonSangThuLy('${don.id}')" title="Thụ lý thành Vụ án"><i class="fas fa-folder-plus text-success" style="font-size:11px;"></i></button>
+            <button class="btn btn-sm btn-light border shadow-sm p-1 d-flex align-items-center justify-content-center" style="width:26px; height:26px; border-radius:6px;" onclick="event.stopPropagation(); window.openQuickDraftDon('${don.id}')" title="Soạn văn bản"><i class="fas fa-file-word text-primary" style="font-size:11px;"></i></button>
+            <button class="btn btn-sm btn-light border shadow-sm p-1 d-flex align-items-center justify-content-center" style="width:26px; height:26px; border-radius:6px;" onclick="event.stopPropagation(); window.sendQuickSMS('${don.id}')" title="Hẹn lịch & Nhắn tin"><i class="fas fa-sms text-info" style="font-size:11px;"></i></button>
+            <button class="btn btn-sm btn-light border shadow-sm p-1 d-flex align-items-center justify-content-center" style="width:26px; height:26px; border-radius:6px;" onclick="event.stopPropagation(); window.openDonFolderFromList('${don.id}')" title="Mở Drive"><i class="fas fa-folder-open text-warning" style="font-size:11px;"></i></button>
+          </div>
+        </td>
+      </tr>
+      `);
+    } catch (ex) {
+      console.error("Lỗi vẽ dòng Đơn:", don, ex);
+    }
+  });
+
+  if (totalData > 100) {
+    htmlRows.push(`<tr><td colspan="7" class="text-center p-3 text-muted" style="background:#f8fafc; font-size:12px;">Đang hiển thị <b>100</b> / <b>${totalData}</b> kết quả.</td></tr>`);
+  }
+  tbody.innerHTML = htmlRows.join('');
+};
+
+// =========================================================================
+// 4. LƯU THÔNG TIN ĐƠN & GHI CHÚ
+// =========================================================================
+
+window.luuThongTinDon = function(isAutoSave = false) {
+  var p = {
+    info: {
+      id: document.getElementById('don_id').value,
+      soDon: document.getElementById('don_soDon').value.trim(),
+      ngayNhan: document.getElementById('don_ngayNhan').value,
+      loaiAn: document.getElementById('don_loaiAn').value,
+      quanHe: document.getElementById('don_quanHe').value.trim(),
+      thamPhan: document.getElementById('don_thamPhan').value.trim() || "Chưa phân công",
+      giaTri: String(document.getElementById('don_giaTri').value).replace(/\./g, ''),
+      tamUng: document.getElementById('don_tamUngValue').value,
+      huongXuLy: document.getElementById('don_trangThai_display').value,
+      trangThai: document.getElementById('don_trangThai_display').value,
+      ghiChu: document.getElementById('don_ghiChu').value.trim()
+    },
+    ds: []
+  };
+
+  if (!p.info.soDon) {
+    if (isAutoSave) return;
+    return AppUI.alert("Cảnh báo", "Vui lòng nhập Số đơn!");
+  }
+
+  var nkkArr = [], nbkArr = [];
+  let oldDsMap = {};
+  if (p.info.id && !p.info.id.includes("TEMP_") && typeof G_Don !== 'undefined') {
+    let donHienTai = G_Don.find(d => d.id === p.info.id);
+    if (donHienTai && donHienTai.chiTietDuongSu) {
+      donHienTai.chiTietDuongSu.forEach(d => { oldDsMap[d.hoTen + "_" + d.tuCach] = d.daiDien || ""; });
+    }
+  }
+
+  document.querySelectorAll('.don-party-group').forEach(g => {
+    var tuCach = g.querySelector('.in-don-tucach').value;
+    var diaChi = g.querySelector('.in-don-diachi').value.trim();
+    var sdt = g.querySelector('.in-don-sdt').value.trim();
+    var cccd = g.querySelector('.in-don-cccd').value.trim();
+
+    g.querySelectorAll('.member-item').forEach(m => {
+      var inputHoTen = m.querySelector('.in-don-hoten');
+      var rawHoTen = inputHoTen ? inputHoTen.value.trim() : "";
+
+      if (rawHoTen) {
+        // 1. Tự động bóc tách danh xưng thừa và chuẩn hóa sang Title Case (ĐỀ THỊ KIM LOAN -> Đề Thị Kim Loan)
+        var hoTen = window.local_toTitleCase 
+          ? window.local_toTitleCase(window.cleanHonorificFromName ? window.cleanHonorificFromName(rawHoTen) : rawHoTen) 
+          : rawHoTen;
+
+        // Cập nhật lại giá trị sạch ngay trên giao diện nhập liệu
+        if (inputHoTen) inputHoTen.value = hoTen;
+
+        var xungHoSelect = m.querySelector('.in-don-xungho');
+        var xungHo = xungHoSelect ? xungHoSelect.value : 'Ông/Bà';
+
+        // 2. Tự nhận diện danh xưng nếu người dùng gõ "Bà..." hoặc "Ông..." trong ô tên
+        if (xungHo === 'Ông/Bà') {
+          if (/^bà\s+/i.test(rawHoTen)) {
+            xungHo = 'Bà';
+            if (xungHoSelect) xungHoSelect.value = 'Bà';
+          } else if (/^ông\s+/i.test(rawHoTen)) {
+            xungHo = 'Ông';
+            if (xungHoSelect) xungHoSelect.value = 'Ông';
+          }
+        }
+
+        var namSinh = m.querySelector('.in-don-namsinh').value.trim();
+        let tcLower = String(tuCach).toLowerCase();
+        if (tcLower.includes('khởi kiện') || tcLower.includes('yêu cầu') || tcLower.includes('nguyên đơn')) {
+          nkkArr.push(hoTen);
+        } else if (!tcLower.includes('liên quan')) {
+          nbkArr.push(hoTen);
+        }
+
+        let daiDienCu = oldDsMap[hoTen + "_" + tuCach] || "";
+        p.ds.push({ 
+          tuCach: tuCach, 
+          xungHo: xungHo, 
+          hoTen: hoTen, 
+          namSinh: namSinh, 
+          diaChi: diaChi, 
+          sdt: sdt, 
+          cccd: cccd, 
+          daiDien: daiDienCu 
+        });
+      }
+    });
+  });
+
+  let warningMsg = window.validateDonData(p.ds);
+
+  const proceedSave = function() {
+    let isNew = !p.info.id || p.info.id.includes("TEMP_");
+    if (!isAutoSave) AppUI.showToast("Đang lưu dữ liệu...", "");
+
+    var dParts = p.info.ngayNhan.split('-');
+    var dateVn = dParts.length === 3 ? (dParts[2] + "/" + dParts[1] + "/" + dParts[0]) : p.info.ngayNhan;
+    var rawDateTs = new Date(p.info.ngayNhan).getTime();
+
+    if (p.info.id && typeof G_Don !== 'undefined') {
+      let index = G_Don.findIndex(function(d) { return d.id === p.info.id; });
+      if (index > -1) {
+        G_Don[index].soDon = p.info.soDon; 
+        G_Don[index].ngayNhan = dateVn; 
+        G_Don[index].rawDate = rawDateTs;
+        G_Don[index].loaiAn = p.info.loaiAn; 
+        G_Don[index].quanHe = p.info.quanHe; 
+        G_Don[index].thamPhan = p.info.thamPhan;
+        G_Don[index].trangThai = p.info.trangThai; 
+        G_Don[index].huongXuLy = p.info.huongXuLy; 
+        G_Don[index].ghiChu = p.info.ghiChu;
+        G_Don[index].nguoiKhoiKien = nkkArr.join(", "); 
+        G_Don[index].nguoiBiKien = nbkArr.join(", "); 
+        G_Don[index].chiTietDuongSu = p.ds;
+      }
+    } else {
+      p.info.id = "TEMP_" + new Date().getTime(); 
+      document.getElementById('don_id').value = p.info.id;
+      G_Don.unshift({
+        id: p.info.id, 
+        soDon: p.info.soDon, 
+        ngayNhan: dateVn, 
+        rawDate: rawDateTs,
+        loaiAn: p.info.loaiAn, 
+        quanHe: p.info.quanHe, 
+        thamPhan: p.info.thamPhan, 
+        huongXuLy: p.info.huongXuLy, 
+        trangThai: p.info.trangThai, 
+        ghiChu: p.info.ghiChu,
+        nguoiKhoiKien: nkkArr.join(", "), 
+        nguoiBiKien: nbkArr.join(", "), 
+        chiTietDuongSu: p.ds
+      });
+    }
+    
+    window.runFilterDonEngine(); 
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (res.success) {
+          if (isNew && res.idDon) {
+            document.getElementById('don_id').value = res.idDon;
+            let tmpIndex = G_Don.findIndex(function(d) { return d.id === p.info.id; });
+            if (tmpIndex > -1) G_Don[tmpIndex].id = res.idDon; 
+          }
+          if (isAutoSave) {
+            let indicator = document.getElementById('don_autosave_indicator');
+            if (indicator) {
+              indicator.innerHTML = '<i class="fas fa-check text-success me-1"></i> <span class="text-success">Đã tự động lưu</span>';
+              setTimeout(() => { if (indicator) indicator.innerHTML = ''; }, 3000);
+            }
+          } else {
+            AppUI.showToast("Lưu thành công!", "success");
+          }
+        } else { 
+          if (!isAutoSave) AppUI.alert("Lỗi", res.error); 
+        }
+      })
+      .api_LuuThongTinDon(p);
+  };
+
+  if (warningMsg && !isAutoSave) AppUI.confirm("Thiếu thông tin", warningMsg, "warning", proceedSave);
+  else proceedSave();
+};
+
+window.openNoteModal = function(idDon) {
+  let don = typeof G_Don !== 'undefined' ? G_Don.find(d => d.id === idDon) : null;
+  if (!don) return;
+
+  document.getElementById('modal_note_don_id').value = idDon;
+  let val = String(don.ghiChu || "").trim();
+  if (val === "Đồng bộ từ Sổ gốc") val = "";
+  document.getElementById('modal_note_content').value = val;
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDonGhiChu')).show();
+};
+
+window.saveQuickNoteFromModal = function() {
+  let idDon = document.getElementById('modal_note_don_id').value;
+  let newNote = document.getElementById('modal_note_content').value.trim();
+  let don = G_Don.find(d => d.id === idDon);
+
+  if (don && don.ghiChu !== newNote) {
+    don.ghiChu = newNote;
+    var payloadData = { info: Object.assign({}, don), ds: don.chiTietDuongSu };
+
+    let m = bootstrap.Modal.getInstance(document.getElementById('modalDonGhiChu'));
+    if (m) m.hide();
+
+    AppUI.showToast("Đang lưu ghi chú...", "");
+    google.script.run
+      .withSuccessHandler(() => {
+        AppUI.showToast("Đã lưu ghi chú!", "success");
+        window.runFilterDonEngine();
+      })
+      .api_LuuThongTinDon(payloadData);
+  } else {
+    let m = bootstrap.Modal.getInstance(document.getElementById('modalDonGhiChu'));
+    if (m) m.hide();
+  }
+};
+
+window.saveQuickNoteDon = function() {
+  var id = document.getElementById('don_id').value;
+  var note = document.getElementById('don_ghiChu').value;
+  var card = document.getElementById('don_ghiChu_card');
+
+  if (note.trim() !== "") {
+    if (card) { card.classList.remove('note-empty'); card.classList.add('note-filled'); }
+  } else {
+    if (card) { card.classList.remove('note-filled'); card.classList.add('note-empty'); }
+  }
+
+  if (id && !id.includes("TEMP_")) {
+    let don = G_Don.find(d => d.id === id);
+    if (don && don.ghiChu !== note) {
+      don.ghiChu = note;
+      var payloadData = { info: Object.assign({}, don), ds: don.chiTietDuongSu };
+      google.script.run.api_LuuThongTinDon(payloadData);
+      window.runFilterDonEngine();
+    }
+  }
+};
+
+window.debounceQuickLoadDon = function(e) {
+  if (e.key === 'Enter') window.quickLoadDonByNo();
+};
+
+window.quickLoadDonByNo = function() {
+  let inputNo = document.getElementById('don_quick_search_no').value.trim().toLowerCase();
+  if (!inputNo) return AppUI.alert("Nhắc nhở", "Vui lòng nhập số đơn cần tìm.");
+  if (!G_Don || G_Don.length === 0) return AppUI.alert("Lỗi", "Dữ liệu chưa tải xong.");
+
+  let don = G_Don.find(d => String(d.soDon || "").toLowerCase().includes(inputNo));
+  if (don) {
+    window.moChiTietDon(don.id);
+    document.getElementById('don_quick_search_no').value = "";
+  } else {
+    AppUI.alert("Không tìm thấy", "Không có đơn nào khớp với số: " + inputNo);
+  }
+};
+
+window.toggleAllDonCheckboxes = function(checked) {
+  document.querySelectorAll('.don-select-checkbox').forEach(cb => { cb.checked = checked; });
+  window.toggleBulkDonButton();
+};
+
+window.toggleBulkDonButton = function() {
+  const checkedCount = document.querySelectorAll('.don-select-checkbox:checked').length;
+  const btnTask = document.getElementById('btn-bulk-don');
+  const btnDel = document.getElementById('btn-bulk-delete-don');
+
+  if (checkedCount > 0) {
+    if (btnTask) {
+      btnTask.classList.remove('d-none');
+      document.getElementById('bulk-don-count').innerText = checkedCount;
+    }
+    if (btnDel) btnDel.classList.remove('d-none');
+  } else {
+    if (btnTask) btnTask.classList.add('d-none');
+    if (btnDel) btnDel.classList.add('d-none');
+  }
+};
+
+window.deleteSelectedDons = function() {
+  const checkedBoxes = document.querySelectorAll('.don-select-checkbox:checked');
+  if (checkedBoxes.length === 0) return;
+
+  AppUI.confirm("Xóa hàng loạt", `Bạn sắp xóa ${checkedBoxes.length} hồ sơ đơn.\nDữ liệu không thể khôi phục. Bạn có chắc không?`, 'danger', function() {
+    const idsToDelete = Array.from(checkedBoxes).map(cb => cb.value);
+
+    document.getElementById('btn-bulk-don').classList.add('d-none');
+    document.getElementById('btn-bulk-delete-don').classList.add('d-none');
+    document.getElementById('don-select-all-cb').checked = false;
+
+    if (G_Don) {
+      G_Don = G_Don.filter(d => !idsToDelete.includes(d.id));
+      window.runFilterDonEngine();
+    }
+
+    AppUI.showToast(`Đang xóa ${idsToDelete.length} hồ sơ...`, "");
+
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res.success) {
+          AppUI.showToast("Đã xóa hoàn tất!", "success");
+        } else {
+          AppUI.showToast("Lỗi hệ thống: " + res.error, "error");
+        }
+      })
+      .withFailureHandler(err => {
+        AppUI.showToast("Lỗi mạng: " + err.message, "error");
+      })
+      .api_XoaNhieuDon(idsToDelete);
+  });
+};
+
+window.xoaDonHienTai = function() {
+  var id = document.getElementById('don_id').value;
+  if (!id || id.includes("TEMP_")) { appNavigate('view-danh-sach-don'); return; }
+
+  AppUI.confirm("Xóa Hồ Sơ", "Bạn có chắc muốn xóa hồ sơ đơn này không?", "danger", function() {
+    AppUI.showToast("Đang xóa...", "");
+    if (G_Don) {
+      G_Don = G_Don.filter(d => d.id !== id);
+      window.runFilterDonEngine();
+    }
+    appNavigate('view-danh-sach-don');
+    
+    google.script.run
+      .withSuccessHandler(() => AppUI.showToast("Đã xóa!", "success"))
+      .api_XoaDon(id);
+  });
+};
+
+window.thucHienDongBoDonNgam = function() {
+  var btn = document.getElementById('btn-sync-don-ngam');
+  
+  AppUI.confirm(
+    "Đồng bộ Sổ Gốc", 
+    "Hệ thống sẽ quét File Excel gốc của Văn thư và đồng bộ các đơn mới tiếp nhận vào CSDL.\n\nMất khoảng vài giây...", 
+    "success", 
+    function() {
+      if (btn) { 
+        btn.classList.add('is-loading'); 
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> ĐANG TẢI...'; 
+        btn.disabled = true; 
+      }
+      
+      AppUI.showToast("Đang kết nối Server...", "");
+      
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (btn) { 
+            btn.classList.remove('is-loading'); 
+            btn.innerHTML = '<i class="fas fa-cloud-download-alt me-1"></i> ĐỒNG BỘ SỔ'; 
+            btn.disabled = false; 
+          }
+          
+          if (res.success) {
+            AppUI.alert("Đồng bộ hoàn tất", `✅ Đã đồng bộ thành công ${res.count} đơn vào CSDL.`);
+            if (typeof window.loadDanhSachDon === 'function') window.loadDanhSachDon(true);
+          } else { 
+            AppUI.alert("Lỗi Đồng Bộ", res.error); 
+          }
+        })
+        .withFailureHandler(function(err) {
+          if (btn) { 
+            btn.classList.remove('is-loading'); 
+            btn.innerHTML = '<i class="fas fa-cloud-download-alt me-1"></i> ĐỒNG BỘ SỔ'; 
+            btn.disabled = false; 
+          }
+          AppUI.alert("Lỗi Kết Nối", "Không thể kết nối máy chủ: " + err.message);
+        })
+        .api_DongBoDonTuExcel();
+    }
+  );
+};
+
+// =========================================================================
+// 5. GỬI FAST SMS & HẸN LỊCH
+// =========================================================================
+
+window.sendSMSFromGroup = function(btn) {
+  var idDon = document.getElementById('don_id').value;
+  var group = btn.closest('.don-party-group');
+  var elPhone = group.querySelector('.in-don-sdt');
+
+  var firstMember = group.querySelector('.member-item');
+  var elName = firstMember ? firstMember.querySelector('.in-don-hoten') : null;
+  var elXh = firstMember ? firstMember.querySelector('.in-don-xungho') : null;
+
+  var phone = elPhone ? elPhone.value.trim() : "";
+  var name = elName ? elName.value.trim() : "";
+  var xh = elXh ? elXh.value : "";
+
+  if (!idDon || idDon.includes("TEMP_")) return AppUI.alert("Nhắc nhở", "Vui lòng LƯU ĐƠN trước khi lên lịch và gửi tin nhắn!");
+  if (!phone) return AppUI.alert("Thiếu số điện thoại", "Vui lòng nhập số điện thoại.");
+
+  window.openFastSMSModal(idDon, phone, name, xh);
+};
+
+window.sendQuickSMS = function(idDon) {
+  let donRAM = typeof G_Don !== 'undefined' ? G_Don.find(d => d.id === idDon) : null;
+  if (!donRAM || !donRAM.chiTietDuongSu) return AppUI.alert("Lỗi", "Chưa có thông tin đương sự.");
+
+  let nkkList = (donRAM.chiTietDuongSu || []).filter(d => {
+    let tc = String(d.tuCach || "").toLowerCase();
+    return tc.includes('khởi kiện') || tc.includes('yêu cầu') || tc.includes('bị hại') || tc.includes('nguyên đơn');
+  });
+
+  if (nkkList.length === 0 || !nkkList[0].sdt) {
+    return AppUI.alert("Thiếu số điện thoại", "Người khởi kiện chưa có SĐT! Vui lòng Mở Chi tiết để bổ sung.");
+  }
+
+  let phone = nkkList[0].sdt;
+  let name = nkkList[0].hoTen;
+  let xh = nkkList[0].xungHo;
+
+  window.openFastSMSModal(idDon, phone, name, xh);
+};
+
+window.openFastSMSModal = function(idDon, phone, name, xungho) {
+  let don = G_Don.find(d => d.id === idDon);
+  if (!don) return AppUI.alert("Lỗi", "Không tìm thấy hồ sơ đơn.");
+
+  document.getElementById('sms_target_id').value = idDon;
+  document.getElementById('sms_target_phone').value = phone;
+  document.getElementById('sms_target_name').value = (xungho && xungho !== 'Tổ chức' ? xungho + " " : "") + name;
+  document.getElementById('sms_target_sodon').value = don.soDon;
+
+  document.getElementById('sms_display_name').innerText = (xungho && xungho !== 'Tổ chức' ? xungho + " " : "") + name;
+  document.getElementById('sms_display_phone').innerText = window.local_formatPhoneNumber(phone);
+
+  if (window.smsStickyData.date) document.getElementById('sms_date').value = window.smsStickyData.date;
+  document.getElementById('sms_time').value = window.smsStickyData.time;
+
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalFastSMS')).show();
+};
+
+window.executeFastSMS = function() {
+  let idDon = document.getElementById('sms_target_id').value;
+  let phoneRaw = document.getElementById('sms_target_phone').value;
+  let fullName = document.getElementById('sms_target_name').value;
+  let soDon = document.getElementById('sms_target_sodon').value;
+
+  let date = document.getElementById('sms_date').value;
+  let time = document.getElementById('sms_time').value;
+
+  if (!date || !time) return AppUI.alert("Lỗi", "Vui lòng chọn Ngày và Giờ hẹn làm việc.");
+
+  window.smsStickyData.date = date;
+  window.smsStickyData.time = time;
+
+  let dParts = date.split('-');
+  let dateVn = dParts[2] + "/" + dParts[1] + "/" + dParts[0];
+
+  let cleanName = window.removeAccents ? window.removeAccents(fullName) : fullName;
+  let phone = window.local_formatPhoneNumber(phoneRaw);
+
+  let donIdx = G_Don.findIndex(d => d.id === idDon);
+  let ngayNhanDon = donIdx > -1 ? G_Don[donIdx].ngayNhan : "";
+
+  let msg = `TAND Khu vuc 2 - Lam Dong thong bao: Da nhan don cua ${cleanName} (So don: ${soDon}${ngayNhanDon ? " - " + ngayNhanDon : ""}). Vui long lien he To Hanh chinh tu phap - Van phong Toa an ${time} ngay ${dateVn} de duoc huong dan. Luu y: He thong khong nhan cuoc goi hoac tin nhan phan hoi.`;
+
+  let linkSms = "sms:" + phone + "?body=" + encodeURIComponent(msg);
+  let a = document.createElement('a');
+  a.href = linkSms;
+  a.target = "_top";
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => document.body.removeChild(a), 1000);
+
+  let m = bootstrap.Modal.getInstance(document.getElementById('modalFastSMS'));
+  if (m) m.hide();
+
+  if (donIdx > -1) {
+    G_Don[donIdx].trangThai = "Đã hẹn làm việc";
+    window.runFilterDonEngine();
+    
+    let statusSelect = document.getElementById('don_trangThai_display');
+    if (statusSelect && document.getElementById('don_id').value === idDon) {
+      statusSelect.value = "Đã hẹn làm việc";
+    }
+
+    let payloadUpdate = {
+      info: Object.assign({}, G_Don[donIdx], { id: idDon, trangThai: "Đã hẹn làm việc" }),
+      ds: G_Don[donIdx].chiTietDuongSu
+    };
+    google.script.run.api_LuuThongTinDon(payloadUpdate);
+  }
+
+  let lichContent = `Hẹn làm việc xử lý đơn khởi kiện\nSố đơn: ${soDon}\nĐương sự: ${fullName}\nSĐT: ${phone}\nPhòng số 1 - VP Tòa án`;
+  google.script.run.api_LuuLichMoi_Logic({ idVuAn: "GENERAL", ngay: date, gio: time, noiDung: lichContent });
+};
+
+window.openBulkActionModal = function(idDonLe = null) {
+  window.bulkSelectedDons = [];
+
+  if (idDonLe && typeof idDonLe === 'string') {
+    let don = G_Don.find(d => d.id === idDonLe);
+    if (don) window.bulkSelectedDons.push(don);
+  } else {
+    let checked = document.querySelectorAll('.don-select-checkbox:checked');
+    if (checked.length === 0) return AppUI.alert("Nhắc nhở", "Vui lòng chọn ít nhất 1 hồ sơ!");
+    checked.forEach(cb => {
+      let don = G_Don.find(d => d.id === cb.value);
+      if (don) window.bulkSelectedDons.push(don);
+    });
+  }
+
+  let previewHtml = window.bulkSelectedDons.map(d => `<div class='p-2 border-bottom text-dark' style='font-size: 11px;'><span class='text-primary fw-bold'>${d.soDon}</span> - ${d.nguoiKhoiKien || 'Chưa rõ NKK'}</div>`).join('');
+
+  document.getElementById('bulk_don_list_preview').innerHTML = previewHtml;
+  document.getElementById('bulk_don_list_count').innerText = window.bulkSelectedDons.length;
+
+  document.getElementById('bulk_don_date').value = "";
+  document.getElementById('bulk_don_time').value = "08:30";
+
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalBulkActionDon')).show();
+};
+
+window.executeBulkDonAction = function() {
+  let date = document.getElementById('bulk_don_date').value;
+  let time = document.getElementById('bulk_don_time').value;
+  let loc = document.getElementById('bulk_don_location').value || "Trụ sở Tòa án";
+  let template = document.getElementById('bulk_don_sms_template').value;
+
+  if (!date || !time) return AppUI.alert("Thiếu thông tin", "Vui lòng chọn Ngày và Giờ hẹn làm việc!");
+
+  var danhSachDonStr = window.bulkSelectedDons.map(d => "- " + d.soDon + ": " + d.nguoiKhoiKien).join("\n");
+  let lichContent = "Hẹn làm việc xử lý đơn khởi kiện\nĐịa điểm: " + loc + "\nDanh sách:\n" + danhSachDonStr;
+
+  let m = bootstrap.Modal.getInstance(document.getElementById('modalBulkActionDon'));
+  if (m) m.hide();
+
+  AppUI.showToast("Đang đồng bộ Dữ liệu & Lịch công tác...", "");
+
+  let buttonsHtml = "";
+  let payloadsForServer = [];
+
+  window.bulkSelectedDons.forEach(don => {
+    let donToUpdate = JSON.parse(JSON.stringify(don));
+    donToUpdate.trangThai = "Đã hẹn làm việc";
+    payloadsForServer.push({
+      info: donToUpdate,
+      ds: donToUpdate.chiTietDuongSu
+    });
+
+    let nkkList = (don.chiTietDuongSu || []).filter(d => {
+      let tcLower = String(d.tuCach || "").toLowerCase();
+      return tcLower.includes('khởi kiện') || tcLower.includes('yêu cầu') || tcLower.includes('nguyên đơn');
+    });
+
+    if (nkkList.length > 0 && nkkList[0].sdt) {
+      let phone = window.local_formatPhoneNumber(nkkList[0].sdt);
+      let name = nkkList[0].hoTen;
+      let dateVnFormat = date.split('-').reverse().join('/');
+
+      let msg = template.replace(/\[TenDuongSu\]/g, window.removeAccents ? window.removeAccents(name) : name)
+                        .replace(/\[SoDon\]/g, don.soDon)
+                        .replace(/\[NgayNhan\]/g, don.ngayNhan)
+                        .replace(/\[NgayHen\]/g, dateVnFormat)
+                        .replace(/\[GioHen\]/g, time)
+                        .replace(/\[DiaDiem\]/g, window.removeAccents ? window.removeAccents(loc) : loc);
+
+      let linkSms = "sms:" + phone + "?body=" + encodeURIComponent(msg);
+
+      buttonsHtml += `<a href="${linkSms}" target="_top" class="btn btn-outline-success btn-sm w-100 mb-2 d-flex justify-content-between align-items-center" onclick="this.classList.replace('btn-outline-success', 'btn-secondary')">
+                        <span><i class="fas fa-sms me-2"></i>Gửi ${name}</span>
+                        <span class="badge bg-success">${phone}</span>
+                      </a>`;
+    }
+  });
+
+  payloadsForServer.forEach(p => {
+    let idx = G_Don.findIndex(d => d.id === p.info.id);
+    if (idx > -1) G_Don[idx].trangThai = "Đã hẹn làm việc";
+  });
+  window.runFilterDonEngine();
+
+  google.script.run.api_LuuNhieuDon_Bulk(payloadsForServer);
+  google.script.run.api_LuuLichMoi_Logic({ idVuAn: "GENERAL", ngay: date, gio: time, noiDung: lichContent });
+
+  setTimeout(() => {
+    AppUI.hideToast();
+    AppUI.alert("Hoàn tất Lưu Lịch!", "Đã cập nhật trạng thái đơn. Bấm vào các nút dưới đây để mở ứng dụng gửi tin nhắn cho từng người:<br><br><div style='max-height: 250px; overflow-y:auto; padding-right: 5px;'>" + buttonsHtml + "</div>");
+  }, 2000);
+};
+
+// =========================================================================
+// 6. SOẠN THẢO VĂN BẢN ĐƠN & SỬA ĐỔI BỔ SUNG (QUICK MODAL)
+// =========================================================================
+
+window.openQuickEditDon = function(idDon) {
+  let don = typeof G_Don !== 'undefined' ? G_Don.find(d => d.id === idDon) : null;
+  if (!don) return;
+
+  document.getElementById('quick_don_id').value = idDon;
+  document.getElementById('quick_don_so').value = don.soDon || "";
+  document.getElementById('quick_don_ngay').value = window.formatDateToYMD(don.rawDate);
+  document.getElementById('quick_don_trangThai').value = don.trangThai || "Chưa xử lý";
+  document.getElementById('quick_don_thamPhan').value = don.thamPhan || "";
+
+  let loaiAnEl = document.getElementById('quick_don_loaiAn');
+  if (loaiAnEl) {
+    loaiAnEl.value = don.loaiAn || "2. Dân sự";
+    window.updateQuickQuanHeDatalist();
+  }
+  document.getElementById('quick_don_quanHe').value = don.quanHe || "";
+
+  ['nkk', 'nbk', 'nlq'].forEach(t => { 
+    let el = document.getElementById('quick-party-' + t); 
+    if (el) el.innerHTML = ""; 
+  });
+
+  if (don.chiTietDuongSu && don.chiTietDuongSu.length > 0) {
+    don.chiTietDuongSu.forEach(d => {
+      let tc = String(d.tuCach || "").toLowerCase();
+      if (tc.includes('khởi kiện') || tc.includes('yêu cầu') || tc.includes('nguyên đơn')) {
+        window.addQuickPartyRow('NKK', d);
+      } else if (tc.includes('liên quan')) {
+        window.addQuickPartyRow('NLQ', d);
+      } else {
+        window.addQuickPartyRow('NBK', d);
+      }
+    });
+  }
+
+  let nkkList = document.getElementById('quick-party-nkk');
+  let nbkList = document.getElementById('quick-party-nbk');
+  if (nkkList && nkkList.innerHTML.trim() === "") window.addQuickPartyRow('NKK');
+  if (nbkList && nbkList.innerHTML.trim() === "") window.addQuickPartyRow('NBK');
+
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalQuickEditDon')).show();
+};
+window.openDonEditModal = window.openQuickEditDon;
+
+/**
+ * THÊM DÒNG ĐƯƠNG SỰ TRÊN MODAL SỬA NHANH (QUICK EDIT MODAL)
+ * - Tự động chuẩn hóa họ tên sang Title Case ngay khi tải giao diện
+ * - Bổ sung onblur tự động chuẩn hóa chữ hoa đầu từ và tự chuyển menu Danh xưng
+ */
+window.addQuickPartyRow = function(type, dData = null) {
+  let container = document.getElementById('quick-party-' + type.toLowerCase());
+  if (!container) return;
+
+  let tcMap = {
+    'NKK': 'Người khởi kiện', 
+    'NBK': 'Người bị kiện', 
+    'NLQ': 'Người có quyền lợi, nghĩa vụ liên quan'
+  };
+  let tc = tcMap[type] || 'Người khởi kiện';
+
+  var xhVal = dData ? (dData.xungHo || 'Ông/Bà') : 'Ông/Bà';
+  var rawHoTen = dData ? (dData.hoTen || '') : '';
+  var namSinh = dData ? (dData.namSinh || '') : '';
+  var diaChi = dData ? (dData.diaChi || '') : '';
+
+  // 1. Tự nhận diện danh xưng nếu người dùng gõ kèm Bà / Ông trong ô tên
+  if ((!xhVal || xhVal === 'Ông/Bà') && rawHoTen) {
+    if (/^bà\s+/i.test(rawHoTen)) xhVal = 'Bà';
+    else if (/^ông\s+/i.test(rawHoTen)) xhVal = 'Ông';
+    else if (/^chị\s+/i.test(rawHoTen)) xhVal = 'Chị';
+    else if (/^anh\s+/i.test(rawHoTen)) xhVal = 'Anh';
+  }
+
+  // 2. Chuẩn hóa sang Title Case ngay khi tải vào ô nhập liệu
+  var cleanHoTen = window.local_toTitleCase 
+    ? window.local_toTitleCase(window.cleanHonorificFromName ? window.cleanHonorificFromName(rawHoTen) : rawHoTen) 
+    : rawHoTen;
+
+  var selOng = xhVal === 'Ông' ? 'selected' : '';
+  var selBa = xhVal === 'Bà' ? 'selected' : '';
+  var selTc = xhVal === 'Tổ chức' ? 'selected' : '';
+  var selOngBa = (xhVal === 'Ông/Bà' || !xhVal) ? 'selected' : '';
+
+  var safeHoTen = String(cleanHoTen || '').replace(/"/g, '&quot;');
+  var safeNamSinh = String(namSinh || '').replace(/"/g, '&quot;');
+  var safeDiaChi = String(diaChi || '').replace(/"/g, '&quot;');
+
+  var html = `
+  <div class="row g-2 q-party-item position-relative mb-2 pb-2 border-bottom">
+    <input type="hidden" class="q-in-tucach" value="${tc}">
+    <div class="col-3">
+      <select class="form-select form-select-sm q-in-xungho text-dark fw-bold">
+        <option value='Ông/Bà' ${selOngBa}>Ông/Bà</option>
+        <option value='Ông' ${selOng}>Ông</option>
+        <option value='Bà' ${selBa}>Bà</option>
+        <option value='Tổ chức' ${selTc}>Tổ chức</option>
+      </select>
+    </div>
+    <div class="col-6">
+      <input type="text" class="form-control form-control-sm fw-bold q-in-hoten text-dark bg-white shadow-sm" 
+        placeholder="Họ và tên..." 
+        value="${safeHoTen}"
+        onblur="
+          var v = this.value.trim();
+          var sel = this.closest('.q-party-item').querySelector('.q-in-xungho');
+          if (sel && sel.value === 'Ông/Bà') {
+            if (/^bà\\s+/i.test(v)) sel.value = 'Bà';
+            else if (/^ông\\s+/i.test(v)) sel.value = 'Ông';
+            else if (/^chị\\s+/i.test(v)) sel.value = 'Bà';
+            else if (/^anh\\s+/i.test(v)) sel.value = 'Ông';
+          }
+          this.value = window.local_toTitleCase ? window.local_toTitleCase(window.cleanHonorificFromName ? window.cleanHonorificFromName(v) : v) : v;
+        ">
+    </div>
+    <div class="col-3">
+      <input type="text" class="form-control form-control-sm q-in-namsinh text-dark bg-white shadow-sm" placeholder="Năm sinh" value="${safeNamSinh}">
+    </div>
+    <div class="col-12">
+      <input type="text" class="form-control form-control-sm q-in-diachi text-dark bg-white shadow-sm" placeholder="Địa chỉ..." value="${safeDiaChi}">
+    </div>
+    <button type="button" class="btn btn-sm text-danger position-absolute" style="right:-10px; top:-5px; box-shadow:none;" onclick="this.closest('.q-party-item').remove()">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>`;
+
+  var div = document.createElement('div');
+  div.innerHTML = html;
+  container.appendChild(div.firstElementChild);
+};
+
+window.saveQuickEditDon = function(openDraftModal) {
+  var p = {
+    info: {
+      id: document.getElementById('quick_don_id').value,
+      soDon: document.getElementById('quick_don_so').value.trim(),
+      ngayNhan: document.getElementById('quick_don_ngay').value,
+      loaiAn: document.getElementById('quick_don_loaiAn').value,
+      quanHe: document.getElementById('quick_don_quanHe').value.trim(),
+      thamPhan: document.getElementById('quick_don_thamPhan').value.trim(),
+      huongXuLy: document.getElementById('quick_don_trangThai').value,
+      trangThai: document.getElementById('quick_don_trangThai').value,
+      ghiChu: ""
+    },
+    ds: []
+  };
+
+  let donRAM = G_Don.find(d => d.id === p.info.id);
+  if (donRAM) p.info.ghiChu = donRAM.ghiChu;
+
+  let oldDsMap = {};
+  if (donRAM && donRAM.chiTietDuongSu) {
+    donRAM.chiTietDuongSu.forEach(d => {
+      oldDsMap[d.hoTen + "_" + d.tuCach] = d.daiDien || "";
+    });
+  }
+
+  var nkkArr = [], nbkArr = [];
+  document.querySelectorAll('.q-party-item').forEach(m => {
+    var inputHoTen = m.querySelector('.q-in-hoten');
+    var rawHoTen = inputHoTen ? inputHoTen.value.trim() : "";
+
+    if (rawHoTen) {
+      // 1. Tự động bóc tách danh xưng thừa và chuẩn hóa sang Title Case (ĐỀ THỊ KIM LOAN -> Đề Thị Kim Loan)
+      var hoTen = window.local_toTitleCase 
+        ? window.local_toTitleCase(window.cleanHonorificFromName ? window.cleanHonorificFromName(rawHoTen) : rawHoTen) 
+        : rawHoTen;
+
+      // Cập nhật lại giá trị sạch ngay trên modal sửa nhanh
+      if (inputHoTen) inputHoTen.value = hoTen;
+
+      var tuCach = m.querySelector('.q-in-tucach').value;
+      var xungHoSelect = m.querySelector('.q-in-xungho');
+      var xungHo = xungHoSelect ? xungHoSelect.value : 'Ông/Bà';
+
+      // 2. Nhận diện danh xưng nếu người dùng gõ Bà/Ông trong ô họ tên
+      if (xungHo === 'Ông/Bà') {
+        if (/^bà\s+/i.test(rawHoTen)) {
+          xungHo = 'Bà';
+          if (xungHoSelect) xungHoSelect.value = 'Bà';
+        } else if (/^ông\s+/i.test(rawHoTen)) {
+          xungHo = 'Ông';
+          if (xungHoSelect) xungHoSelect.value = 'Ông';
+        }
+      }
+
+      var namSinh = m.querySelector('.q-in-namsinh').value.trim();
+      var diaChi = m.querySelector('.q-in-diachi').value.trim();
+
+      let tcLower = String(tuCach).toLowerCase();
+      if (tcLower.includes('khởi kiện') || tcLower.includes('yêu cầu') || tcLower.includes('nguyên đơn')) {
+        nkkArr.push(hoTen);
+      } else if (!tcLower.includes('liên quan')) {
+        nbkArr.push(hoTen);
+      }
+
+      let daiDienCu = oldDsMap[hoTen + "_" + tuCach] || "";
+      p.ds.push({ 
+        tuCach: tuCach, 
+        xungHo: xungHo, 
+        hoTen: hoTen, 
+        namSinh: namSinh, 
+        diaChi: diaChi, 
+        sdt: "", 
+        cccd: "", 
+        daiDien: daiDienCu 
+      });
+    }
+  });
+
+  let warningMsg = window.validateDonData(p.ds);
+  
+  const proceedQuickSave = function() {
+    var dParts = p.info.ngayNhan.split('-');
+    var dateVn = dParts.length === 3 ? (dParts[2] + "/" + dParts[1] + "/" + dParts[0]) : p.info.ngayNhan;
+    var rawDateTs = new Date(p.info.ngayNhan).getTime();
+
+    let index = G_Don.findIndex(function(d) { return d.id === p.info.id; });
+    if (index > -1) {
+      G_Don[index].soDon = p.info.soDon; 
+      G_Don[index].ngayNhan = dateVn; 
+      G_Don[index].rawDate = rawDateTs;
+      G_Don[index].loaiAn = p.info.loaiAn; 
+      G_Don[index].quanHe = p.info.quanHe; 
+      G_Don[index].thamPhan = p.info.thamPhan;
+      G_Don[index].huongXuLy = p.info.huongXuLy; 
+      G_Don[index].trangThai = p.info.trangThai;
+      G_Don[index].nguoiKhoiKien = nkkArr.join(", "); 
+      G_Don[index].nguoiBiKien = nbkArr.join(", "); 
+      G_Don[index].chiTietDuongSu = p.ds;
+    }
+
+    google.script.run.api_LuuThongTinDon(p);
+    window.runFilterDonEngine();
+
+    let m = bootstrap.Modal.getInstance(document.getElementById('modalQuickEditDon'));
+    if (m) m.hide();
+
+    if (openDraftModal) {
+      setTimeout(() => window.openQuickDraftDon(p.info.id), 400);
+    }
+  };
+
+  if (warningMsg) AppUI.confirm("Thiếu thông tin", warningMsg, "warning", proceedQuickSave);
+  else proceedQuickSave();
+};
+
+window.backToQuickEdit = function() {
+  let m = bootstrap.Modal.getInstance(document.getElementById('modalQuickDraftDon'));
+  if (m) m.hide();
+  let id = document.getElementById('draft_don_id').value;
+  setTimeout(() => window.openQuickEditDon(id), 400);
+};
+
+window.openQuickDraftDon = function(idDon) {
+  let don = typeof G_Don !== 'undefined' ? G_Don.find(d => d.id === idDon) : null;
+  if (!don) return;
+
+  document.getElementById('draft_don_id').value = idDon;
+  document.getElementById('draft_top_title').innerText = `Số đơn: ${don.soDon} - Ngày nhận: ${don.ngayNhan}`;
+  document.getElementById('draft_top_quanHe').innerText = `Quan hệ tranh chấp: ${don.quanHe}`;
+
+  let loaiAnEl = document.getElementById('draft_don_loaiAn');
+  loaiAnEl.innerHTML = "";
+  Object.keys(DICT_QUAN_HE).forEach(k => loaiAnEl.appendChild(new Option(k, k)));
+  loaiAnEl.value = don.loaiAn || "2. Dân sự";
+  document.getElementById('draft_don_quanHe').value = don.quanHe || "";
+
+  document.getElementById('draft_don_giaTri').value = don.giaTri 
+    ? String(don.giaTri).replace(/\B(?=(\d{3})+(?!\d))/g, ".") 
+    : "";
+
+  var key = "danSu";
+  if (don.loaiAn.includes("Kinh doanh")) key = "kinhDoanh"; 
+  else if (don.loaiAn.includes("Hình sự")) key = "hinhSu"; 
+  else if (don.loaiAn.includes("Hành chính")) key = "hanhChinh";
+
+  var feeObj = window.local_calculateCourtFee(key, String(don.giaTri || "0"));
+  document.getElementById('draft_lbl_anPhi').innerText = feeObj.anPhiSo;
+  document.getElementById('draft_lbl_tamUng').innerText = feeObj.tamUngSo;
+
+  document.getElementById('draft_don_ngayBanHanh').value = window.formatDateToYMD();
+
+  let nkkStr = "", nbkStr = "", nlqStr = "";
+  if (don.chiTietDuongSu) {
+    let groupsNKK = [], groupsNBK = [], groupsNLQ = [];
+
+    don.chiTietDuongSu.forEach(d => {
+      // 1. Tự động chuẩn hóa Title Case ngay khi đọc dữ liệu xem trước
+      if (d.hoTen) {
+        d.hoTen = window.local_toTitleCase 
+          ? window.local_toTitleCase(window.cleanHonorificFromName ? window.cleanHonorificFromName(d.hoTen) : d.hoTen) 
+          : d.hoTen;
+      }
+
+      let roleLower = String(d.tuCach || "").toLowerCase();
+      let type = '';
+      if (roleLower.includes('khởi kiện') || roleLower.includes('yêu cầu') || roleLower.includes('bị hại') || roleLower.includes('nguyên đơn')) {
+        type = 'NKK';
+      } else if (roleLower.includes('liên quan')) {
+        type = 'NLQ';
+      } else {
+        type = 'NBK';
+      }
+
+      let targetGroup = type === 'NKK' ? groupsNKK : (type === 'NLQ' ? groupsNLQ : groupsNBK);
+      let found = targetGroup.find(g => g.diaChi === d.diaChi && g.sdt === d.sdt);
+      if (found && d.diaChi) found.members.push(d);
+      else targetGroup.push({ diaChi: d.diaChi, sdt: d.sdt, members: [d] });
+    });
+
+    // 2. Tạo bản hiển thị xem trước chuẩn ngữ pháp văn thư
+    nkkStr = groupsNKK.map(g => window.buildSmartPartyString([g], false)).join('<hr class="my-1">');
+    nbkStr = groupsNBK.map(g => window.buildSmartPartyString([g], false)).join('<hr class="my-1">');
+    nlqStr = groupsNLQ.map(g => window.buildSmartPartyString([g], false)).join('<hr class="my-1">');
+  }
+
+  document.getElementById('draft_top_nkk').innerHTML = nkkStr || "Chưa có thông tin";
+  document.getElementById('draft_top_nbk').innerHTML = nbkStr || "Chưa có thông tin";
+  document.getElementById('draft_top_nlq').innerHTML = nlqStr || "Chưa có thông tin";
+
+  let c = document.getElementById('quick_draft_templates');
+  c.innerHTML = '<div class="text-center text-primary"><div class="spinner-border spinner-border-sm mt-3"></div></div>';
+
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalQuickDraftDon')).show();
+
+  google.script.run.withSuccessHandler(ts => {
+    if (!ts || !ts.length) { 
+      c.innerHTML = '<p class="text-danger">Chưa có biểu mẫu.</p>'; 
+      return; 
+    }
+    c.innerHTML = ts.map(t => `
+      <div class='form-check mb-1'>
+        <input class='form-check-input q-tpl-check shadow-sm' type='checkbox' value='${t.id}' id='q_tpl_${t.id}'>
+        <label class='form-check-label fw-bold text-dark' for='q_tpl_${t.id}' style='cursor:pointer;'>${t.name}</label>
+      </div>
+    `).join('');
+  }).api_GetBieuMauDon();
+};
+
+window.recalcDraftFee = function() {
+  var loaiAn = document.getElementById('draft_don_loaiAn').value;
+  var giaTriRaw = document.getElementById('draft_don_giaTri').value;
+  var key = "danSu";
+  if (loaiAn.includes("Kinh doanh")) key = "kinhDoanh"; else if (loaiAn.includes("Hình sự")) key = "hinhSu"; else if (loaiAn.includes("Hành chính")) key = "hanhChinh";
+
+  var feeObj = window.local_calculateCourtFee(key, String(giaTriRaw));
+  document.getElementById('draft_lbl_anPhi').innerText = feeObj.anPhiSo;
+  document.getElementById('draft_lbl_tamUng').innerText = feeObj.tamUngSo;
+};
+
+window.executeQuickDraftDon = function() {
+  var id = document.getElementById('draft_don_id').value;
+  var st = [], templateNames = [];
+  document.querySelectorAll('.q-tpl-check:checked').forEach(cb => {
+    st.push(cb.value);
+    templateNames.push(cb.nextElementSibling.innerText.toLowerCase());
+  });
+
+  if (!st.length) return AppUI.alert("Nhắc nhở", "Vui lòng chọn ít nhất một Biểu mẫu!");
+
+  let isSbsRequired = templateNames.some(n => n.includes("sửa chữa") || n.includes("bổ sung") || n.includes("sửa đổi"));
+  if (isSbsRequired) {
+    window.pendingSBS_Data = { templateIds: st, templateNames: templateNames, idDon: id, isFromQuickModal: true };
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalSuaDoiBoSungDon')).show();
+    window.toggleSbsFields();
+  } else {
+    window.finalizeDraftingLogic(st, templateNames, id, true);
+  }
+};
+
+window.loadDonTemplatesForSelect = function() {
+  var container = document.getElementById('don_template_list');
+  if (!container) return;
+
+  container.innerHTML = '<div class="text-center p-3 text-primary"><div class="spinner-border spinner-border-sm me-2"></div> Đang nạp mẫu...</div>';
+
+  google.script.run
+    .withSuccessHandler(function(ts) {
+      if (!ts || ts.length === 0) {
+        container.innerHTML = '<div class="p-3 text-muted small italic">Chưa có biểu mẫu nào trong thư mục cấu hình.</div>';
+        return;
+      }
+      container.innerHTML = ts.map(t => `
+        <div class="form-check border-bottom py-2">
+          <input class="form-check-input don-tpl-check shadow-sm" type="checkbox" value="${t.id}" id="tpl_don_${t.id}">
+          <label class="form-check-label small fw-bold text-dark" for="tpl_don_${t.id}" style="cursor:pointer;">
+            <i class="far fa-file-word text-primary me-1"></i> ${t.name}
+          </label>
+        </div>
+      `).join('');
+    })
+    .withFailureHandler(function(err) {
+      container.innerHTML = '<div class="p-3 text-danger small">Lỗi tải mẫu: ' + err.message + '</div>';
+    })
+    .api_GetBieuMauDon();
+};
+
+window.openDonFolderFromList = function(idDon) {
+  if (!idDon) return;
+
+  AppUI.showToast("Đang mở thư mục...", "");
+  google.script.run
+    .withSuccessHandler(function(url) {
+      AppUI.hideToast();
+      if (url) { window.open(url, '_blank'); }
+      else { AppUI.alert("Thông báo", "Đơn này chưa có thư mục trên Drive. Hệ thống sẽ tự tạo khi bạn lưu & xuất văn bản lần đầu tiên."); }
+    })
+    .withFailureHandler(function(err) {
+      AppUI.hideToast(); AppUI.showToast("Lỗi mạng: " + err.message, "error");
+    })
+    .api_GetDonFolderUrl(idDon);
+};
+
+window.openDonFolder = function() {
+  var id = document.getElementById('don_id').value;
+  if (!id || id.includes("TEMP_")) {
+    AppUI.alert("Nhắc nhở", "Đơn này chưa được lưu, vui lòng lưu đơn trước!");
+    return;
+  }
+  window.openDonFolderFromList(id);
+};
+
+window.openDonTemplateFolder = function() {
+  let pendingTab = window.open('about:blank', '_blank');
+  if (pendingTab) pendingTab.document.write("<h4 style='font-family: sans-serif; padding: 20px; color: #1a73e8;'>Đang kết nối hệ thống Kho biểu mẫu...</h4>");
+
+  AppUI.showToast("Đang mở kho mẫu đơn...", "");
+  google.script.run
+    .withSuccessHandler(function(config) {
+      AppUI.hideToast();
+      if (config && config.ID_THUMUC_MAU_DON) {
+        if (pendingTab) pendingTab.location.href = "https://drive.google.com/drive/folders/" + config.ID_THUMUC_MAU_DON;
+        else window.open("https://drive.google.com/drive/folders/" + config.ID_THUMUC_MAU_DON, '_blank');
+      } else {
+        if (pendingTab) pendingTab.close();
+        AppUI.alert("Thiếu cấu hình", "Bạn chưa cấu hình ID Thư mục mẫu Đơn trong Cài đặt!");
+      }
+    })
+    .withFailureHandler(function() {
+      if (pendingTab) pendingTab.close();
+      AppUI.alert("Lỗi", "Không thể kết nối máy chủ.");
+    })
+    .api_GetAppIdentity();
+};
+
+window.thucHienTronThuDon = function() {
+  var selectedTemplates = [];
+  document.querySelectorAll('.don-tpl-check:checked').forEach(cb => selectedTemplates.push(cb.value));
+
+  if (selectedTemplates.length === 0) return AppUI.alert("Thông báo", "Vui lòng chọn ít nhất một biểu mẫu để xuất văn bản!");
+
+  var p = {
+    info: {
+      id: document.getElementById('don_id').value,
+      soDon: document.getElementById('don_soDon').value.trim(),
+      ngayNhan: document.getElementById('don_ngayNhan').value,
+      loaiAn: document.getElementById('don_loaiAn').value,
+      quanHe: document.getElementById('don_quanHe').value.trim(),
+      thamPhan: document.getElementById('don_thamPhan').value.trim() || "Chưa phân công",
+      giaTri: String(document.getElementById('don_giaTri').value).replace(/\./g, ''),
+      tamUng: document.getElementById('don_tamUngValue').value,
+      huongXuLy: document.getElementById('don_trangThai_display').value,
+      trangThai: document.getElementById('don_trangThai_display').value,
+      ghiChu: document.getElementById('don_ghiChu').value.trim()
+    },
+    ds: []
+  };
+
+  if (!p.info.soDon) return AppUI.alert("Cảnh báo", "Vui lòng nhập Số đơn!");
+
+  let oldDsMap = {};
+  if (p.info.id && !p.info.id.includes("TEMP_") && typeof G_Don !== 'undefined') {
+    let donHienTai = G_Don.find(d => d.id === p.info.id);
+    if (donHienTai && donHienTai.chiTietDuongSu) {
+      donHienTai.chiTietDuongSu.forEach(d => {
+        oldDsMap[d.hoTen + "_" + d.tuCach] = d.daiDien || "";
+      });
+    }
+  }
+
+  var nkkArr = [], nbkArr = [];
+  document.querySelectorAll('.don-party-group').forEach(g => {
+    var tuCach = g.querySelector('.in-don-tucach').value;
+    var diaChi = g.querySelector('.in-don-diachi').value.trim();
+    var sdt = g.querySelector('.in-don-sdt').value.trim();
+    var cccd = g.querySelector('.in-don-cccd').value.trim();
+
+    g.querySelectorAll('.member-item').forEach(m => {
+      var hoTen = m.querySelector('.in-don-hoten').value.trim();
+      if (hoTen) {
+        var xungHo = m.querySelector('.in-don-xungho').value;
+        var namSinh = m.querySelector('.in-don-namsinh').value.trim();
+
+        let tcLower = String(tuCach).toLowerCase();
+        if (tcLower.includes('khởi kiện') || tcLower.includes('yêu cầu') || tcLower.includes('nguyên đơn')) nkkArr.push(hoTen);
+        else if (!tcLower.includes('liên quan')) nbkArr.push(hoTen);
+
+        let daiDienCu = oldDsMap[hoTen + "_" + tuCach] || "";
+
+        p.ds.push({
+          tuCach: tuCach, xungHo: xungHo, hoTen: hoTen, namSinh: namSinh, diaChi: diaChi, sdt: sdt, cccd: cccd, daiDien: daiDienCu
+        });
+      }
+    });
+  });
+
+  let warningMsg = window.validateDonData(p.ds);
+
+  const proceedMerge = function() {
+    var dParts = p.info.ngayNhan.split('-');
+    var dateVn = dParts.length === 3 ? (dParts[2] + "/" + dParts[1] + "/" + dParts[0]) : p.info.ngayNhan;
+    var rawDateTs = new Date(p.info.ngayNhan).getTime();
+
+    if (p.info.id && typeof G_Don !== 'undefined') {
+      let index = G_Don.findIndex(function(d) { return d.id === p.info.id; });
+      if (index > -1) {
+        G_Don[index].soDon = p.info.soDon; G_Don[index].ngayNhan = dateVn; G_Don[index].rawDate = rawDateTs;
+        G_Don[index].loaiAn = p.info.loaiAn; G_Don[index].quanHe = p.info.quanHe; G_Don[index].thamPhan = p.info.thamPhan;
+        G_Don[index].huongXuLy = p.info.huongXuLy; G_Don[index].trangThai = p.info.trangThai; G_Don[index].giaTri = p.info.giaTri; G_Don[index].tamUng = p.info.tamUng; G_Don[index].ghiChu = p.info.ghiChu;
+        G_Don[index].nguoiKhoiKien = nkkArr.join(", "); G_Don[index].nguoiBiKien = nbkArr.join(", "); G_Don[index].chiTietDuongSu = p.ds;
+      }
+    } else {
+      p.info.id = "TEMP_" + new Date().getTime(); document.getElementById('don_id').value = p.info.id;
+      G_Don.unshift({
+        id: p.info.id, soDon: p.info.soDon, ngayNhan: dateVn, rawDate: rawDateTs,
+        loaiAn: p.info.loaiAn, quanHe: p.info.quanHe, thamPhan: p.info.thamPhan, huongXuLy: p.info.huongXuLy, trangThai: p.info.trangThai,
+        giaTri: p.info.giaTri, tamUng: p.info.tamUng, ghiChu: p.info.ghiChu, nguoiKhoiKien: nkkArr.join(", "), nguoiBiKien: nbkArr.join(", "), chiTietDuongSu: p.ds
+      });
+    }
+    window.runFilterDonEngine();
+
+    window.prepareDraftingLogicForDetail(selectedTemplates, p.info.id);
+  };
+
+  if (warningMsg) AppUI.confirm("Thiếu thông tin", warningMsg, "warning", proceedMerge);
+  else proceedMerge();
+};
+
+window.prepareDraftingLogicForDetail = function(templateIds, idDonFromUI) {
+  var templateNames = [];
+  templateIds.forEach(idTpl => {
+    let el = document.getElementById('tpl_don_' + idTpl);
+    if (el) templateNames.push(el.nextElementSibling.innerText.toLowerCase());
+  });
+
+  let isSbsRequired = templateNames.some(n => n.includes("sửa chữa") || n.includes("bổ sung") || n.includes("sửa đổi"));
+
+  if (isSbsRequired) {
+    window.pendingSBS_Data = { templateIds: templateIds, templateNames: templateNames, idDon: idDonFromUI, isFromQuickModal: false };
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalSuaDoiBoSungDon')).show();
+    window.toggleSbsFields();
+  } else {
+    window.finalizeDraftingLogic(templateIds, templateNames, idDonFromUI, false);
+  }
+};
+
+window.toggleSbsFields = function() {
+  let htStat = document.getElementById('sbs_hinhThuc_status').value;
+  let tlStat = document.getElementById('sbs_taiLieu_status').value;
+
+  let cHt = document.getElementById('sbs_hinhThuc_yeuCau_container');
+  let cNd = document.getElementById('sbs_noiDung_yeuCau_container');
+  let cTl = document.getElementById('sbs_taiLieu_yeuCau_container');
+
+  let count = 1;
+
+  if (htStat === "Đã đúng hình thức đơn") {
+    cHt.style.display = 'none';
+  } else {
+    cHt.style.display = 'block';
+    document.getElementById('lbl_sbs_hinhThuc').innerText = count + ". Về hình thức đơn khởi kiện:";
+    count++;
+  }
+
+  cNd.style.display = 'block';
+  document.getElementById('lbl_sbs_noiDung').innerText = count + ". Về nội dung đơn khởi kiện:";
+  count++;
+
+  if (tlStat === "Đã đủ tài liệu chứng cứ") {
+    cTl.style.display = 'none';
+  } else {
+    cTl.style.display = 'block';
+    document.getElementById('lbl_sbs_taiLieu').innerText = count + ". Về tài liệu chứng cứ:";
+  }
+};
+
+window.cancelSbsForm = function() {
+  let m = bootstrap.Modal.getInstance(document.getElementById('modalSuaDoiBoSungDon'));
+  if (m) m.hide();
+  window.pendingSBS_Data = null;
+};
+
+window.submitSbsForm = function() {
+  let htStat = document.getElementById('sbs_hinhThuc_status').value;
+  let tlStat = document.getElementById('sbs_taiLieu_status').value;
+  let ndNhanXet = document.getElementById('sbs_noiDung_nhanXet').value.trim();
+
+  let b1 = [];
+  if (htStat === "Đã đúng hình thức đơn") {
+    b1.push("- Về hình thức đơn khởi kiện: Đã đảm bảo theo đúng quy định của pháp luật.");
+  } else {
+    b1.push("- Về hình thức đơn khởi kiện: Chưa đúng theo quy định của pháp luật về hình thức đơn khởi kiện.");
+  }
+
+  if (ndNhanXet) b1.push("- Về nội dung đơn khởi kiện: " + ndNhanXet);
+
+  if (tlStat === "Chưa đủ tài liệu chứng cứ") {
+    b1.push("- Về tài liệu chứng cứ kèm theo đơn khởi kiện: Cần bổ sung các tài liệu chứng cứ để chứng minh yêu cầu khởi kiện.");
+  }
+
+  let b2 = [];
+  let count = 1;
+  if (htStat === "Chưa đúng hình thức đơn") {
+    b2.push(count + ". Về hình thức đơn khởi kiện: " + document.getElementById('sbs_hinhThuc_yeuCau').value.trim());
+    count++;
+  }
+
+  let ndYeuCau = document.getElementById('sbs_noiDung_yeuCau').value.trim();
+  if (ndYeuCau) {
+    b2.push(count + ". Về nội dung đơn khởi kiện: " + ndYeuCau);
+    count++;
+  }
+
+  if (tlStat === "Chưa đủ tài liệu chứng cứ") {
+    let tlYeuCau = document.getElementById('sbs_taiLieu_yeuCau').value.trim();
+    if (tlYeuCau) b2.push(count + ". Về tài liệu chứng cứ: " + tlYeuCau);
+  }
+
+  let m = bootstrap.Modal.getInstance(document.getElementById('modalSuaDoiBoSungDon'));
+  if (m) m.hide();
+
+  let p = window.pendingSBS_Data;
+  window.finalizeDraftingLogic(p.templateIds, p.templateNames, p.idDon, p.isFromQuickModal, b1.join("\n"), b2.join("\n"));
+};
+
+// =========================================================================
+// 7. ĐỘNG CƠ ĐÓNG GÓI CHUỖI ĐƯƠNG SỰ & CHUẨN HÓA VĂN PHẠM (V8.2 FAST ENGINE)
+// =========================================================================
+
+window.buildSmartPartyString = function(groups, isLowerXungHo) {
+  if (!groups || groups.length === 0) return "...........................";
+
+  let groupStrings = groups.map((g, gIndex) => {
+    let memStrs = (g.members || []).map((m, mIndex) => {
+      let rawHoTen = String(m.hoTen || "").trim();
+      let isOrg = m.xungHo === "Tổ chức" || m.xungHo === "Pháp nhân" || m.xungHo === "Công ty";
+      let xh = "";
+
+      if (!isOrg) {
+        let rawXh = String(m.xungHo || "").trim();
+
+        // Tự động nhận diện danh xưng nếu menu để trống hoặc là "Ông/Bà"
+        if (!rawXh || rawXh === "Ông/Bà") {
+          if (/^bà\s+/i.test(rawHoTen)) rawXh = "Bà";
+          else if (/^ông\s+/i.test(rawHoTen)) rawXh = "Ông";
+          else if (/^chị\s+/i.test(rawHoTen)) rawXh = "Chị";
+          else if (/^anh\s+/i.test(rawHoTen)) rawXh = "Anh";
+          else rawXh = "Ông/bà";
+        }
+
+        // Quy tắc viết hoa: Chỉ người đầu tiên của nhóm đầu tiên viết hoa nếu không phải giữa câu
+        if (isLowerXungHo || gIndex > 0 || mIndex > 0) {
+          xh = rawXh.toLowerCase() + " ";
+        } else {
+          xh = rawXh.charAt(0).toUpperCase() + rawXh.slice(1).toLowerCase() + " ";
+        }
+      }
+
+      let cleanName = window.local_toTitleCase 
+        ? window.local_toTitleCase(window.cleanHonorificFromName ? window.cleanHonorificFromName(rawHoTen) : rawHoTen) 
+        : rawHoTen;
+
+      let s = xh + cleanName;
+
+      // Năm sinh luôn đi liền kề ngay sau tên từng người
+      if (m.namSinh && !isOrg) {
+        s += ", sinh năm " + m.namSinh;
+      }
+
+      return s;
+    });
+
+    if (memStrs.length === 0) return "";
+
+    let groupStr = "";
+    let cleanDiaChi = String(g.diaChi || "").replace(/^(địa chỉ:\s*|cùng địa chỉ:\s*)/i, "").trim();
+
+    if (memStrs.length === 1) {
+      groupStr = memStrs[0];
+      if (cleanDiaChi) groupStr += "; địa chỉ: " + cleanDiaChi;
+    } else {
+      let lastMem = memStrs.pop();
+      groupStr = memStrs.join("; ") + " và " + lastMem;
+      if (cleanDiaChi) groupStr += "; cùng địa chỉ: " + cleanDiaChi;
+    }
+
+    return groupStr;
+  }).filter(Boolean);
+
+  if (groupStrings.length === 0) return "...........................";
+  return groupStrings.join("; và ");
+};
+
+window.buildShortPartyString = function(groups, isLowerXungHo) {
+  if (!groups || groups.length === 0) return "...........................";
+  let allMembers = [];
+  groups.forEach(g => (g.members || []).forEach(m => allMembers.push(m)));
+
+  if (allMembers.length === 0) return "...........................";
+
+  let names = allMembers.map((m, index) => {
+    let rawHoTen = String(m.hoTen || "").trim();
+    let isOrg = m.xungHo === "Tổ chức" || m.xungHo === "Pháp nhân" || m.xungHo === "Công ty";
+    let xh = "";
+
+    if (!isOrg) {
+      let rawXh = String(m.xungHo || "").trim();
+
+      // Nếu danh xưng bị rỗng hoặc là mặc định "Ông/Bà", tự động quét trong ô họ tên
+      if (!rawXh || rawXh === "Ông/Bà") {
+        if (/^bà\s+/i.test(rawHoTen)) rawXh = "Bà";
+        else if (/^ông\s+/i.test(rawHoTen)) rawXh = "Ông";
+        else if (/^chị\s+/i.test(rawHoTen)) rawXh = "Chị";
+        else if (/^anh\s+/i.test(rawHoTen)) rawXh = "Anh";
+        else rawXh = "Ông/bà";
+      }
+
+      // Chuẩn hóa dạng chữ thường hoặc viết hoa đầu từ
+      if (isLowerXungHo || index > 0) {
+        xh = rawXh.toLowerCase() + " ";
+      } else {
+        xh = rawXh.charAt(0).toUpperCase() + rawXh.slice(1).toLowerCase() + " ";
+      }
+    }
+
+    let cleanName = window.local_toTitleCase 
+      ? window.local_toTitleCase(window.cleanHonorificFromName ? window.cleanHonorificFromName(rawHoTen) : rawHoTen) 
+      : rawHoTen;
+
+    return xh + cleanName;
+  });
+
+  if (names.length === 1) return names[0];
+  let last = names.pop();
+  return names.join(", ") + " và " + last;
+};
+
+window.buildBlockType1 = function(parties) {
+  if (!parties || parties.length === 0) return "...........................";
+
+  return parties.map(function(ds, i) {
+    let rawHoTen = String(ds.hoTen || "").trim();
+    let isOrg = ds.xungHo === "Tổ chức" || ds.xungHo === "Pháp nhân" || ds.xungHo === "Công ty";
+    let xh = "";
+
+    if (!isOrg) {
+      let rawXh = String(ds.xungHo || "").trim();
+
+      // Tự nhận diện danh xưng nếu để trống hoặc "Ông/Bà"
+      if (!rawXh || rawXh === "Ông/Bà") {
+        if (/^bà\s+/i.test(rawHoTen)) rawXh = "Bà";
+        else if (/^ông\s+/i.test(rawHoTen)) rawXh = "Ông";
+        else if (/^chị\s+/i.test(rawHoTen)) rawXh = "Chị";
+        else if (/^anh\s+/i.test(rawHoTen)) rawXh = "Anh";
+        else rawXh = "Ông/bà";
+      }
+
+      xh = rawXh.charAt(0).toUpperCase() + rawXh.slice(1).toLowerCase() + " ";
+    }
+
+    // Chuẩn hóa họ tên sạch sang Title Case (Đề Thị Kim Loan)
+    let cleanName = window.local_toTitleCase 
+      ? window.local_toTitleCase(window.cleanHonorificFromName ? window.cleanHonorificFromName(rawHoTen) : rawHoTen) 
+      : rawHoTen;
+
+    let ns = (ds.namSinh && !isOrg) ? (", sinh năm " + ds.namSinh) : "";
+    let cleanDiaChi = String(ds.diaChi || "...").replace(/^(địa chỉ:\s*|cùng địa chỉ:\s*)/i, "").trim();
+
+    return (i + 1) + ". " + xh + cleanName + ns + ", địa chỉ: " + cleanDiaChi + "; là " + (ds.tuCach || "đương sự") + ";";
+  }).join("\n");
+};
+
+window.buildBlockType2 = function(parties) {
+  if (!parties || parties.length === 0) return "...........................";
+
+  var groups = parties.reduce(function(acc, ds) { 
+    acc[ds.tuCach] = acc[ds.tuCach] || []; 
+    acc[ds.tuCach].push(ds); 
+    return acc; 
+  }, {});
+
+  var result = []; 
+  var mIdx = 1;
+
+  for (var role in groups) {
+    result.push(mIdx + ". " + role + ":");
+
+    groups[role].forEach(function(ds) {
+      let rawHoTen = String(ds.hoTen || "").trim();
+      let isOrg = ds.xungHo === "Tổ chức" || ds.xungHo === "Pháp nhân" || ds.xungHo === "Công ty";
+      let xh = "";
+
+      if (!isOrg) {
+        let rawXh = String(ds.xungHo || "").trim();
+
+        // Tự động nhận diện danh xưng nếu để trống hoặc "Ông/Bà"
+        if (!rawXh || rawXh === "Ông/Bà") {
+          if (/^bà\s+/i.test(rawHoTen)) rawXh = "Bà";
+          else if (/^ông\s+/i.test(rawHoTen)) rawXh = "Ông";
+          else if (/^chị\s+/i.test(rawHoTen)) rawXh = "Chị";
+          else if (/^anh\s+/i.test(rawHoTen)) rawXh = "Anh";
+          else rawXh = "Ông/bà";
+        }
+
+        xh = rawXh.charAt(0).toUpperCase() + rawXh.slice(1).toLowerCase() + " ";
+      }
+
+      // Chuẩn hóa họ tên sạch sang Title Case (Đề Thị Kim Loan)
+      let cleanName = window.local_toTitleCase 
+        ? window.local_toTitleCase(window.cleanHonorificFromName ? window.cleanHonorificFromName(rawHoTen) : rawHoTen) 
+        : rawHoTen;
+
+      let ns = (ds.namSinh && !isOrg) ? (", sinh năm " + ds.namSinh) : "";
+      let cleanDiaChi = String(ds.diaChi || "...").replace(/^(địa chỉ:\s*|cùng địa chỉ:\s*)/i, "").trim();
+
+      result.push(" - " + xh + cleanName + ns + "; địa chỉ: " + cleanDiaChi + ";");
+    });
+
+    mIdx++;
+  }
+
+  return result.join("\n");
+};
+
+
+/**
+ * THUẬT TOÁN BIÊN DỊCH VÀ CHUẨN HÓA PLACEHOLDER TỪNG ĐƯƠNG SỰ THEO CHUẨN TANDTC
+ * - Tách biệt độc lập: {Tên} (Đầu câu / Sau dấu hai chấm), {tên} (Giữa câu), {TÊN} (IN HOA)
+ * - Tự động đồng bộ Năm sinh đi liền sau từng người khi có từ 2 đương sự trở lên
+ */
+window.buildExactPlaceholders = function(ph, roleKey, groups) {
+  let roleLower = roleKey.toLowerCase();
+  let roleUpper = roleKey.toUpperCase();
+
+  let nameKey = "{" + roleKey + "}";           // Viết hoa đầu câu: {Người bị kiện} -> Bà Phan Thị Trúc My và ông Nguyễn Hoàng Thiện
+  let nameKeyLower = "{" + roleLower + "}";     // Viết thường giữa câu: {người bị kiện} -> bà Phan Thị Trúc My và ông Nguyễn Hoàng Thiện
+  let nameKeyUpper = "{" + roleUpper + "}";     // IN HOA: {NGƯỜI BỊ KIỆN} -> BÀ PHAN THỊ TRÚC MY VÀ ÔNG NGUYỄN HOÀNG THIỆN
+
+  let hoTenKey = "{Họ và tên " + roleKey + "}";
+  let hoTenKeyLower = "{họ và tên " + roleLower + "}";
+  let hoTenKeyUpper = "{HỌ VÀ TÊN " + roleUpper + "}";
+
+  let xhKeyUpper = "{Xưng hô " + roleKey + "}";
+  let xhKeyLower = "{xưng hô " + roleLower + "}";
+
+  let nsKey = "{Năm sinh " + roleKey + "}";
+  let nsKeyLower = "{năm sinh " + roleLower + "}";
+
+  let dcKey = "{Địa chỉ " + roleKey + "}";
+  let dcKeyLower = "{địa chỉ " + roleLower + "}";
+
+  let sdtKey = "{Số điện thoại " + roleKey + "}";
+  let sdtKeyLower = "{số điện thoại " + roleLower + "}";
+
+  let cccdKey = "{CCCD " + roleKey + "}";
+  let cccdKeyLower = "{cccd " + roleLower + "}";
+
+  let allMembers = [];
+  if (groups) {
+    groups.forEach(g => (g.members || []).forEach(m => { 
+      m._diaChiGoc = g.diaChi || m.diaChi || ""; 
+      allMembers.push(m); 
+    }));
+  }
+
+  // 1. Phân rã độc lập từng người: {Nguyên đơn 1}, {Nguyên đơn 2}...
+  for (let idx = 0; idx < Math.max(allMembers.length, 3); idx++) {
+    let num = idx + 1;
+    let m = allMembers[idx];
+
+    let pName = `{Họ và tên ${roleKey} ${num}}`;
+    let pNameLow = `{họ và tên ${roleLower} ${num}}`;
+    let pRoleCap = `{${roleKey} ${num}}`;
+    let pRoleLow = `{${roleLower} ${num}}`;
+    let pNs = `{Năm sinh ${roleKey} ${num}}`;
+    let pNsLow = `{năm sinh ${roleLower} ${num}}`;
+    let pDc = `{Địa chỉ ${roleKey} ${num}}`;
+    let pDcLow = `{địa chỉ ${roleLower} ${num}}`;
+    let pSdt = `{Số điện thoại ${roleKey} ${num}}`;
+    let pSdtLow = `{số điện thoại ${roleLower} ${num}}`;
+    let pCccd = `{CCCD ${roleKey} ${num}}`;
+    let pCccdLow = `{cccd ${roleLower} ${num}}`;
+
+    if (m) {
+      let isOrg = m.xungHo === "Tổ chức" || m.xungHo === "Pháp nhân" || m.xungHo === "Công ty";
+      let cleanName = window.local_toTitleCase 
+        ? window.local_toTitleCase(window.cleanHonorificFromName ? window.cleanHonorificFromName(m.hoTen) : m.hoTen) 
+        : m.hoTen;
+      let rawXh = (m.xungHo && m.xungHo !== "Ông/Bà") ? m.xungHo : "Ông/bà";
+      let xhCap = isOrg ? "" : (rawXh.charAt(0).toUpperCase() + rawXh.slice(1).toLowerCase() + " ");
+      let xhLow = isOrg ? "" : (rawXh.toLowerCase() + " ");
+
+      ph[pName] = ph[pNameLow] = cleanName;
+      ph[pRoleCap] = xhCap + cleanName;
+      ph[pRoleLow] = xhLow + cleanName;
+      ph[pNs] = ph[pNsLow] = (m.namSinh && !isOrg) ? ("sinh năm " + m.namSinh) : "";
+      ph[pDc] = ph[pDcLow] = m._diaChiGoc || "";
+      ph[pSdt] = ph[pSdtLow] = m.sdt ? window.local_formatPhoneNumber(m.sdt) : "";
+      ph[pCccd] = ph[pCccdLow] = m.cccd || "";
+    } else {
+      ph[pName] = ph[pNameLow] = "";
+      ph[pRoleCap] = ph[pRoleLow] = "";
+      ph[pNs] = ph[pNsLow] = "";
+      ph[pDc] = ph[pDcLow] = "";
+      ph[pSdt] = ph[pSdtLow] = "";
+      ph[pCccd] = ph[pCccdLow] = "";
+    }
+  }
+
+  // 2. Không có đương sự
+  if (allMembers.length === 0) {
+    ph[nameKey] = ph[nameKeyLower] = ph[nameKeyUpper] = "...........................";
+    ph[hoTenKey] = ph[hoTenKeyLower] = ph[hoTenKeyUpper] = "...........................";
+    ph[xhKeyUpper] = ph[xhKeyLower] = "";
+    ph[nsKey] = ph[nsKeyLower] = "";
+    ph[dcKey] = ph[dcKeyLower] = "";
+    ph[sdtKey] = ph[sdtKeyLower] = "";
+    ph[cccdKey] = ph[cccdKeyLower] = ""; 
+    return;
+  }
+
+  // 3. TRƯỜNG HỢP 1 ĐƯƠNG SỰ
+  if (allMembers.length === 1) {
+    let m = allMembers[0];
+    let isOrg = m.xungHo === "Tổ chức" || m.xungHo === "Pháp nhân" || m.xungHo === "Công ty";
+    let cleanName = window.local_toTitleCase 
+      ? window.local_toTitleCase(window.cleanHonorificFromName ? window.cleanHonorificFromName(m.hoTen) : m.hoTen) 
+      : m.hoTen;
+
+    let xhCap = "", xhLow = "";
+    if (!isOrg) {
+      let rawXh = (m.xungHo && m.xungHo !== "Ông/Bà") ? m.xungHo : "Ông/bà";
+      xhCap = rawXh.charAt(0).toUpperCase() + rawXh.slice(1).toLowerCase();
+      xhLow = rawXh.toLowerCase(); // Chuẩn hóa danh xưng viết thường cho giữa câu
+    }
+
+    ph[hoTenKey] = ph[hoTenKeyLower] = cleanName;
+    ph[hoTenKeyUpper] = cleanName.toUpperCase();
+
+    ph[xhKeyUpper] = xhCap;
+    ph[xhKeyLower] = xhLow;
+
+    ph[nameKey] = (xhCap ? xhCap + " " : "") + cleanName;        // Đầu câu / Sau dấu hai chấm: Bà Đề Thị Kim Loan
+    ph[nameKeyLower] = (xhLow ? xhLow + " " : "") + cleanName;  // Giữa câu: bà Đề Thị Kim Loan
+    ph[nameKeyUpper] = ph[nameKey].toUpperCase();
+
+    ph[nsKey] = ph[nsKeyLower] = (m.namSinh && !isOrg) ? ("sinh năm " + m.namSinh) : "";
+    ph[dcKey] = ph[dcKeyLower] = (m._diaChiGoc || "").trim();
+    ph[sdtKey] = ph[sdtKeyLower] = m.sdt ? window.local_formatPhoneNumber(m.sdt) : "";
+    ph[cccdKey] = ph[cccdKeyLower] = m.cccd || "";
+    return;
+  }
+
+  // 4. TRƯỜNG HỢP TỪ 2 ĐƯƠNG SỰ TRỞ LÊN
+  let namesOnlyList = [];
+  let namesWithXhCapList = [];
+  let namesWithXhLowList = [];
+  let memberDetailsCap = [];
+  let memberDetailsLow = [];
+
+  allMembers.forEach((m, idx) => {
+    let isOrg = m.xungHo === "Tổ chức" || m.xungHo === "Pháp nhân" || m.xungHo === "Công ty";
+    let cleanName = window.local_toTitleCase 
+      ? window.local_toTitleCase(window.cleanHonorificFromName ? window.cleanHonorificFromName(m.hoTen) : m.hoTen) 
+      : String(m.hoTen || "").trim();
+    namesOnlyList.push(cleanName);
+
+    let xhCap = "", xhLow = "";
+    if (!isOrg) {
+      let rawXh = String(m.xungHo || "Ông/Bà").trim();
+      if (!rawXh || rawXh === "Ông/Bà") rawXh = "Ông/bà";
+      
+      // Ở dạng viết hoa đầu câu: chỉ người đầu tiên viết hoa, người thứ hai viết thường (VD: Bà A và ông B)
+      if (idx === 0) {
+        xhCap = rawXh.charAt(0).toUpperCase() + rawXh.slice(1).toLowerCase() + " ";
+      } else {
+        xhCap = rawXh.toLowerCase() + " ";
+      }
+      // Ở dạng viết thường giữa câu: tất cả đều viết thường (VD: bà A và ông B)
+      xhLow = rawXh.toLowerCase() + " ";
+    }
+
+    namesWithXhCapList.push(xhCap + cleanName);
+    namesWithXhLowList.push(xhLow + cleanName);
+
+    // Gắn năm sinh liền kề sau từng người để không bao giờ bị lỗi "sinh năm 1987, 2000"
+    let nsText = (m.namSinh && !isOrg) ? (", sinh năm " + m.namSinh) : "";
+    memberDetailsCap.push(xhCap + cleanName + nsText);
+    memberDetailsLow.push(xhLow + cleanName + nsText);
+  });
+
+  let lastRoleCap = namesWithXhCapList.pop();
+  let fullRoleCapCompound = namesWithXhCapList.join(", ") + " và " + lastRoleCap;
+
+  let lastRoleLow = namesWithXhLowList.pop();
+  let fullRoleLowCompound = namesWithXhLowList.join(", ") + " và " + lastRoleLow;
+
+  let lastPlainName = namesOnlyList.pop();
+  let fullPlainCompound = namesOnlyList.join(", ") + " và " + lastPlainName;
+
+  ph[nameKey] = fullRoleCapCompound;                     // Đầu câu: Bà Phan Thị Trúc My và ông Nguyễn Hoàng Thiện
+  ph[nameKeyLower] = fullRoleLowCompound;                // Giữa câu: bà Phan Thị Trúc My và ông Nguyễn Hoàng Thiện
+  ph[nameKeyUpper] = fullRoleCapCompound.toUpperCase();
+
+  ph[hoTenKey] = ph[hoTenKeyLower] = fullPlainCompound;
+  ph[hoTenKeyUpper] = fullPlainCompound.toUpperCase();
+
+  let firstXh = allMembers[0].xungHo || "Ông/bà";
+  ph[xhKeyUpper] = (firstXh === "Ông/Bà" ? "Ông/bà" : firstXh);
+  ph[xhKeyLower] = firstXh.toLowerCase();
+
+  // Biến năm sinh gộp: Đưa chuỗi năm sinh đi kèm từng người một cách mạch lạc
+  let lastDetailCap = memberDetailsCap.pop();
+  let lastDetailLow = memberDetailsLow.pop();
+  ph[nsKey] = memberDetailsCap.join(" và ") + " và " + lastDetailCap;
+  ph[nsKeyLower] = memberDetailsLow.join(" và ") + " và " + lastDetailLow;
+
+  let uniqueAddrs = [...new Set(allMembers.map(m => (m._diaChiGoc || "").trim()).filter(Boolean))];
+  ph[dcKey] = ph[dcKeyLower] = uniqueAddrs.join("; ");
+
+  let sdtArr = allMembers.map(m => window.local_formatPhoneNumber(m.sdt)).filter(Boolean);
+  ph[sdtKey] = ph[sdtKeyLower] = [...new Set(sdtArr)].join("; ");
+
+  let cccdArr = allMembers.map(m => m.cccd).filter(Boolean);
+  ph[cccdKey] = ph[cccdKeyLower] = [...new Set(cccdArr)].join("; ");
+};
+
+/**
+ * BỘ LỌC DỌN RÁC NGỮ PHÁP CUỐI CÙNG TRÊN TOÀN BỘ PLACEHOLDER
+ */
+window.cleanCompiledPlaceholders = function(ph) {
+  if (!ph) return ph;
+
+  // 1. Dọn dẹp khoảng trắng, ký tự rác và dấu câu thừa
+  for (let k in ph) {
+    if (typeof ph[k] === 'string') {
+      let v = ph[k];
+      v = v.replace(/[ \t]{2,}/g, ' ');
+      v = v.replace(/(địa chỉ:\s*)+cùng địa chỉ:/gi, 'cùng địa chỉ:');
+      v = v.replace(/(địa chỉ:\s*)+địa chỉ:/gi, 'địa chỉ:');
+      v = v.replace(/,\s*,/g, ',');
+      v = v.replace(/,\s*\./g, '.');
+      v = v.replace(/;\s*;/g, ';');
+      ph[k] = v.trim();
+    }
+  }
+
+  // 2. Tự động chuẩn hóa viết hoa danh xưng cho Người khởi kiện / Người nộp đơn
+  // Vì trong các mẫu Thông báo của Tòa án, tag này luôn đứng sau "Đã nhận đơn khởi kiện của: "
+  // Do đó chữ cái đầu của danh xưng bắt buộc phải viết hoa (Bà / Ông)
+  let nkkTags = [
+    "{Người khởi kiện}", "{người khởi kiện}",
+    "{Người nộp đơn}", "{người nộp đơn}",
+    "{Người yêu cầu}", "{người yêu cầu}",
+    "{Nguyên đơn chi tiết}", "{nguyên đơn chi tiết}",
+    "{Người khởi kiện chi tiết}", "{người khởi kiện chi tiết}"
+  ];
+
+  nkkTags.forEach(function(tag) {
+    if (ph[tag] && typeof ph[tag] === 'string') {
+      ph[tag] = ph[tag].replace(/^(bà|ông|anh|chị)\s+/i, function(matched) {
+        return matched.charAt(0).toUpperCase() + matched.slice(1).toLowerCase();
+      });
+    }
+  });
+
+  return ph;
+};
+
+// =========================================================================
+// 8. THỰC THI TRỘN THƯ VÀ GỬI LÊN MÁY CHỦ (TỐC ĐỘ CAO)
+// =========================================================================
+
+window.finalizeDraftingLogic = function(templateIds, templateNames, idDon, isFromQuickModal, phSbsVanDe = "", phSbsYeuCau = "") {
+  let don = typeof G_Don !== 'undefined' ? G_Don.find(d => d.id === idDon) : null;
+  if (!don) return AppUI.alert("Lỗi", "Không tìm thấy dữ liệu hồ sơ trong bộ nhớ.");
+
+  let btnQuick = document.querySelector('#modalQuickDraftDon .modal-footer .btn-primary');
+  let btnDetail = document.querySelector('#view-chi-tiet-don .btn-primary'); 
+  let btnExportDetail = document.querySelector('#view-chi-tiet-don .btn-primary.w-100'); 
+  
+  let originalBtnTextQuick = btnQuick ? btnQuick.innerHTML : "";
+  let originalBtnTextDetail = btnDetail ? btnDetail.innerHTML : "";
+  let originalBtnTextExport = btnExportDetail ? btnExportDetail.innerHTML : "";
+  
+  if (isFromQuickModal && btnQuick) { btnQuick.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> ĐANG XỬ LÝ...'; btnQuick.disabled = true; }
+  if (!isFromQuickModal) {
+    if (btnDetail) { btnDetail.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> ĐANG LƯU...'; btnDetail.disabled = true; }
+    if (btnExportDetail) { btnExportDetail.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> ĐANG XUẤT...'; btnExportDetail.disabled = true; }
+  }
+
+  const unlockButtons = function() {
+    if (btnQuick) { btnQuick.innerHTML = originalBtnTextQuick; btnQuick.disabled = false; }
+    if (btnDetail) { btnDetail.innerHTML = originalBtnTextDetail; btnDetail.disabled = false; }
+    if (btnExportDetail) { btnExportDetail.innerHTML = originalBtnTextExport; btnExportDetail.disabled = false; }
+  };
+
+  let taskId = "task_merge_" + new Date().getTime();
+  AppUI.addBackgroundTask(taskId, `Đang xử lý đơn: ${don.soDon || 'Chưa có số'}`);
+
+  try {
+    let pDate, tDate, tTime, giaTriRaw, currentStatus, donQuanHeVal, donLoaiAnVal;
+
+    if (isFromQuickModal) {
+      pDate = document.getElementById('draft_don_ngayBanHanh').value || window.formatDateToYMD();
+      tDate = document.getElementById('draft_don_date').value;
+      tTime = document.getElementById('draft_don_time').value;
+      giaTriRaw = document.getElementById('draft_don_giaTri').value;
+      currentStatus = document.getElementById('quick_don_trangThai') ? document.getElementById('quick_don_trangThai').value : "Đang xem xét";
+      donQuanHeVal = document.getElementById('draft_don_quanHe').value.trim();
+      donLoaiAnVal = document.getElementById('draft_don_loaiAn').value;
+    } else {
+      pDate = document.getElementById('don_process_ngayBanHanh').value || window.formatDateToYMD();
+      tDate = document.getElementById('don_process_date').value;
+      tTime = document.getElementById('don_process_time').value;
+      giaTriRaw = document.getElementById('don_giaTri').value;
+      currentStatus = document.getElementById('don_trangThai_display') ? document.getElementById('don_trangThai_display').value : "Đang xem xét";
+      donQuanHeVal = document.getElementById('don_quanHe').value.trim();
+      donLoaiAnVal = document.getElementById('don_loaiAn').value;
+    }
+
+    let joinedNames = templateNames.join(" ").toLowerCase();
+    let newStatus = currentStatus;
+    let isSmsSent = (currentStatus === "Đã hẹn làm việc" || currentStatus === "SMS - Hướng dẫn" || currentStatus.includes("SMS"));
+    let isChiHuongDan = templateNames.every(n => n.includes("nhận đơn") || n.includes("lựa chọn hòa giải") || n.includes("sửa chữa") || n.includes("bổ sung") || n.includes("sửa đổi"));
+
+    if (isSmsSent && isChiHuongDan) newStatus = "SMS - Hướng dẫn";
+    else if (joinedNames.includes("nộp tạm ứng") || joinedNames.includes("miễn tạm ứng") || joinedNames.includes("tạm ứng lệ phí")) newStatus = isSmsSent ? "Đã xử lý xong + SMS" : "Đã xử lý xong";
+    else if (joinedNames.includes("chuyển vụ việc sang hòa giải") || joinedNames.includes("chỉ định hòa giải viên")) newStatus = "Chuyển hòa giải đối thoại";
+    else if (joinedNames.includes("lựa chọn hòa giải")) newStatus = "Thông báo lựa chọn hòa giải";
+    else if (joinedNames.includes("báo xử lý đơn")) newStatus = "Báo xử lý đơn";
+    else if (joinedNames.includes("sửa chữa") || joinedNames.includes("bổ sung") || joinedNames.includes("sửa đổi")) newStatus = "Yêu cầu sửa đổi, bổ sung";
+    else if (joinedNames.includes("trả lại")) newStatus = "Trả lại đơn";
+    else if (joinedNames.includes("chuyển đơn")) newStatus = "Chuyển đơn";
+
+    let cleanNo = don.soDon ? String(don.soDon).split('/')[0].trim() : "";
+    let safeNgayNhanYMD = "";
+    if (don.ngayNhan && String(don.ngayNhan).includes('/')) {
+      let parts = String(don.ngayNhan).split('/');
+      safeNgayNhanYMD = parts[2] + "-" + parts[1] + "-" + parts[0];
+    } else if (don.rawDate) { 
+      safeNgayNhanYMD = window.formatDateToYMD(don.rawDate); 
+    } else { 
+      safeNgayNhanYMD = window.formatDateToYMD(); 
+    }
+
+    let giaTri = String(giaTriRaw).replace(/\./g, '');
+    let keyLoaiAn = "danSu";
+    if (String(donLoaiAnVal).includes("Kinh doanh")) keyLoaiAn = "kinhDoanh";
+    else if (String(donLoaiAnVal).includes("Hình sự")) keyLoaiAn = "hinhSu";
+    else if (String(donLoaiAnVal).includes("Hành chính")) keyLoaiAn = "hanhChinh";
+
+    let feeObj = window.local_calculateCourtFee(keyLoaiAn, giaTri || "0");
+    let tamUngSo = String(feeObj.tamUngSo).replace(/\./g, '');
+
+    var ph = {
+      "{Ngày ban hành}": window.local_toVNText(pDate, false),
+      "{ngày ban hành}": window.local_toVNText(pDate, false),
+      "{NGÀY BAN HÀNH}": window.local_toVNText(pDate, true).toUpperCase(),
+      "{Số đơn}": don.soDon, 
+      "{số đơn}": don.soDon, 
+      "{Số thụ lý rút gọn}": cleanNo,
+      "{số thụ lý rút gọn}": cleanNo,
+      "{Ngày nhận đơn}": window.local_toVNText(safeNgayNhanYMD, false), 
+      "{ngày nhận đơn}": window.local_toVNText(safeNgayNhanYMD, false), 
+      "{NGÀY NHẬN ĐƠN}": window.local_toVNText(safeNgayNhanYMD, true).toUpperCase(), 
+      "{Phân loại đơn}": String(donLoaiAnVal).split('. ')[1] || donLoaiAnVal,
+      "{phân loại đơn}": (String(donLoaiAnVal).split('. ')[1] || donLoaiAnVal).toLowerCase(),
+      "{Quan hệ tranh chấp}": donQuanHeVal, 
+      "{quan hệ tranh chấp}": donQuanHeVal, 
+      "{QUAN HỆ TRANH CHẤP}": donQuanHeVal.toUpperCase(), 
+      "{Những vấn đề cần sửa chữa bổ sung}": phSbsVanDe, 
+      "{Yêu cầu sửa đổi bổ sung}": phSbsYeuCau,
+      "{Tạm ứng án phí bằng số}": `${feeObj.tamUngSo} đồng`, 
+      "{tạm ứng án phí bằng số}": `${feeObj.tamUngSo} đồng`, 
+      "{Tạm ứng án phí bằng chữ}": `${feeObj.tamUngChu}`,
+      "{tạm ứng án phí bằng chữ}": `${feeObj.tamUngChu}`,
+      "{Án phí bằng số}": `${feeObj.anPhiSo} đồng`, 
+      "{án phí bằng số}": `${feeObj.anPhiSo} đồng`, 
+      "{Án phí bằng chữ}": `${feeObj.anPhiChu}`,
+      "{án phí bằng chữ}": `${feeObj.anPhiChu}`
+    };
+
+    if (tDate) { 
+      ph["{Thời gian triệu tập}"] = ph["{thời gian triệu tập}"] = window.local_fmtFullTime(tDate, tTime); 
+      ph["{THỜI GIAN TRIỆU TẬP}"] = window.local_fmtFullTime(tDate, tTime).toUpperCase(); 
+      ph["{Địa điểm}"] = ph["{địa điểm}"] = "Trụ sở Tòa án"; 
+      ph["{Địa điểm làm việc}"] = ph["{địa điểm làm việc}"] = "Trụ sở Tòa án"; 
+    } else { 
+      ph["{Thời gian triệu tập}"] = ph["{thời gian triệu tập}"] = ".......giờ.......phút, ngày.......tháng.......năm......."; 
+      ph["{THỜI GIAN TRIỆU TẬP}"] = ".......GIỜ.......PHÚT, NGÀY.......THÁNG.......NĂM......."; 
+      ph["{Địa điểm}"] = ph["{địa điểm}"] = "......................................................."; 
+      ph["{Địa điểm làm việc}"] = ph["{địa điểm làm việc}"] = "......................................................."; 
+    }
+
+    let groupsNKK = [], groupsNBK = [], groupsNLQ = [];
+    let firstNKK = "Chưa rõ";
+
+    // 1. Chuẩn hóa trực tiếp dữ liệu họ tên đương sự ngay tại thời điểm trộn
+    (don.chiTietDuongSu || []).forEach(d => {
+      if (d.hoTen) {
+        d.hoTen = window.local_toTitleCase 
+          ? window.local_toTitleCase(window.cleanHonorificFromName ? window.cleanHonorificFromName(d.hoTen) : d.hoTen) 
+          : d.hoTen;
+      }
+
+      let roleLower = String(d.tuCach || "").toLowerCase();
+      let type = '';
+      if (roleLower.includes('khởi kiện') || roleLower.includes('yêu cầu') || roleLower.includes('bị hại') || roleLower.includes('nguyên đơn')) {
+        type = 'NKK'; 
+        if (firstNKK === 'Chưa rõ') firstNKK = d.hoTen;
+      } else if (roleLower.includes('liên quan')) {
+        type = 'NLQ';
+      } else {
+        type = 'NBK';
+      }
+
+      let targetGroup = type === 'NKK' ? groupsNKK : (type === 'NLQ' ? groupsNLQ : groupsNBK);
+      let found = targetGroup.find(g => g.diaChi === d.diaChi && g.sdt === d.sdt);
+      if (found && d.diaChi) found.members.push(d);
+      else targetGroup.push({ diaChi: d.diaChi, sdt: d.sdt, members: [d] });
+    });
+
+    // 2. Biên dịch hệ thống biến độc lập
+    ["Nguyên đơn", "Người khởi kiện", "Người yêu cầu", "Người nộp đơn", "Người bị hại"].forEach(k => window.buildExactPlaceholders(ph, k, groupsNKK));
+    ["Bị đơn", "Người bị kiện", "Người bị yêu cầu", "Bị cáo"].forEach(k => window.buildExactPlaceholders(ph, k, groupsNBK));
+    ["Người có quyền lợi, nghĩa vụ liên quan"].forEach(k => window.buildExactPlaceholders(ph, k, groupsNLQ));
+
+    // 3. Khớp nối chính xác quy tắc Viết hoa đầu câu / Viết thường giữa câu
+    // Người khởi kiện luôn đứng sau "của: " nên danh xưng bắt buộc VIẾT HOA (false)
+    ph["{Nguyên đơn}"] = window.buildShortPartyString(groupsNKK, false);
+    ph["{Người khởi kiện}"] = window.buildShortPartyString(groupsNKK, false);
+    ph["{người khởi kiện}"] = window.buildShortPartyString(groupsNKK, false);
+    ph["{Người yêu cầu}"] = ph["{người yêu cầu}"] = window.buildShortPartyString(groupsNKK, false);
+    ph["{Người nộp đơn}"] = ph["{người nộp đơn}"] = window.buildShortPartyString(groupsNKK, false);
+
+    // Người bị kiện đứng đầu câu (false) và giữa câu sau "đối với" (true)
+    ph["{Bị đơn}"] = ph["{Người bị kiện}"] = ph["{Người bị yêu cầu}"] = window.buildShortPartyString(groupsNBK, false);
+    ph["{bị đơn}"] = ph["{người bị kiện}"] = ph["{người bị yêu cầu}"] = window.buildShortPartyString(groupsNBK, true);
+    
+    ph["{Người có quyền lợi, nghĩa vụ liên quan}"] = window.buildShortPartyString(groupsNLQ, false);
+    ph["{người có quyền lợi, nghĩa vụ liên quan}"] = window.buildShortPartyString(groupsNLQ, true);
+
+    ph["{NGUYÊN ĐƠN}"] = ph["{NGƯỜI KHỞI KIỆN}"] = ph["{NGƯỜI YÊU CẦU}"] = ph["{Nguyên đơn}"].toUpperCase();
+    ph["{BỊ ĐƠN}"] = ph["{NGƯỜI BỊ KIỆN}"] = ph["{NGƯỜI BỊ YÊU CẦU}"] = ph["{Bị đơn}"].toUpperCase();
+    ph["{NGƯỜI CÓ QUYỀN LỢI, NGHĨA VỤ LIÊN QUAN}"] = ph["{Người có quyền lợi, nghĩa vụ liên quan}"].toUpperCase();
+
+    // Chi tiết kèm địa chỉ
+    ph["{Nguyên đơn chi tiết}"] = ph["{Người khởi kiện chi tiết}"] = ph["{Người yêu cầu chi tiết}"] = window.buildSmartPartyString(groupsNKK, false);
+    ph["{nguyên đơn chi tiết}"] = ph["{người khởi kiện chi tiết}"] = ph["{người yêu cầu chi tiết}"] = window.buildSmartPartyString(groupsNKK, false);
+    
+    ph["{Bị đơn chi tiết}"] = ph["{Người bị kiện chi tiết}"] = ph["{Người bị yêu cầu chi tiết}"] = window.buildSmartPartyString(groupsNBK, false);
+    ph["{bị đơn chi tiết}"] = ph["{người bị kiện chi tiết}"] = ph["{người bị yêu cầu chi tiết}"] = window.buildSmartPartyString(groupsNBK, true);
+    
+    ph["{Người có quyền lợi, nghĩa vụ liên quan chi tiết}"] = window.buildSmartPartyString(groupsNLQ, false);
+    ph["{người có quyền lợi, nghĩa vụ liên quan chi tiết}"] = window.buildSmartPartyString(groupsNLQ, true);
+
+    ph["{NGUYÊN ĐƠN CHI TIẾT}"] = ph["{NGƯỜI KHỞI KIỆN CHI TIẾT}"] = ph["{Nguyên đơn chi tiết}"].toUpperCase();
+    ph["{BỊ ĐƠN CHI TIẾT}"] = ph["{NGƯỜI BỊ KIỆN CHI TIẾT}"] = ph["{Bị đơn chi tiết}"].toUpperCase();
+
+    // Khối danh sách dọc
+    ph["{Đương sự thông báo}"] = window.buildBlockType1(don.chiTietDuongSu); 
+    ph["{Đương sự}"] = window.buildBlockType2(don.chiTietDuongSu);
+
+    // Chạy bộ lọc dọn rác văn phạm tức thì
+    ph = window.cleanCompiledPlaceholders(ph);
+
+    let cleanFirstNKK = window.local_toTitleCase 
+      ? window.local_toTitleCase(window.cleanHonorificFromName ? window.cleanHonorificFromName(firstNKK) : firstNKK) 
+      : firstNKK.trim();
+
+    var payloadData = {
+      info: {
+        id: don.id, soDon: don.soDon, ngayNhan: safeNgayNhanYMD, loaiAn: donLoaiAnVal,
+        quanHe: donQuanHeVal, thamPhan: don.thamPhan, trangThai: newStatus, ghiChu: don.ghiChu,
+        giaTri: giaTri, tamUng: tamUngSo, huongXuLy: newStatus 
+      }, 
+      ds: don.chiTietDuongSu 
+    };
+
+    var payloadMerge = {
+      idDon: idDon, soDon: don.soDon, newStatus: newStatus, templateIds: templateIds,
+      trieuTapDate: tDate, trieuTapTime: tTime, firstNKKName: cleanFirstNKK, compiledPlaceholders: ph
+    };
+
+    setTimeout(() => {
+      if (isFromQuickModal) {
+        let m = bootstrap.Modal.getInstance(document.getElementById('modalQuickDraftDon'));
+        if (m) m.hide();
+      }
+    }, 300);
+
+    if (newStatus && typeof G_Don !== 'undefined') {
+      let idx = G_Don.findIndex(d => d.id === idDon);
+      if (idx > -1) { 
+        G_Don[idx].trangThai = newStatus; 
+        G_Don[idx].huongXuLy = newStatus;
+        G_Don[idx].giaTri = giaTri; 
+        G_Don[idx].tamUng = tamUngSo; 
+      }
+      
+      let donTrangThaiUI = document.getElementById('don_trangThai_display');
+      if (donTrangThaiUI && document.getElementById('don_id').value === idDon) {
+        donTrangThaiUI.value = newStatus;
+      }
+      window.runFilterDonEngine(); 
+    }
+
+    let idToKeep = payloadData.info.id; 
+    
+    google.script.run
+      .withSuccessHandler(function(res) {
+        unlockButtons();
+        
+        if (res && res.success) {
+          let linksHtml = (res.files || []).map(f => {
+            let docxBtn = f.docxUrl ? `<a href="${f.docxUrl}" target="_blank" class="btn btn-sm btn-outline-secondary shadow-sm ms-1" title="Tải file Word (.docx)"><i class="fas fa-download"></i> .docx</a>` : "";
+            return `<div class="d-flex align-items-center mb-1 w-100 animate-fadeIn">
+                      <a href='${f.url}' target='_blank' class='btn btn-outline-primary btn-sm text-truncate flex-grow-1' style="text-align: left;"><i class='fas fa-file-word me-1'></i>${f.name}</a>
+                      ${docxBtn}
+                    </div>`;
+          }).join('');
+          
+          AppUI.completeBackgroundTask(taskId, true, linksHtml);
+          
+          if (res.idDon && String(res.idDon).startsWith("DON_")) {
+            let currentUiId = document.getElementById('don_id').value;
+            if (currentUiId === idToKeep) { document.getElementById('don_id').value = res.idDon; }
+            let tmpIndex = G_Don.findIndex(function(d) { return d.id === idToKeep; });
+            if (tmpIndex > -1) G_Don[tmpIndex].id = res.idDon;
+          }
+        } else { 
+          let errMsg = res && res.error ? res.error : "Máy chủ trả về kết quả rỗng.";
+          AppUI.completeBackgroundTask(taskId, false, errMsg); 
+        }
+      })
+      .withFailureHandler(function(err){
+        unlockButtons(); 
+        AppUI.completeBackgroundTask(taskId, false, "Lỗi kết nối mạng: " + err.message);
+      })
+      .api_LuuVaTronThuDon_SuperFast(payloadData, payloadMerge);
+
+  } catch (error) {
+    unlockButtons();
+    AppUI.completeBackgroundTask(taskId, false, "Lỗi hệ thống Frontend: " + error.message);
+    console.error(error);
+  }
+};
+
+window.doiChieuDuLieuDon = function() {
+  AppUI.showToast("Đang kết nối để đối chiếu...", "");
+  
+  google.script.run
+    .withSuccessHandler(function(res) {
+      AppUI.hideToast();
+      if (res.success) {
+        AppUI.alert("ĐỐI CHIẾU DỮ LIỆU HỆ THỐNG", res.html);
+      } else {
+        AppUI.alert("Lỗi Đối chiếu", res.error);
+      }
+    })
+    .withFailureHandler(function(err){
+      AppUI.hideToast();
+      AppUI.alert("Lỗi mạng", "Không thể kết nối máy chủ: " + err.message);
+    })
+    .api_DoiChieuDuLieuDon();
+};
+
+// =========================================================================
+// 9. TRÌNH TỰ ĐỘNG LƯU ĐƠN (AUTO-SAVE)
+// =========================================================================
+
+window.donAutoSaveTimer = null;
+
+document.addEventListener("DOMContentLoaded", function() {
+  document.addEventListener('input', handleDonAutoSave);
+  document.addEventListener('change', handleDonAutoSave);
+});
+
+function handleDonAutoSave(e) {
+  if (!e.target.closest('#view-chi-tiet-don')) return;
+
+  if (e.target && (
+    e.target.id === 'don_quick_search_no' || 
+    e.target.type === 'file' || 
+    e.target.type === 'checkbox' || 
+    e.target.type === 'button' || 
+    e.target.tagName === 'BUTTON' || 
+    e.target.tagName === 'A'
+  )) return;
+
+  let currentId = document.getElementById('don_id').value;
+  if (!currentId || currentId.includes("TEMP_")) return;
+
+  clearTimeout(window.donAutoSaveTimer);
+  
+  let indicator = document.getElementById('don_autosave_indicator');
+  if (indicator) indicator.innerHTML = '<i class="fas fa-spinner fa-spin text-warning me-1"></i> <span class="text-warning">Đang chờ lưu...</span>';
+
+  window.donAutoSaveTimer = setTimeout(() => {
+    if (typeof window.luuThongTinDon === 'function') {
+      window.luuThongTinDon(true);
+    }
+  }, 1500);
+}
+</script>

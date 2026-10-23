@@ -1,0 +1,591 @@
+<script>
+/**
+ * =========================================================================
+ * HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.0 - MASTER CASE PARAMETERS & OCR ENGINE (PRODUCTION)
+ * TỆP: JS_ThongSoNghiepVu.html - ĐIỀU HÀNH BỘ NHỚ VỤ ÁN, CANVAS & MULTI-PHOTO OCR
+ * -------------------------------------------------------------------------
+ * - BẢO TỒN MASTER DATA: BIẾN DO AI BÓC TÁCH ĐƯỢC LƯU VĨNH VIỄN VÀO _case_memory.json.
+ * - KHÔNG BỊ XÓA HAY ĐÈ BIẾN BỞI CÁC CÂU MẪU MẶC ĐỊNH (FALLBACK STRINGS).
+ * - CHUẨN HÓA BỘ 3 THỂ THỨC: {Tên} (Tiêu đề), {tên} (Viết thường), {TÊN} (IN HOA).
+ * - MULTI-PHOTO OCR: NÉN CLIENT-SIDE, CHỤP ĐA TRANG VÀ BÓC TÁCH LIỀN MẠCH.
+ * =========================================================================
+ */
+
+window.currentCaseVariables = window.currentCaseVariables || {};
+window.currentCaseNarratives = window.currentCaseNarratives || {};
+window.openCanvasAutoSaveTimer = null;
+window.stagedOcrPhotos = [];
+
+// =========================================================================
+// 1. NẠP VÀ HIỂN THỊ DỮ LIỆU TỪ BỘ NHỚ DRIVE LÊN VÙNG CANVAS
+// =========================================================================
+
+window.renderAllSavedVariableCards = function(v, loaiAn, narratives) {
+  v = v || window.currentCaseVariables || {};
+  narratives = narratives || window.currentCaseNarratives || {};
+
+  var textarea = document.getElementById('case_free_narrative_text');
+  if (!textarea) return;
+
+  // Nếu đã có văn bản toàn văn nội dung vụ án
+  if (v["{Nội dung vụ án}"] && String(v["{Nội dung vụ án}"]).trim() !== "") {
+    textarea.value = v["{Nội dung vụ án}"];
+    return;
+  }
+
+  // Tự động phân đoạn và tổng hợp dữ liệu ngăn nắp theo từng khối chuẩn mực
+  var compiledSections = [];
+
+  // A. Khối Biên lai Án phí NQ 326
+  var feeText = v["{Biên lai tạm ứng án phí}"] || v["{Thông tin biên lai án phí}"] || "";
+  if (feeText && String(feeText).trim() !== "") {
+    compiledSections.push("[TẠM ỨNG ÁN PHÍ - NQ 326]:\n" + feeText);
+  }
+
+  // B. Khối Danh mục tài liệu chứng cứ kèm theo đơn
+  var docsText = v["{Tài liệu kèm theo đơn khởi kiện}"] || v["{Tài liệu kèm đơn khởi kiện}"] || v["{Tài liệu chứng cứ kèm theo}"] || v["{Danh mục chứng cứ}"] || "";
+  if (docsText && String(docsText).trim() !== "") {
+    compiledSections.push("[DANH MỤC TÀI LIỆU, CHỨNG CỨ KÈM THEO ĐƠN]:\n" + docsText);
+  }
+
+  // C. Khối Trích lục lời khai đương sự (Chi tiết toàn văn, không lẫn thỏa thuận)
+  var lkParts = [];
+  [
+    "{Lời khai đương sự}",
+    "{Lời khai Nguyên đơn}",
+    "{Lời khai Bị đơn}",
+    "{Lời khai Người yêu cầu}",
+    "{Lời khai Người bị yêu cầu}",
+    "{Lời khai Người có quyền lợi, nghĩa vụ liên quan}",
+    "{Lời khai người làm chứng}"
+  ].forEach(function(key) {
+    var txt = narratives[key] || v[key];
+    if (txt && String(txt).trim() !== "" && !lkParts.includes(txt)) {
+      lkParts.push(txt.startsWith("-") ? txt : `- ${key.replace(/[{}]/g, "")}:\n${txt}`);
+    }
+  });
+
+  if (lkParts.length > 0) {
+    compiledSections.push("[TRÍCH LỤC LỜI KHAI ĐƯƠNG SỰ]:\n" + lkParts.join("\n\n"));
+  }
+
+  // D. Khối Thỏa thuận hòa giải
+  if (v["{Nội dung thỏa thuận}"] && String(v["{Nội dung thỏa thuận}"]).trim() !== "") {
+    compiledSections.push("[NỘI DUNG THỎA THUẬN HÒA GIẢI]:\n" + v["{Nội dung thỏa thuận}"]);
+  } else {
+    var tsParts = [];
+    var isHNGD = loaiAn && (loaiAn.includes("Hôn nhân") || loaiAn.includes("3."));
+
+    if (isHNGD) {
+      if (v["{Quan hệ hôn nhân}"] || v["{Thỏa thuận ly hôn}"]) {
+        tsParts.push("1. Về quan hệ hôn nhân: " + (v["{Quan hệ hôn nhân}"] || v["{Thỏa thuận ly hôn}"]));
+      }
+      if (v["{Thỏa thuận con chung}"] || v["{Con chung}"]) {
+        tsParts.push("2. Về con chung: " + (v["{Thỏa thuận con chung}"] || v["{Con chung}"]));
+      }
+      if (v["{Tài sản chung}"] || v["{Tài sản tranh chấp}"]) {
+        tsParts.push("3. Về tài sản chung: " + (v["{Tài sản chung}"] || v["{Tài sản tranh chấp}"]));
+      }
+      if (v["{Nợ chung}"] || v["{Dư nợ tín dụng}"]) {
+        tsParts.push("4. Về nợ chung: " + (v["{Nợ chung}"] || v["{Dư nợ tín dụng}"]));
+      }
+      if (v["{Thỏa thuận án phí}"] || v["{Án phí}"]) {
+        tsParts.push("5. Về án phí: " + (v["{Thỏa thuận án phí}"] || v["{Án phí}"]));
+      }
+    } else {
+      if (v["{Thỏa thuận nghĩa vụ chính}"]) tsParts.push("1. " + v["{Thỏa thuận nghĩa vụ chính}"]);
+      if (v["{Thời hạn và phương thức thực hiện}"]) tsParts.push("2. Về thời hạn và phương thức thực hiện: " + v["{Thời hạn và phương thức thực hiện}"]);
+      if (v["{Thỏa thuận chi phí tố tụng}"]) tsParts.push("3. Về chi phí tố tụng: " + v["{Thỏa thuận chi phí tố tụng}"]);
+      if (v["{Thỏa thuận án phí}"] || v["{Án phí}"]) tsParts.push("4. Về án phí: " + (v["{Thỏa thuận án phí}"] || v["{Án phí}"]));
+    }
+
+    if (tsParts.length > 0) {
+      compiledSections.push("[NỘI DUNG THỎA THUẬN HÒA GIẢI]:\n" + tsParts.join("\n"));
+    }
+  }
+
+  textarea.value = compiledSections.join("\n\n");
+};
+
+// =========================================================================
+// 2. TỰ ĐỘNG LƯU NGẦM CANVAS & BẢO TOÀN DỮ LIỆU MASTER
+// =========================================================================
+
+window.saveCaseVariables = function(isAuto) {
+  if (!window.currentCaseId) return;
+
+  var textarea = document.getElementById('case_free_narrative_text');
+  var fullText = textarea ? textarea.value.trim() : "";
+
+  var vars = Object.assign({}, window.currentCaseVariables || {});
+  var narratives = Object.assign({}, window.currentCaseNarratives || {});
+
+  vars["{Nội dung vụ án}"] = fullText;
+  vars["{nội dung vụ án}"] = fullText;
+
+  if (fullText) {
+    // 1. BÓC TÁCH KHỐI TẠM ỨNG ÁN PHÍ NQ 326
+    var mBL = fullText.match(/(?:\[TẠM ỨNG ÁN PHÍ - NQ 326\]:|\{Biên lai tạm ứng án phí\}:?)([\s\S]*?)(?=(?:\[|\{|$))/i);
+    if (mBL && mBL[1].trim()) {
+      vars["{Biên lai tạm ứng án phí}"] = mBL[1].trim();
+      vars["{biên lai tạm ứng án phí}"] = mBL[1].trim();
+      vars["{Thông tin biên lai án phí}"] = mBL[1].trim();
+    }
+
+    // 2. BÓC TÁCH DANH MỤC TÀI LIỆU CHỨNG CỨ
+    var matchTaiLieu = fullText.match(/(?:\[DANH MỤC TÀI LIỆU, CHỨNG CỨ KÈM THEO ĐƠN\]:|\{Tài liệu kèm theo đơn khởi kiện\}:?|\{Tài liệu kèm đơn khởi kiện\}:?|- Danh mục chứng cứ:)([\s\S]*?)(?=(?:\[|\{|$))/i);
+    if (matchTaiLieu && matchTaiLieu[1].trim()) {
+      var valTL = matchTaiLieu[1].trim();
+      vars["{Tài liệu kèm theo đơn khởi kiện}"] = valTL;
+      vars["{tài liệu kèm theo đơn khởi kiện}"] = valTL;
+      vars["{Tài liệu kèm đơn khởi kiện}"] = valTL;
+      vars["{Danh mục chứng cứ}"] = valTL;
+    }
+
+    // 3. BÓC TÁCH CHI TIẾT TỪNG LỜI KHAI (NGUYÊN ĐƠN, BỊ ĐƠN, NGƯỜI LIÊN QUAN, LÀM CHỨNG)
+    var matchFullLk = fullText.match(/\[TRÍCH LỤC LỜI KHAI ĐƯƠNG SỰ\]:([\s\S]*?)(?=(?:\[NỘI DUNG|\[THÔNG SỐ|\[TẠM ỨNG|\[DANH MỤC|$))/i);
+    if (matchFullLk && matchFullLk[1].trim()) {
+      vars["{Lời khai đương sự}"] = matchFullLk[1].trim();
+      vars["{lời khai đương sự}"] = matchFullLk[1].trim();
+    }
+
+    var mLkND = fullText.match(/(?:\{Lời khai Nguyên đơn\}:?|\{Lời khai Người khởi kiện\}:?|- Lời khai Nguyên đơn:)([\s\S]*?)(?=(?:\{|- Lời khai|\[|$))/i);
+    if (mLkND && mLkND[1].trim()) {
+      vars["{Lời khai Nguyên đơn}"] = mLkND[1].trim();
+      vars["{Lời khai Người khởi kiện}"] = mLkND[1].trim();
+    }
+
+    var mLkBD = fullText.match(/(?:\{Lời khai Bị đơn\}:?|\{Lời khai Người bị kiện\}:?|- Lời khai Bị đơn:)([\s\S]*?)(?=(?:\{|- Lời khai|\[|$))/i);
+    if (mLkBD && mLkBD[1].trim()) {
+      vars["{Lời khai Bị đơn}"] = mLkBD[1].trim();
+      vars["{Lời khai Người bị kiện}"] = mLkBD[1].trim();
+    }
+
+    var mLkYC = fullText.match(/(?:\{Lời khai Người yêu cầu\}:?|- Lời khai Người yêu cầu:)([\s\S]*?)(?=(?:\{|- Lời khai|\[|$))/i);
+    if (mLkYC && mLkYC[1].trim()) vars["{Lời khai Người yêu cầu}"] = mLkYC[1].trim();
+
+    var mLkBYC = fullText.match(/(?:\{Lời khai Người bị yêu cầu\}:?|- Lời khai Người bị yêu cầu:)([\s\S]*?)(?=(?:\{|- Lời khai|\[|$))/i);
+    if (mLkBYC && mLkBYC[1].trim()) vars["{Lời khai Người bị yêu cầu}"] = mLkBYC[1].trim();
+
+    var mLkLQ = fullText.match(/(?:\{Lời khai Người có quyền lợi, nghĩa vụ liên quan\}:?|- Lời khai Người liên quan:)([\s\S]*?)(?=(?:\{|- Lời khai|\[|$))/i);
+    if (mLkLQ && mLkLQ[1].trim()) vars["{Lời khai Người có quyền lợi, nghĩa vụ liên quan}"] = mLkLQ[1].trim();
+
+    var mLkLC = fullText.match(/(?:\{Lời khai người làm chứng\}:?|- Lời khai Người làm chứng:)([\s\S]*?)(?=(?:\{|- Lời khai|\[|$))/i);
+    if (mLkLC && mLkLC[1].trim()) vars["{Lời khai người làm chứng}"] = mLkLC[1].trim();
+
+    // 4. BÓC TÁCH NỘI DUNG THỎA THUẬN HÒA GIẢI CHUNG
+    var matchThoaThuan = fullText.match(/\[NỘI DUNG THỎA THUẬN HÒA GIẢI\]:([\s\S]*?)(?=(?:\[|$))/i);
+    if (matchThoaThuan && matchThoaThuan[1].trim()) {
+      var valTT = matchThoaThuan[1].trim();
+      vars["{Nội dung thỏa thuận}"] = valTT;
+      vars["{nội dung thỏa thuận}"] = valTT;
+      vars["{Nội dung hòa giải thành}"] = valTT;
+    }
+
+    // 5. BÓC TÁCH CÁC THẺ CON HNGĐ
+    var mHN = fullText.match(/(?:(?:1\.\s*)?(?:Về\s*)?quan hệ hôn nhân:?|- Hôn nhân:|\{Quan hệ hôn nhân\}:?|\{Thỏa thuận ly hôn\}:?)([\s\S]*?)(?=(?:(?:2\.\s*)?(?:Về\s*)?con chung:?|- Con chung:|\{Con chung\}|3\.\s*Về|4\.\s*Về|5\.\s*Về|\[|\{|$))/i);
+    if (mHN && mHN[1].trim()) {
+      vars["{Quan hệ hôn nhân}"] = mHN[1].trim();
+      vars["{quan hệ hôn nhân}"] = mHN[1].trim();
+      vars["{Thỏa thuận ly hôn}"] = mHN[1].trim();
+    }
+
+    var mCon = fullText.match(/(?:(?:2\.\s*)?(?:Về\s*)?con chung:?|- Con chung:|\{Con chung\}:?|\{Thỏa thuận con chung\}:?)([\s\S]*?)(?=(?:(?:3\.\s*)?(?:Về\s*)?tài sản|- Tài sản:|\{Tài sản chung\}|4\.\s*Về|5\.\s*Về|\[|\{|$))/i);
+    if (mCon && mCon[1].trim()) {
+      vars["{Thỏa thuận con chung}"] = mCon[1].trim();
+      vars["{thỏa thuận con chung}"] = mCon[1].trim();
+      vars["{Con chung}"] = mCon[1].trim();
+      vars["{con chung}"] = mCon[1].trim();
+    }
+
+    var mCapDuong = fullText.match(/(?:\{Cấp dưỡng nuôi con\}:?|\{Cấp dưỡng con chung\}:?|- Cấp dưỡng:)([\s\S]*?)(?=(?:\[|\{|3\.\s*Về|4\.\s*Về|$))/i);
+    if (mCapDuong && mCapDuong[1].trim()) {
+      vars["{Cấp dưỡng nuôi con}"] = mCapDuong[1].trim();
+      vars["{Cấp dưỡng con chung}"] = mCapDuong[1].trim();
+    }
+
+    var mTS = fullText.match(/(?:(?:3\.\s*)?(?:Về\s*)?tài sản(?: chung)?:?|- Tài sản:|\{Tài sản chung\}:?|\{Tài sản tranh chấp\}:?)([\s\S]*?)(?=(?:(?:4\.\s*)?(?:Về\s*)?nợ(?: chung)?|- Nợ:|\{Nợ chung\}|5\.\s*Về|\[|\{|$))/i);
+    if (mTS && mTS[1].trim()) {
+      vars["{Tài sản chung}"] = mTS[1].trim();
+      vars["{tài sản chung}"] = mTS[1].trim();
+      vars["{Tài sản tranh chấp}"] = mTS[1].trim();
+    }
+
+    var mNo = fullText.match(/(?:(?:4\.\s*)?(?:Về\s*)?nợ(?: chung| nần)?:?|- Nợ:|\{Nợ chung\}:?|\{Dư nợ tín dụng\}:?)([\s\S]*?)(?=(?:(?:5\.\s*)?(?:Về\s*)?án phí|- Án phí:|\{Thỏa thuận án phí\}|\[|\{|$))/i);
+    if (mNo && mNo[1].trim()) {
+      vars["{Nợ chung}"] = mNo[1].trim();
+      vars["{nợ chung}"] = mNo[1].trim();
+      vars["{Dư nợ tín dụng}"] = mNo[1].trim();
+    }
+
+    var mAP = fullText.match(/(?:(?:5\.\s*)?(?:Về\s*)?án phí:?|- Án phí:|\{Thỏa thuận án phí\}:?|\{Án phí\}:?)([\s\S]*?)(?=(?:\[|\{|NHỮNG SỬA ĐỔI|$))/i);
+    if (mAP && mAP[1].trim()) {
+      vars["{Thỏa thuận án phí}"] = mAP[1].trim();
+      vars["{thỏa thuận án phí}"] = mAP[1].trim();
+      vars["{Án phí}"] = mAP[1].trim();
+    }
+
+    // 6. BÓC TÁCH CÁC TRƯỜNG ĐẶC THÙ NGÀNH ÁN KHÁC (ĐẤT ĐAI, TÍN DỤNG, THỪA KẾ)
+    var mViTri = fullText.match(/(?:\{Vị trí tài sản tranh chấp\}:?|- Vị trí tài sản:)([\s\S]*?)(?=(?:\[|\{|$))/i);
+    if (mViTri && mViTri[1].trim()) vars["{Vị trí tài sản tranh chấp}"] = mViTri[1].trim();
+
+    var mHDTD = fullText.match(/(?:\{Hợp đồng tín dụng\}:?|- Hợp đồng tín dụng:)([\s\S]*?)(?=(?:\[|\{|$))/i);
+    if (mHDTD && mHDTD[1].trim()) vars["{Hợp đồng tín dụng}"] = mHDTD[1].trim();
+
+    var mThuaKe = fullText.match(/(?:\{Di sản thừa kế\}:?|- Di sản thừa kế:)([\s\S]*?)(?=(?:\[|\{|$))/i);
+    if (mThuaKe && mThuaKe[1].trim()) vars["{Di sản thừa kế}"] = mThuaKe[1].trim();
+
+    var mNghiaVu = fullText.match(/(?:\{Thỏa thuận nghĩa vụ chính\}:?|- Nghĩa vụ chính:)([\s\S]*?)(?=(?:\[|\{|$))/i);
+    if (mNghiaVu && mNghiaVu[1].trim()) vars["{Thỏa thuận nghĩa vụ chính}"] = mNghiaVu[1].trim();
+
+    var mPhuongThuc = fullText.match(/(?:\{Thời hạn và phương thức thực hiện\}:?|- Thời hạn và phương thức:)([\s\S]*?)(?=(?:\[|\{|$))/i);
+    if (mPhuongThuc && mPhuongThuc[1].trim()) vars["{Thời hạn và phương thức thực hiện}"] = mPhuongThuc[1].trim();
+
+    var mChiPhi = fullText.match(/(?:\{Thỏa thuận chi phí tố tụng\}:?|- Chi phí tố tụng:)([\s\S]*?)(?=(?:\[|\{|$))/i);
+    if (mChiPhi && mChiPhi[1].trim()) vars["{Thỏa thuận chi phí tố tụng}"] = mChiPhi[1].trim();
+  }
+
+  window.currentCaseVariables = vars;
+  window.currentCaseNarratives = narratives;
+
+  if (window.currentCaseData) {
+    window.currentCaseData.variables = vars;
+    window.currentCaseData.narratives = narratives;
+  }
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      var ind = document.getElementById('open_canvas_autosave_indicator');
+      if (res && res.success && ind) {
+        ind.innerHTML = '<i class="fas fa-check-circle text-success me-1"></i> <span class="text-success">Đã tự động lưu</span>';
+        setTimeout(function() { if (ind) ind.innerHTML = ''; }, 2500);
+      }
+    })
+    .api_LuuThongSoNghiepVuAn({
+      idVuAn: window.currentCaseId,
+      variables: vars,
+      narratives: narratives
+    });
+};
+
+window.clearCanvasDataWithConfirm = function() {
+  AppUI.confirm(
+    "XÓA TRẮNG DỮ LIỆU VỤ ÁN",
+    "⚠️ Bạn có chắc chắn muốn xóa toàn bộ lời khai và thông số đã bóc tách của vụ án này?\nThao tác này sẽ làm sạch vùng dữ liệu để bạn nhập hoặc quét lại từ đầu.",
+    "danger",
+    function() {
+      var textarea = document.getElementById('case_free_narrative_text');
+      if (textarea) textarea.value = "";
+      window.currentCaseVariables = {};
+      window.currentCaseNarratives = {};
+      window.saveCaseVariables(false);
+      AppUI.showToast("Đã xóa sạch dữ liệu vụ án!", "success");
+    }
+  );
+};
+
+// =========================================================================
+// 3. ĐÓNG GÓI BIẾN ĐỘNG CHO MAIL MERGE V3 (KHÔNG ĐÈ CÂU MẶC ĐỊNH)
+// =========================================================================
+
+window.compileDynamicVariables = function(vars, currentA4Parties) {
+  vars = vars || {};
+  var caseInfo = window.currentCaseData && window.currentCaseData.info ? window.currentCaseData.info : {};
+  var loaiAn = String(caseInfo.loaiAn || "");
+  var quanHe = String(caseInfo.quanHe || "");
+  var isHNGD = loaiAn.includes("Hôn nhân") || loaiAn.includes("3.") || quanHe.toLowerCase().includes("thuận tình") || quanHe.toLowerCase().includes("ly hôn");
+
+  // A. Biên lai án phí NQ 326
+  if (!vars["{Biên lai tạm ứng án phí}"]) {
+    vars["{Biên lai tạm ứng án phí}"] = "Biên lai thu tạm ứng án phí, lệ phí Tòa án số............... ngày...../...../202... của Chi cục Thi hành án dân sự tỉnh Lâm Đồng.";
+  }
+  vars["{biên lai tạm ứng án phí}"] = vars["{Biên lai tạm ứng án phí}"];
+  vars["{Thông tin biên lai án phí}"] = vars["{Biên lai tạm ứng án phí}"];
+
+  // B. Nhận diện con chung và nghĩa vụ tiền
+  var rawThoaThuanCon = vars["{Thỏa thuận con chung}"] || vars["{Con chung}"] || "";
+  var rawNoiDungFull = vars["{Nội dung thỏa thuận}"] || vars["{Nội dung vụ án}"] || "";
+  var checkConText = (rawThoaThuanCon + " " + rawNoiDungFull).toLowerCase();
+
+  var hasConChung = checkConText.includes("con chung") && !checkConText.includes("không có con chung");
+  var hasCapDuongTien = false;
+
+  var mConSection = rawNoiDungFull.match(/(?:(?:2\.\s*)?(?:Về\s*)?con chung:?|- Con chung:)([\s\S]*?)(?=(?:(?:3\.\s*)?(?:Về\s*)?tài sản|- Tài sản:|4\.\s*Về|5\.\s*Về|\[|$))/i);
+  var conSectionText = mConSection ? mConSection[1].toLowerCase() : rawThoaThuanCon.toLowerCase();
+
+  if (conSectionText.includes("cấp dưỡng") && !conSectionText.includes("không tranh chấp") && !conSectionText.includes("không yêu cầu")) {
+    if (conSectionText.includes("đồng") || conSectionText.includes("đ/") || /\d+[\.,]?\d*\s*(?:đồng|đ)/i.test(conSectionText)) {
+      hasCapDuongTien = true;
+    }
+  }
+
+  var hasChiaTaiSan = checkConText.includes("tài sản") && !checkConText.includes("tự thỏa thuận, không yêu cầu") && !checkConText.includes("không có tài sản");
+
+  // C. Thiết lập Quyền thăm nom & Lãi suất chậm thi hành án
+  if (hasConChung) {
+    vars["{Quyền thăm nom con}"] = "Quyền thăm nom, chăm sóc, nuôi dưỡng, giáo dục con; quyền thay đổi người trực tiếp nuôi con; thay đổi mức cấp dưỡng được thực hiện theo quy định của Luật hôn nhân và gia đình.";
+    vars["{quyền thăm nom con}"] = vars["{Quyền thăm nom con}"];
+    vars["{Quyền thăm con}"] = vars["{Quyền thăm nom con}"];
+    vars["{quyền thăm con}"] = vars["{Quyền thăm nom con}"];
+  } else {
+    vars["{Quyền thăm nom con}"] = "";
+    vars["{quyền thăm nom con}"] = "";
+    vars["{Quyền thăm con}"] = "";
+    vars["{quyền thăm con}"] = "";
+  }
+
+  if (hasCapDuongTien) {
+    vars["{Lãi suất chậm thi hành án}"] = "Kể từ ngày có đơn yêu cầu thi hành án của người được thi hành án (đối với các khoản tiền phải trả cho người được thi hành án) cho đến khi thi hành án xong, bên phải thi hành án còn phải chịu khoản tiền lãi của số tiền còn phải thi hành án theo mức lãi suất quy định tại Điều 357, Điều 468 của Bộ luật dân sự năm 2015.";
+    vars["{lãi suất chậm thi hành án}"] = vars["{Lãi suất chậm thi hành án}"];
+    vars["{Lãi chậm trả}"] = vars["{Lãi suất chậm thi hành án}"];
+    vars["{lãi chậm trả}"] = vars["{Lãi suất chậm thi hành án}"];
+  } else {
+    vars["{Lãi suất chậm thi hành án}"] = "";
+    vars["{lãi suất chậm thi hành án}"] = "";
+    vars["{Lãi chậm trả}"] = "";
+    vars["{lãi chậm trả}"] = "";
+  }
+  vars["{Điều luật chậm trả}"] = "";
+  vars["{điều luật chậm trả}"] = "";
+
+  // D. Chuỗi điều luật HNGĐ viện dẫn tự động
+  var dieuLuatList = ["Điều 51", "Điều 55"];
+  if (hasConChung) dieuLuatList.push("Điều 57", "Điều 58", "Điều 81", "Điều 82", "Điều 83");
+  if (hasCapDuongTien) dieuLuatList.push("Điều 84");
+  if (hasChiaTaiSan) dieuLuatList.push("Điều 59", "Điều 60");
+
+  var dieuLuatHNGD_Str = "các " + dieuLuatList.join(", ") + " Luật hôn nhân và gia đình năm 2014";
+  if (hasCapDuongTien) dieuLuatHNGD_Str += "; Điều 357, Điều 468 của Bộ luật dân sự năm 2015";
+  vars["{Điều luật HNGĐ}"] = dieuLuatHNGD_Str;
+  vars["{điều luật hngđ}"] = dieuLuatHNGD_Str;
+
+  // E. Nhân bản bộ 3 thể thức cho toàn bộ Placeholder
+  for (var key in vars) {
+    if (vars[key] !== undefined && vars[key] !== null) {
+      var valStr = String(vars[key]);
+      var lowerKey = key.toLowerCase();
+      var upperKey = key.toUpperCase();
+      if (!vars.hasOwnProperty(lowerKey)) vars[lowerKey] = valStr;
+      if (!vars.hasOwnProperty(upperKey)) vars[upperKey] = valStr.toUpperCase();
+    }
+  }
+};
+
+// =========================================================================
+// 4. CHỤP / QUÉT NHIỀU ẢNH OCR (MULTI-PHOTO STAGING)
+// =========================================================================
+
+window.handleMultiPhotoSelect = function(input) {
+  if (!input.files || input.files.length === 0) return;
+  var files = Array.from(input.files);
+  var idVuAn = window.currentCaseId;
+
+  if (!idVuAn) return AppUI.alert("Nhắc nhở", "Vui lòng mở một hồ sơ vụ án trước khi quét tài liệu!");
+
+  AppUI.showToast(`Đang nén ${files.length} ảnh chụp...`, "");
+  var processed = 0;
+
+  files.forEach(function(file) {
+    window.compressImageFile(file, 1200, 0.7, function(res) {
+      window.stagedOcrPhotos.push({
+        id: 'ocr_' + Date.now() + Math.floor(Math.random() * 100),
+        fileName: res.name,
+        mimeType: res.mimeType,
+        base64Data: res.base64,
+        dataUrl: res.dataUrl
+      });
+      processed++;
+      if (processed === files.length) {
+        AppUI.hideToast();
+        window.renderOcrStagingModal();
+      }
+    });
+  });
+  input.value = "";
+};
+
+window.renderOcrStagingModal = function() {
+  var count = window.stagedOcrPhotos.length;
+  if (count === 0) return;
+
+  var containerHtml = `
+    <div class="modal fade" id="modalOcrStaging" tabindex="-1" data-bs-backdrop="static">
+      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h6 class="modal-title"><i class="fas fa-images text-primary me-2"></i>DANH SÁCH ẢNH CHỤP TÀI LIỆU (<span id="ocr_staging_count">${count}</span> TRANG)</h6>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="p-2 bg-light rounded border mb-3 small text-muted">
+              <i class="fas fa-info-circle text-primary me-1"></i> Bạn có thể chụp thêm các trang tiếp theo hoặc bấm <b>"Tiến hành bóc tách toàn bộ"</b> để AI đọc hiểu liền mạch nội dung tất cả các trang.
+            </div>
+            <div class="row g-2" id="ocr_staging_gallery"></div>
+          </div>
+          <div class="modal-footer justify-content-between">
+            <div>
+              <button type="button" class="btn btn-outline-secondary px-3" onclick="document.getElementById('input_camera_multi').click()">
+                <i class="fas fa-camera text-success me-1"></i> Chụp thêm trang
+              </button>
+            </div>
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" onclick="window.stagedOcrPhotos=[]">Hủy</button>
+              <button type="button" class="btn btn-primary px-4 shadow-sm" onclick="window.executeMultiPhotoExtraction()">
+                <i class="fas fa-bolt me-1"></i> Bóc tách toàn bộ (${count} ảnh)
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  var oldModal = document.getElementById('modalOcrStaging');
+  if (oldModal) oldModal.remove();
+  document.body.insertAdjacentHTML('beforeend', containerHtml);
+
+  var gallery = document.getElementById('ocr_staging_gallery');
+  gallery.innerHTML = window.stagedOcrPhotos.map(function(item, idx) {
+    return `
+      <div class="col-4 col-md-3 position-relative" id="thumb_${item.id}">
+        <div class="border rounded p-1 bg-white shadow-sm text-center">
+          <img src="${item.dataUrl}" style="height: 110px; width: 100%; object-fit: cover; border-radius: 4px;">
+          <div class="small text-truncate mt-1 text-muted" style="font-size: 10.5px;">Trang ${idx + 1}</div>
+          <button type="button" class="btn btn-sm btn-danger position-absolute" style="top: 4px; right: 8px; border-radius: 50%; width: 22px; height: 22px; padding: 0; display: flex; align-items: center; justify-content: center;" onclick="window.removeStagedOcrPhoto('${item.id}')">
+            <i class="fas fa-times" style="font-size: 10px;"></i>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalOcrStaging')).show();
+};
+
+window.removeStagedOcrPhoto = function(id) {
+  window.stagedOcrPhotos = window.stagedOcrPhotos.filter(function(p) { return p.id !== id; });
+  var el = document.getElementById('thumb_' + id);
+  if (el) el.remove();
+  var countEl = document.getElementById('ocr_staging_count');
+  if (countEl) countEl.innerText = window.stagedOcrPhotos.length;
+  if (window.stagedOcrPhotos.length === 0) {
+    var modalEl = document.getElementById('modalOcrStaging');
+    if (modalEl) bootstrap.Modal.getInstance(modalEl).hide();
+  }
+};
+
+window.executeMultiPhotoExtraction = function() {
+  if (window.stagedOcrPhotos.length === 0) return;
+  var idVuAn = window.currentCaseId;
+
+  var modalEl = document.getElementById('modalOcrStaging');
+  if (modalEl) bootstrap.Modal.getInstance(modalEl).hide();
+
+  AppUI.showToast(`AI đang đọc và bóc tách ${window.stagedOcrPhotos.length} trang tài liệu...`, "");
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      AppUI.hideToast();
+      window.stagedOcrPhotos = [];
+
+      if (res && res.success) {
+        window.handleIngestedEvidenceResult(res, "Ảnh chụp đa trang");
+      } else {
+        AppUI.alert("Lỗi bóc tách", res ? res.error : "Không thể bóc tách tài liệu.");
+      }
+    })
+    .withFailureHandler(function(err) {
+      AppUI.hideToast();
+      window.stagedOcrPhotos = [];
+      AppUI.showToast("Lỗi mạng: " + err.message, "error");
+    })
+    .api_ParseEvidenceDocument(idVuAn, "Ảnh_chụp_đa_trang.jpg", "image/jpeg", null, null, window.stagedOcrPhotos);
+};
+
+// =========================================================================
+// 5. NẠP NGUYÊN LIỆU CHI TIẾT VÀO VÙNG CANVAS
+// =========================================================================
+
+window.executeApplyEvidenceCanvas = function(mode, partiesToInsert) {
+  var res = window.currentPendingEvidence;
+  if (!res) return;
+
+  var extractedVars = res.extractedVariables || {};
+  var extractedNars = res.extractedNarratives || {};
+
+  // 1. Thêm đương sự mới vào A4 State nếu có
+  if (mode === 'FULL' && partiesToInsert && partiesToInsert.length > 0) {
+    partiesToInsert.forEach(function(p) {
+      var tcLower = String(p.tuCach || "").toLowerCase();
+      var rKey = 'lq'; 
+      if (tcLower.includes('làm chứng')) rKey = 'lc';
+      else if (tcLower.includes('nguyên đơn') || tcLower.includes('khởi kiện') || (tcLower.includes('yêu cầu') && !tcLower.includes('bị'))) rKey = 'nd';
+      else if (tcLower.includes('bị đơn') || tcLower.includes('bị kiện') || tcLower.includes('bị cáo') || tcLower.includes('bị yêu cầu')) rKey = 'bd';
+
+      var targetGroup = window.a4State.find(g => g.roleKey === rKey);
+      if (targetGroup) {
+        var cleanNewName = window.toTitleCase(window.cleanHonorificFromName(p.hoTen));
+        targetGroup.members.push({
+          id: 'm_' + Math.random().toString(36).substr(2, 9),
+          title: p.xungHo || 'Ông/Bà',
+          name: cleanNewName,
+          year: p.namSinh || '',
+          address: p.diaChi || '',
+          phone: p.sdt || '',
+          idCard: p.cccd || '',
+          reps: []
+        });
+      }
+    });
+    window.renderA4Editor();
+    window.saveA4StateToServer();
+  }
+
+  // 2. Cập nhật biến vào RAM (Master copy)
+  window.currentCaseVariables = Object.assign({}, window.currentCaseVariables || {}, extractedVars);
+  window.currentCaseNarratives = Object.assign({}, window.currentCaseNarratives || {}, extractedNars);
+
+  // 3. Đổ toàn văn chi tiết lên Canvas Textarea
+  var textarea = document.getElementById('case_free_narrative_text');
+  if (textarea) {
+    var compiled = [];
+
+    // Biên lai án phí
+    if (extractedVars["{Biên lai tạm ứng án phí}"]) {
+      compiled.push("[TẠM ỨNG ÁN PHÍ - NQ 326]:\n" + extractedVars["{Biên lai tạm ứng án phí}"]);
+    }
+    // Danh mục chứng cứ kèm đơn
+    if (extractedVars["{Tài liệu kèm theo đơn khởi kiện}"]) {
+      compiled.push("[DANH MỤC TÀI LIỆU, CHỨNG CỨ KÈM THEO ĐƠN]:\n" + extractedVars["{Tài liệu kèm theo đơn khởi kiện}"]);
+    }
+    // Lời khai đương sự
+    var lk = extractedVars["{Lời khai đương sự}"] || extractedVars["{Nội dung vụ án}"];
+    if (lk) {
+      compiled.push("[TRÍCH LỤC LỜI KHAI ĐƯƠNG SỰ]:\n" + lk);
+    }
+    // Thỏa thuận hòa giải
+    if (extractedVars["{Nội dung thỏa thuận}"]) {
+      compiled.push("[NỘI DUNG THỎA THUẬN HÒA GIẢI]:\n" + extractedVars["{Nội dung thỏa thuận}"]);
+    } else {
+      var ts = [];
+      if (extractedVars["{Quan hệ hôn nhân}"]) ts.push("1. Về quan hệ hôn nhân: " + extractedVars["{Quan hệ hôn nhân}"]);
+      if (extractedVars["{Thỏa thuận con chung}"] || extractedVars["{Con chung}"]) ts.push("2. Về con chung: " + (extractedVars["{Thỏa thuận con chung}"] || extractedVars["{Con chung}"]));
+      if (extractedVars["{Tài sản chung}"]) ts.push("3. Về tài sản chung: " + extractedVars["{Tài sản chung}"]);
+      if (extractedVars["{Nợ chung}"]) ts.push("4. Về nợ chung: " + extractedVars["{Nợ chung}"]);
+      if (extractedVars["{Thỏa thuận án phí}"]) ts.push("5. Về án phí: " + extractedVars["{Thỏa thuận án phí}"]);
+      if (ts.length > 0) compiled.push("[NỘI DUNG THỎA THUẬN HÒA GIẢI]:\n" + ts.join("\n"));
+    }
+
+    var newContent = compiled.join("\n\n");
+    if (newContent) {
+      textarea.value = textarea.value.trim() ? (textarea.value.trim() + "\n\n" + newContent) : newContent;
+      window.saveOpenCanvasText();
+    }
+  }
+
+  var msg = (mode === 'STATEMENT_ONLY') 
+    ? "Đã nạp toàn văn lời khai chi tiết vào hồ sơ!" 
+    : "Đã trích xuất nguyên liệu và cập nhật đầy đủ thông tin đương sự!";
+  AppUI.showToast(msg, "success");
+};
+</script>

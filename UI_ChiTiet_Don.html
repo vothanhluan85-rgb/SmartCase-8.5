@@ -1,146 +1,438 @@
 <!--
-  HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V7.6 - GIAO DIỆN CHI TIẾT ĐƠN
-  FILE: UI_ChiTiet_Don.html
-  ------------------------------------------------------------
-  Chức năng: Chỉnh sửa, phân tích AI và quản lý đương sự đơn.
+  =========================================================================
+  HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.0 - CHI TIẾT ĐƠN KHỞI KIỆN (TIỀN TỐ TỤNG)
+  TỆP: UI_ChiTiet_Don.html - GIAO DIỆN PHẲNG, TÍNH ÁN PHÍ & TRẠM TRỘN VĂN BẢN
+  - TUÂN THỦ 100% QUY CHUẨN V8.0 PRODUCTION MASTER
+  - CHUYỂN THỤ LÝ THÀNH ÁN 1-CLICK TỰ ĐỘNG MAP TƯ CÁCH TỐ TỤNG
+  - TỰ ĐỘNG LƯU DEBOUNCED & TRẠM TRỘN VĂN BẢN XỬ LÝ ĐƠN TIỆN LỢI
+  =========================================================================
 -->
 
-<div class="animate-fadeIn p-2 p-md-3">
+<style>
+  /* =========================================================================
+     1. HỆ THỐNG GIAO DIỆN CHỦ ĐẠO CHI TIẾT ĐƠN
+     ========================================================================= */
+  .don-det-container {
+    color: #0f172a;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-  <!-- 1. THANH ĐIỀU HƯỚNG & THAO TÁC CHÍNH -->
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <button class="btn btn-outline-secondary shadow-sm fw-bold" style="border-radius: 20px; font-size: 12px;" onclick="appNavigate('view-danh-sach-don')">
-      <i class="fas fa-chevron-left me-2"></i>QUAY LẠI SỔ ĐƠN
-    </button>
-    <div class="d-flex gap-2">
-      <button class="btn btn-outline-danger fw-bold px-3 shadow-sm" style="font-size: 12px; border-radius: 8px;" onclick="window.xoaDonHienTai()">
-        <i class="fas fa-trash-alt me-1"></i> XÓA ĐƠN
-      </button>
-      <button class="btn btn-primary fw-bold px-4 shadow-sm" style="font-size: 12px; border-radius: 8px;" onclick="window.luuThongTinDon()">
-        <i class="fas fa-save me-2"></i> LƯU THÔNG TIN ĐƠN
-      </button>
-    </div>
-  </div>
+  .don-det-card {
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
+    overflow: hidden;
+  }
 
-  <!-- 2. BANNER THÔNG TIN CHUNG -->
-  <div class="bg-white shadow-sm border-0 mb-4" style="border-radius: 12px; border-left: 5px solid #0dcaf0 !important;">
-    <div class="p-3">
-      <div class="row align-items-center">
-        <div class="col-md-4 border-end">
-          <h5 class="fw-bold text-dark m-0" id="don_header_title">THÊM ĐƠN KHỞI KIỆN MỚI</h5>
-          <input type="hidden" id="don_id">
-        </div>
-        <div class="col-md-8">
-           <div class="d-flex flex-wrap gap-4 ps-3">
-              <div><span class="small-label" style="font-size: 11px; color:#6c757d; font-weight: bold; text-transform: uppercase;">Ngày nhận đơn</span><input type="date" id="don_ngayNhan" class="form-control form-control-sm fw-bold border-0 p-0 shadow-none"></div>
-              <div><span class="small-label" style="font-size: 11px; color:#6c757d; font-weight: bold; text-transform: uppercase;">Phân loại</span>
-                <select id="don_loaiAn" class="form-select form-select-sm fw-bold border-0 p-0 shadow-none" style="width: auto;">
-                   <option value="1. Hình sự">1. Hình sự (Tố giác)</option>
-                   <option value="2. Dân sự" selected>2. Dân sự</option>
-                   <option value="3. Hôn nhân">3. Hôn nhân & GĐ</option>
-                   <option value="4. Kinh doanh">4. Kinh doanh</option>
-                   <option value="5. Lao động">5. Lao động</option>
-                   <option value="6. Hành chính">6. Hành chính</option>
-                   <option value="7. Hòa giải đối thoại">7. Hòa giải đối thoại</option>
-                </select>
-              </div>
-              <div><span class="small-label" style="font-size: 11px; color:#6c757d; font-weight: bold; text-transform: uppercase;">Số đơn (Sổ văn thư)</span><input type="text" id="don_soDon" class="form-control form-control-sm fw-bold border-0 p-0 shadow-none text-info" placeholder="Nhập số đơn..."></div>
-           </div>
-        </div>
+  /* Nút bấm thanh công cụ */
+  .btn-action-tool {
+    border-radius: 8px !important;
+    font-weight: 700 !important;
+    font-size: 12px !important;
+    height: 35px !important;
+    padding: 0 0.85rem !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+  .btn-action-primary {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+    border-color: #2563eb !important;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+  }
+  .btn-action-primary:hover { 
+    background-color: #1d4ed8 !important; 
+  }
+  .btn-action-tonal {
+    background-color: #eff6ff !important;
+    color: #1d4ed8 !important;
+    border-color: #bfdbfe !important;
+  }
+  .btn-action-tonal:hover { 
+    background-color: #dbeafe !important; 
+  }
+  .btn-action-success {
+    background-color: #f0fdf4 !important;
+    color: #15803d !important;
+    border-color: #bbf7d0 !important;
+  }
+  .btn-action-outline {
+    background-color: #ffffff !important;
+    color: #475569 !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  }
+  .btn-action-outline:hover { 
+    background-color: #f8fafc !important; 
+    color: #0f172a !important; 
+  }
+  .btn-action-danger {
+    background-color: #ffffff !important;
+    color: #dc2626 !important;
+    border-color: #fecaca !important;
+  }
+  .btn-action-danger:hover { 
+    background-color: #fef2f2 !important; 
+  }
+
+  /* Thanh Pill Search Tra cứu nhanh số đơn */
+  .don-quick-search-pill {
+    height: 35px;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 20px !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    width: 240px;
+  }
+  .don-quick-search-pill:focus-within {
+    background: #ffffff;
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  }
+  .don-quick-search-pill input {
+    background: transparent !important;
+    font-size: 12px;
+    font-weight: 600;
+    color: #0f172a;
+  }
+  .don-quick-search-pill input::placeholder {
+    color: #94a3b8;
+    font-weight: 400;
+  }
+
+  /* Nhãn và Ô nhập liệu xúc giác */
+  .don-field-label {
+    font-size: 10.5px;
+    font-weight: 800;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .don-field-control {
+    font-size: 13px;
+    font-weight: 600;
+    color: #0f172a;
+    background-color: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 0.38rem 0.65rem;
+    transition: all 0.15s ease;
+  }
+  .don-field-control:focus {
+    background-color: #ffffff;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    outline: none;
+  }
+
+  /* Tiêu đề Phân vùng Đương sự */
+  .don-party-header-bar {
+    padding: 8px 14px;
+    background-color: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .don-party-title-text {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Ghi chú Google Keep ấm áp */
+  .keep-note-card-don {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-top: 3px solid #f59e0b;
+    border-radius: 10px;
+    padding: 10px 12px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  }
+</style>
+
+<div class="animate-fadeIn p-2 p-md-3 don-det-container">
+  
+  <!-- 1. THANH ĐIỀU HƯỚNG & CÔNG CỤ TÁC NGHIỆP TRÊN CÙNG -->
+  <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-action-outline btn-action-tool" onclick="appNavigate('view-danh-sach-don')">
+        <i class="fas fa-arrow-left text-primary"></i> Sổ Đơn
+      </button>
+      
+      <div class="fw-bold text-dark border-start ps-3 text-uppercase d-none d-sm-block" id="don_header_title" style="font-size: 13.5px; letter-spacing: 0.4px;">
+        CHI TIẾT HỒ SƠ ĐƠN
       </div>
+      <input type="hidden" id="don_id">
     </div>
-  </div>
-
-  <!-- 3. NỘI DUNG CHI TIẾT -->
-  <div class="row g-4">
     
-    <!-- CỘT TRÁI: ĐƯƠNG SỰ & QUAN HỆ -->
-    <div class="col-lg-8">
+    <div class="d-flex gap-1 align-items-center flex-wrap">
+      <!-- Chỉ báo lưu ngầm -->
+      <span id="don_autosave_indicator" class="small fw-bold text-success me-1" style="font-size: 11px;"></span>
       
-      <!-- Scan AI Box -->
-      <div class="mb-3">
-        <button class="btn btn-info text-white w-100 fw-bold shadow-sm py-2" style="border-radius: 8px;" onclick="document.getElementById('scan-don-ai-input').click()">
-          <i class="fas fa-robot me-2"></i> QUÉT ĐƠN BẰNG GROQ AI (WORD/PDF) ĐỂ TỰ ĐIỀN THÔNG TIN
+      <!-- Ô TRA CỨU NHANH BẰNG SỐ ĐƠN (PILL SEARCH) -->
+      <div class="input-group don-quick-search-pill d-none d-md-inline-flex">
+        <span class="input-group-text bg-transparent border-0 ps-3 pe-1 text-muted" style="font-size: 11px;">
+          <i class="fas fa-search text-slate-400"></i>
+        </span>
+        <input type="text" id="don_quick_search_no" class="form-control border-0 ps-1" placeholder="Tìm số đơn..." onkeyup="window.debounceQuickLoadDon(event)" autocomplete="off">
+        <button class="btn btn-transparent border-0 pe-3 text-muted" type="button" onclick="window.quickLoadDonByNo()" title="Tìm kiếm">
+          <i class="fas fa-arrow-right text-primary" style="font-size: 11px;"></i>
         </button>
-        <input type="file" id="scan-don-ai-input" class="d-none" accept=".doc,.docx,.pdf" onchange="window.scanDocumentForInfoDon(this)">
       </div>
-
-      <div class="bg-white shadow-sm border p-4" style="border-radius: 12px;">
-        <div class="mb-4">
-          <label class="small-label text-primary" style="font-size: 11px; font-weight: bold; text-transform: uppercase;">Quan hệ tranh chấp / Nội dung yêu cầu *</label>
-          <input type="text" id="don_quanHe" class="form-control form-control-lg fw-bold border-0 border-bottom rounded-0 px-0" placeholder="VD: Tranh chấp hợp đồng vay tài sản...">
-        </div>
-
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h6 class="fw-bold m-0"><i class="fas fa-users me-2 text-primary"></i>DANH SÁCH ĐƯƠNG SỰ TRONG ĐƠN</h6>
-          <button class="btn btn-sm btn-outline-primary fw-bold" onclick="window.addPartyRowDon()"><i class="fas fa-plus me-1"></i> Thêm đương sự</button>
-        </div>
-
-        <div class="table-responsive">
-          <table class="table align-middle gs-table">
-            <thead class="table-light">
-              <tr style="font-size: 11px; text-transform: uppercase;">
-                <th style="width: 25%;">Tư cách</th>
-                <th style="width: 30%;">Họ tên / Xưng hô</th>
-                <th style="width: 35%;">Địa chỉ / Liên hệ</th>
-                <th style="width: 10%;"></th>
-              </tr>
-            </thead>
-            <tbody id="don-party-list">
-              <!-- JS render rows here -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- CỘT PHẢI: XỬ LÝ & ÁN PHÍ -->
-    <div class="col-lg-4">
       
-      <!-- Hướng xử lý & Phân công -->
-      <div class="bg-white shadow-sm border p-3 mb-4" style="border-radius: 12px;">
-        <h6 class="fw-bold border-bottom pb-2 mb-3 small"><i class="fas fa-gavel me-2 text-warning"></i>XỬ LÝ NGHIỆP VỤ</h6>
-        
-        <div class="mb-3">
-          <label class="small-label" style="font-size: 11px; font-weight: bold; text-transform: uppercase; color:#6c757d;">Hướng xử lý đơn</label>
-          <select id="don_huongXuLy" class="form-select fw-bold border-warning">
+      <!-- Nút Chuyển thụ lý thành Án -->
+      <button class="btn btn-action-tonal btn-action-tool" onclick="window.chuyenDonSangThuLy(document.getElementById('don_id').value)" title="Chuyển đơn này sang Thụ lý vụ án chính thức">
+        <i class="fas fa-arrow-right-to-bracket text-primary"></i> Chuyển thụ lý
+      </button>
+
+      <!-- Nút Xóa đơn -->
+      <button class="btn btn-action-danger btn-action-tool" onclick="window.xoaDonHienTai()" title="Xóa hồ sơ đơn này">
+        <i class="fas fa-trash-alt"></i> Xóa
+      </button>
+      
+      <!-- Nút Lưu đơn -->
+      <button class="btn btn-action-primary btn-action-tool shadow-sm px-3" onclick="window.luuThongTinDon(false)" title="Lưu thông tin đơn">
+        <i class="fas fa-save"></i> Lưu đơn
+      </button>
+    </div>
+  </div>
+
+  <!-- 2. KHỐI THÔNG TIN HÀNH CHÍNH CỦA ĐƠN -->
+  <div class="don-det-card mb-2">
+    <div class="p-3">
+      <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-4 g-2 align-items-end">
+        <div class="col">
+          <label class="don-field-label">Số đơn tiếp nhận *</label>
+          <input type="text" id="don_soDon" class="form-control don-field-control fw-bold text-primary" style="font-size: 13.5px;" autocomplete="off">
+        </div>
+        <div class="col">
+          <label class="don-field-label">Ngày nhận đơn *</label>
+          <input type="date" id="don_ngayNhan" class="form-control don-field-control fw-bold text-dark">
+        </div>
+        <div class="col">
+          <label class="don-field-label">Thẩm phán phân công</label>
+          <input type="text" id="don_thamPhan" class="form-control don-field-control fw-bold text-dark" placeholder="Chưa phân công" autocomplete="off">
+        </div>
+        <div class="col">
+          <label class="don-field-label">Trạng thái xử lý</label>
+          <select id="don_trangThai_display" class="form-select don-field-control fw-bold text-primary">
+            <option value="Chưa xử lý">Chưa xử lý</option>
             <option value="Đang xem xét">Đang xem xét</option>
+            <option value="Báo xử lý đơn">Báo xử lý đơn</option>
+            <option value="Thông báo lựa chọn hòa giải">Thông báo lựa chọn hòa giải</option>
+            <option value="Chuyển hòa giải đối thoại">Chuyển hòa giải đối thoại</option>
             <option value="Yêu cầu sửa đổi, bổ sung">Yêu cầu sửa đổi, bổ sung</option>
-            <option value="Chuyển đơn cho cơ quan khác">Chuyển đơn cho cơ quan khác</option>
+            <option value="Đã hẹn làm việc">Đã hẹn làm việc</option>
+            <option value="SMS - Hướng dẫn">SMS - Hướng dẫn</option>
             <option value="Trả lại đơn">Trả lại đơn</option>
-            <option value="Đã thụ lý thành vụ án">Đã thụ lý thành vụ án</option>
+            <option value="Chuyển đơn">Chuyển đơn</option>
+            <option value="Đã thụ lý">Đã thụ lý thành án</option>
+            <option value="Đã xử lý xong">Đã xử lý xong</option>
+            <option value="Đã xử lý xong + SMS">Đã xử lý xong + SMS</option>
           </select>
         </div>
+      </div>
+    </div>
+  </div>
 
-        <div class="mb-3">
-          <label class="small-label" style="font-size: 11px; font-weight: bold; text-transform: uppercase; color:#6c757d;">Thẩm phán phân công</label>
-          <input type="text" id="don_thamPhan" class="form-control shadow-none" placeholder="Tên thẩm phán...">
+  <!-- 3. KHỐI ĐƯƠNG SỰ THEO ĐƠN (TIỀN TỐ TỤNG) -->
+  <div class="row g-2 mb-2">
+    <!-- BÊN KHỞI KIỆN / YÊU CẦU -->
+    <div class="col-md-6">
+      <div class="don-det-card h-100 mb-0">
+        <div class="don-party-header-bar">
+          <span class="don-party-title-text text-primary">
+            <i class="fas fa-user-plus"></i> BÊN KHỞI KIỆN / YÊU CẦU
+          </span>
         </div>
+        <div class="p-2 p-md-3" id="don-party-list-nkk"></div>
+      </div>
+    </div>
+    
+    <!-- BÊN BỊ KIỆN / BỊ YÊU CẦU -->
+    <div class="col-md-6">
+      <div class="don-det-card h-100 mb-0">
+        <div class="don-party-header-bar">
+          <span class="don-party-title-text text-danger">
+            <i class="fas fa-user-minus"></i> BÊN BỊ KIỆN / BỊ YÊU CẦU
+          </span>
+        </div>
+        <div class="p-2 p-md-3" id="don-party-list-nbk"></div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- NÚT MỞ RỘNG NGƯỜI CÓ QUYỀN LỢI NGHĨA VỤ LIÊN QUAN -->
+  <div class="text-center mb-2">
+    <button class="btn btn-action-outline btn-action-tool shadow-sm text-secondary" onclick="window.toggleNLQSection()" id="btn-toggle-nlq" style="border-radius: 20px !important;">
+      <i class="fas fa-users-viewfinder text-warning me-1"></i> Hiển thị Người có quyền lợi, nghĩa vụ liên quan
+    </button>
+  </div>
+  
+  <div id="nlq-section" style="display: none;" class="mb-2">
+    <div class="don-det-card">
+      <div class="don-party-header-bar">
+        <span class="don-party-title-text text-warning-emphasis">
+          <i class="fas fa-users"></i> NGƯỜI CÓ QUYỀN LỢI, NGHĨA VỤ LIÊN QUAN
+        </span>
+      </div>
+      <div class="p-3 row g-2" id="don-party-list-nlq"></div>
+    </div>
+  </div>
 
-        <div class="p-3 rounded bg-light border">
-          <label class="small-label text-danger" style="font-size: 11px; font-weight: bold; text-transform: uppercase;">Tạm ứng án phí dự tính</label>
-          <div class="input-group input-group-sm mb-2">
-            <span class="input-group-text">Giá trị</span>
-            <input type="text" id="don_giaTri" class="form-control fw-bold" placeholder="VNĐ" oninput="window.formatCurrency(this); window.calculateDonFee(this.value)">
+  <!-- 4. KHỐI QUAN HỆ TRANH CHẤP & PHÂN LOẠI -->
+  <div class="don-det-card mb-2">
+    <div class="p-3">
+      <div class="row g-2">
+        <div class="col-md-4">
+          <label class="don-field-label">Phân loại án / việc *</label>
+          <select id="don_loaiAn" class="form-select don-field-control fw-bold text-dark" onchange="window.calculateDonFee()">
+            <option value="2. Dân sự">2. Dân sự</option>
+            <option value="3. Hôn nhân">3. Hôn nhân & Gia đình</option>
+            <option value="4. Kinh doanh">4. Kinh doanh Thương mại</option>
+            <option value="5. Lao động">5. Lao động</option>
+            <option value="6. Hành chính">6. Hành chính</option>
+            <option value="1. Hình sự">1. Hình sự (Tố giác)</option>
+            <option value="7. Việc dân sự">7. Việc dân sự</option>
+            <option value="8. Hòa giải đối thoại">8. Hòa giải đối thoại</option>
+          </select>
+        </div>
+        <div class="col-md-8">
+          <label class="don-field-label">Quan hệ tranh chấp / Nội dung yêu cầu *</label>
+          <input type="text" id="don_quanHe" class="form-control don-field-control fw-bold" placeholder="Nhập quan hệ tranh chấp hoặc nội dung yêu cầu cụ thể..." autocomplete="off">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. KHỐI TÍNH ÁN PHÍ, GHI CHÚ & SOẠN THẢO VĂN BẢN -->
+  <div class="row g-2">
+    
+    <!-- Cột trái: Án phí + Ghi chú -->
+    <div class="col-lg-5 d-flex flex-column gap-2">
+      
+      <!-- Bộ tính án phí theo NQ 326 -->
+      <div class="don-det-card">
+        <div class="don-party-header-bar">
+          <span class="don-party-title-text text-success">
+            <i class="fas fa-calculator"></i> TÍNH ÁN PHÍ & TẠM ỨNG (NQ 326)
+          </span>
+        </div>
+        <div class="p-3">
+          <div class="mb-2">
+            <label class="don-field-label">Giá trị tranh chấp (VNĐ)</label>
+            <input type="text" id="don_giaTri" class="form-control don-field-control fw-bold text-success" placeholder="Để trống nếu không có giá ngạch" oninput="window.formatCurrency(this); window.calculateDonFee()" autocomplete="off">
           </div>
-          <div class="d-flex justify-content-between align-items-center">
-            <span class="small fw-bold">Mức tạm ứng:</span>
-            <span class="h6 m-0 fw-bold text-danger" id="don_ketQuaTamUng">0</span>
-            <input type="hidden" id="don_tamUngValue">
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="don-field-label">Án phí dự tính</label>
+              <input type="text" id="don_res_anPhi" class="form-control don-field-control bg-light fw-bold" readonly value="0">
+              <div id="don_res_anPhi_chu" class="small text-muted fst-italic mt-1" style="font-size: 10.5px;">(Không đồng)</div>
+            </div>
+            <div class="col-6">
+              <label class="don-field-label text-danger">Tạm ứng án phí</label>
+              <input type="text" id="don_res_tamUng" class="form-control don-field-control bg-light fw-bold text-danger" readonly value="0">
+              <div id="don_res_tamUng_chu" class="small text-muted fst-italic mt-1" style="font-size: 10.5px;">(Không đồng)</div>
+              <input type="hidden" id="don_tamUngValue" value="0">
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Phân tích AI & Ghi chú -->
-      <div class="shadow-sm p-3" style="border-radius: 12px; background: #fffdf2; border: 1px solid #ffeeba; min-height: 250px;">
-        <div class="fw-bold border-bottom pb-2 mb-2 small text-warning-emphasis">
-          <i class="fas fa-brain me-2"></i>PHÂN TÍCH AI / GHI CHÚ NHANH
+      <!-- Vùng Ghi chú hồ sơ (Giao diện chuẩn Keep Note) -->
+      <div class="keep-note-card-don flex-grow-1 d-flex flex-column" id="don_ghiChu_card">
+        <div class="fw-bold border-bottom pb-1 text-dark mb-2 d-flex align-items-center justify-content-between" style="font-size: 11px; border-color: #f1f5f9 !important;">
+          <span><i class="far fa-note-sticky text-warning me-1"></i> LƯU Ý / GHI CHÚ NHANH</span>
+          <span class="text-muted fst-italic" style="font-size: 9.5px;">Tự lưu khi rời chuột</span>
         </div>
-        <textarea id="don_aiAnalysis" class="form-control border-0 bg-transparent shadow-none" 
-                  style="font-size: 13px; color: #333; resize: none; line-height: 1.6; height: 180px;" 
-                  placeholder="AI sẽ phân tích tóm tắt đơn tại đây hoặc bạn có thể tự ghi chú..."></textarea>
+        <textarea id="don_ghiChu" class="form-control border-0 bg-transparent shadow-none px-0 fw-semibold text-dark flex-grow-1" style="font-size: 12.5px; resize: none; min-height: 70px;" placeholder="Gõ ghi chú quan trọng cần xử lý cho đơn..." onblur="window.saveQuickNoteDon()"></textarea>
       </div>
 
     </div>
+
+    <!-- Cột phải: Soạn thảo văn bản xử lý đơn -->
+    <div class="col-lg-7">
+      <div class="don-det-card h-100 d-flex flex-column">
+        <div class="don-party-header-bar">
+          <span class="don-party-title-text text-primary">
+            <i class="fas fa-file-signature"></i> TRẠM SOẠN THẢO VĂN BẢN XỬ LÝ ĐƠN
+          </span>
+        </div>
+        <div class="p-3 flex-grow-1 d-flex flex-column">
+          <div class="row g-3 flex-grow-1">
+            
+            <!-- Trạm 1: Biểu mẫu đính kèm -->
+            <div class="col-md-6 border-end pe-md-3 d-flex flex-column">
+              <label class="don-field-label text-dark">1. CHỌN BIỂU MẪU ĐƠN</label>
+              <div id="don_template_list" class="border rounded-3 bg-slate-50 overflow-auto p-2 mb-2 flex-grow-1" style="min-height: 180px; max-height: 240px; background: #f8fafc;">
+                <div class="p-4 text-center text-muted small">
+                  <div class="spinner-border spinner-border-sm me-2 text-primary"></div> Đang nạp danh mục biểu mẫu...
+                </div>
+              </div>
+              <button class="btn btn-action-outline w-100 justify-content-center" onclick="window.openDonTemplateFolder()" style="font-size: 11px;">
+                <i class="fas fa-folder-open text-warning me-1"></i> Mở kho mẫu Drive
+              </button>
+            </div>
+            
+            <!-- Trạm 2: Thông số xuất văn bản -->
+            <div class="col-md-6 ps-md-3 d-flex flex-column justify-content-between">
+              <div>
+                <label class="don-field-label text-dark">2. THÔNG SỐ XUẤT VĂN BẢN</label>
+                
+                <div class="mb-2">
+                  <label class="small text-muted mb-1 fw-bold" style="font-size: 10.5px;">Ngày ban hành Thông báo / Quyết định</label>
+                  <input type="date" id="don_process_ngayBanHanh" class="form-control don-field-control fw-bold">
+                </div>
+                
+                <div class="mb-2">
+                  <label class="small text-muted mb-1 fw-bold" style="font-size: 10.5px;">Lịch hẹn làm việc / Triệu tập</label>
+                  <div class="d-flex gap-2">
+                    <input type="time" id="don_process_time" class="form-control don-field-control fw-bold text-dark" value="08:00" style="width: 45%;">
+                    <input type="date" id="don_process_date" class="form-control don-field-control fw-bold text-dark" style="width: 55%;">
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Nút hành động xuất file -->
+              <div class="d-flex flex-column gap-1 pt-2 border-top mt-2">
+                <button class="btn btn-action-primary btn-action-tool w-100 justify-content-center shadow-sm py-2" onclick="window.thucHienTronThuDon()">
+                  <i class="fas fa-file-word"></i> Xuất văn bản đơn
+                </button>
+                
+                <div class="d-flex gap-1">
+                  <button class="btn btn-action-success btn-action-tool w-100 justify-content-center" onclick="window.openBulkActionModal(document.getElementById('don_id').value)">
+                    <i class="fas fa-calendar-check"></i> Lịch hẹn & SMS
+                  </button>
+                  
+                  <button class="btn btn-action-outline btn-action-tool w-100 justify-content-center" onclick="window.openDonFolder()">
+                    <i class="fab fa-google-drive text-warning"></i> Mở Drive
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>

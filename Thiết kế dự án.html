@@ -1,0 +1,365 @@
+📑 TÀI LIỆU THIẾT KẾ CHI TIẾT KIẾN TRÚC HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V7.8+
+(TÒA ÁN NHÂN DÂN — PHIÊN BẢN MASTER PRODUCTION CORE)
+PHẦN 1: TỔNG QUAN KIẾN TRÚC & CƠ SỞ DỮ LIỆU HỆ THỐNG
+1.1. Mô hình Kiến trúc Tổng thể
+Hệ thống vận hành theo kiến trúc Single Page Application (SPA) không tải lại trang, xây dựng trên nền tảng Google Apps Script (V8 Engine) kết hợp hệ sinh thái Google Workspace:
+Database Layer: Google Sheets (8 bảng dữ liệu quan hệ).
+Storage Layer: Google Drive API (Tự động khởi tạo cây thư mục Năm / Loại án / [Số TL - Tên đương sự]).
+Calendar Engine: Google Calendar API kết hợp Thuật toán Mốc 24h & Ngày làm việc tố tụng.
+AI Engine: Google Gemini AI Studio (Gemini 3.5/3.6 Flash) phục vụ Copilot, OCR bóc tách văn bản và tự động tạo phôi mẫu.
+UI/UX Language: Modern Executive Warm Slate & Google Material 3 (Tactile & High Density, tối ưu hóa chống nhòe nét khi chạy trên Windows Scaling 125% – 150%).
+code
+Code
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                             CLIENT TRÌNH DUYỆT (SPA FRONTEND)                            │
+│  UI_Chinh (Shell) ──► 10 Views Giao diện ──► 19 Master Modals ──► 6 Bộ Datalist Tố tụng │
+│         ▲                                         ▲                                     │
+│         │ (Render 0ms)                            │ (Action Handlers)                   │
+│  State RAM Client (G_An, G_Don, G_LichTrinh, a4State, CURRENT_APP_CONTEXT)             │
+└────────────────────────────────────────┬────────────────────────────────────────────────┘
+                                         │ google.script.run (RPC)
+┌────────────────────────────────────────▼────────────────────────────────────────────────┐
+│                             MASTER API GATEWAY (8_GiaoTiep.gs)                           │
+└────┬─────────────────┬───────────────────┬───────────────────┬─────────────────────┬────┘
+     │                 │                   │                   │                     │
+┌────▼──────────┐ ┌────▼───────────┐ ┌─────▼──────────┐ ┌──────▼───────────┐ ┌───────▼────┐
+│ 0_XuLyDon.gs  │ │  3_XuLyAn.gs   │ │ 4_XuLyLich.gs  │ │  6_VanBan.gs     │ │ 9_ModuleAI.gs│
+│ Sổ nhận đơn   │ │  Sổ thụ lý     │ │ Lịch công tác  │ │ Mail Merge V3    │ │ Gemini Flash │
+│ Fast SMS, NQ326 │ DeadlineEngine │ Google Calendar  │ Docs Generator     │ OCR & Copilot  │
+└────┬──────────┘ └────┬───────────┘ └─────┬──────────┘ └──────┬───────────┘ └───────┬────┘
+     │                 │                   │                   │                     │
+┌────▼─────────────────▼───────────────────▼───────────────────▼─────────────────────▼────┐
+│                       GOOGLE WORKSPACE APIS & CƠ SỞ DỮ LIỆU                             │
+│  Google Sheets (8 bảng CSDL) │ Google Drive (Hồ sơ & Mẫu) │ Google Calendar (Lịch Tòa)  │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+1.2. Schema Chi tiết 8 Bảng Dữ liệu Google Sheets
+0_SoNhanDon (11 cột): Quản lý hồ sơ tiền tố tụng.
+ID_Don (PK - Chuỗi DON_...), Số đơn, Ngày nhận, Phân loại án, Quan hệ tranh chấp, Giá trị tranh chấp, Hướng xử lý, Thẩm phán phân công, Tạm ứng án phí, Trạng thái, Ghi chú / Phân tích AI.
+0_DuongSuDon (9 cột): Đương sự của Sổ nhận đơn.
+ID_Don (FK), Tư cách (Tiền tố tụng), Xưng hô, Họ Tên, Năm Sinh, Địa Chỉ, Điện Thoại, CCCD, Người đại diện.
+1_SoThuLy (14 cột): Quản lý hồ sơ vụ án chính thức.
+ID_VuAn (PK - Chuỗi AN_...), Số Thụ Lý, Ngày Thụ Lý, Loại Án, Quan Hệ / Tội Danh, Hạn Giải Quyết, Trạng Thái (Đang giải quyết, Tạm đình chỉ, Đã giải quyết), Link Drive, Ghi Chú, QLTA_Status, CONG_BO_Status, Ngay_Tac_Dong_Cuoi, Kết Quả Giải Quyết (Loại KQ \n Số hiệu \n Ngày ban hành), Nguồn dữ liệu.
+2_DuongSu (10 cột): Danh sách đương sự chính thức của vụ án.
+ID_VuAn (FK), Tư cách, Xưng Hô, Họ Tên, Năm Sinh, Địa Chỉ, Điện Thoại, CCCD, Người đại diện (Chuỗi JSON), Ngày ủy quyền.
+3_LichTrinh (7 cột): Lịch công tác, phiên họp, xét xử, mốc 24h.
+ID_Lich (PK), ID_VuAn (FK / "GENERAL"), Ngày Giờ, Nội Dung Công Việc, Trạng Thái (Chưa thực hiện, Hoàn thành), Ghi Chú, Calendar_ID (Google Calendar Event ID).
+4_NhatKy (4 cột): Audit log lịch sử tác động.
+ID_VuAn, Thời Gian, Sự Kiện, Chi Tiết.
+5_CaiDat (2 cột): 12 tham số cấu hình hệ thống (Key - Value).
+TEN_THAM_PHAN, TEN_TOA_AN, DIA_CHI_TOA, CHUC_VU, TEN_THU_KY, ID_THUMUC_AN, ID_THUMUC_MAU, GEMINI_API_KEY, ID_EXCEL_DON, ID_THUMUC_DON, ID_THUMUC_MAU_DON, AUTO_SYNC.
+6_Placeholder & 7_BieuMau: Bảng từ điển biến và cấu hình nhắc thời gian/địa điểm của 64 biểu mẫu.
+1.3. Cấu trúc RAM State Client-Side (Trình duyệt)
+window.G_An / window.G_Cases: Mảng đối tượng toàn bộ vụ án (đồng bộ 2 chiều qua Object.defineProperty).
+window.G_Don: Mảng đối tượng toàn bộ đơn khởi kiện.
+window.G_LichTrinh: Mảng sự kiện lịch công tác và mốc thời hạn.
+window.CURRENT_APP_CONTEXT: { scope: "GLOBAL"|"CASE"|"DON", caseInfo, caseParties, donInfo } (Ngữ cảnh thời gian thực cho Copilot AI).
+window.a4State: Cấu trúc cây 4 khối đương sự trực quan của trình soạn thảo A4:
+code
+JSON
+[
+  { "roleKey": "nd", "sameAddress": false, "sharedAddress": "", "members": [{ "id", "title", "name", "year", "address", "phone", "idCard", "reps": [...] }] },
+  { "roleKey": "bd", "sameAddress": false, "sharedAddress": "", "members": [...] },
+  { "roleKey": "lq", "sameAddress": false, "sharedAddress": "", "members": [...] },
+  { "roleKey": "lc", "sameAddress": false, "sharedAddress": "", "members": [...] }
+]
+PHẦN 2: TỪ ĐIỂN 19 TỆP TIN & MA TRẬN TOÀN BỘ HÀM
+2.1. Nhóm Lõi Backend (.GS) — 10 Tệp
+📌 1. 0_XuLyDon.gs (Quản lý Sổ Nhận Đơn & Tiền Tố Tụng)
+api_LayDanhSachDon(clientStartTs, clientEndTs): Quét dữ liệu từ 0_SoNhanDon và ghép nối quan hệ từ 0_DuongSuDon, trả về danh sách đơn.
+api_RutTrichThongTinDon(soDon): Bóc tách thông tin đơn phục vụ chuyển sang form Thụ lý án mới.
+api_DongBoDonTuExcel(): Đọc file Excel Sổ đơn gốc của Văn thư qua Drive API, hợp nhất thông minh vào CSDL.
+api_LuuThongTinDon(payload): Khóa luồng LockService, thêm mới hoặc cập nhật đơn và đương sự liên kết.
+api_LuuNhieuDon_Bulk(payloads): Cập nhật trạng thái hàng loạt đơn sau khi gửi SMS / Lên lịch tiếp dân.
+api_XoaDon(idDon) & api_XoaNhieuDon(ids): Xóa đơn và đương sự mồ côi.
+api_LuuVaTronThuDon_SuperFast(payloadData, payloadMerge): Gộp luồng: Lưu CSDL Đơn → Trộn văn bản Google Docs → Xuất file Word.
+api_DoiChieuDuLieuDon(): Đối chiếu chéo số lượng đơn trên phần mềm với file Excel gốc của Văn thư.
+📌 2. 1_CauHinh.gs (Cấu hình Hệ thống, Menu & Web App Entry)
+onOpen(): Tạo Menu ⚖️ TRỢ LÝ 7.8 trên thanh công cụ Google Sheets.
+moGiaoDienChinh(): Mở cửa sổ Modal Dialog lớn (1650x950px), thiết lập Meta Viewport khử nhòe.
+doGet(e): Trả về HtmlOutput toàn màn hình khi truy cập qua link Web App [1].
+khoiTaoCoSoDuLieu(): Tự động tạo và định dạng chuẩn 8 bảng Google Sheets và 12 biến 5_CaiDat.
+getConfigFromSheet(): Đọc cấu hình từ 5_CaiDat kèm cơ chế đệm CacheService 6 tiếng (< 5ms).
+updateConfigInSheet(settings): Cập nhật 12 tham số cấu hình và xóa Cache cũ.
+📌 3. 2_TienIch.gs (Tiện ích Tố tụng, NQ 326 & Chuẩn hóa Văn bản)
+LibDate.parse(val): Phân tích chuỗi ngày đa định dạng (dd/MM/yyyy, yyyy-MM-dd, timestamp, Excel serial) thành Date Object.
+LibDate.toVNText(val, isCap): Viết ngày tháng thành văn bản (ngày 02 tháng 09 năm 2026).
+LibDate.fmtFullTime(dateStr, timeStr): Định dạng chuỗi ... giờ ... phút, ngày ... tháng ... năm ....
+LibDate.calculateProceduralActionDate(startDate, days): Thuật toán tính ngày tố tụng trọn vẹn 24h (7 ngày thỏa thuận → ra QĐ ngày 8; 15 ngày HGĐT → ra QĐ ngày 16; tự động tịnh tiến nếu trùng ngày nghỉ).
+getLoaiAnRutGon(loaiAn, quanHe): Trả về ký hiệu rút gọn (VHN, HNGĐ, DS, KDTM, LĐ, HC, VDS, HGĐT).
+toTitleCase(str): Viết hoa chữ cái đầu danh từ riêng, bảo toàn từ viết tắt (TMCP, TNHH, UBND, BIDV...) và tên đồng bào có dấu nháy đơn (Ka Să K'bi).
+numberToWordsVi(so): Đọc số tiền thành chữ tiếng Việt chuẩn xác pháp lý.
+calculateCourtFee(loaiAn, giaTriRaw): Tính án phí và tạm ứng án phí chuẩn theo Nghị quyết 326/2016/UBTVQH14.
+📌 4. 3_XuLyAn.gs (Trung tâm Nghiệp vụ Sổ Thụ Lý & Deadline Engine)
+DeadlineEngine.calculate(startDate, loaiAn, isExtension, quanHe, daysUsedBefore): Tính toán hạn chuẩn bị xét xử. Tự động gán 01 tháng cho Việc HNGĐ / Việc DS; tự động cộng 02 tháng / 01 tháng khi Gia hạn; tự tính thời hạn còn lại khi Tiếp tục giải quyết sau Tạm đình chỉ (Điều 203, 214, 216 BLTTDS 2015).
+layDanhSachAn(): Nạp toàn bộ án từ 1_SoThuLy và ghép nối quan hệ 2_DuongSu trên RAM, tự động phân tách 2 dòng đương sự (Người yêu cầu 1 lên dòng đỏ, Người yêu cầu 2 xuống dòng đen).
+layDuLieuChiTiet(idVuAn): Nạp đầy đủ thông tin vụ án, danh sách đương sự và lịch trình liên quan.
+backend_LuuVuAnMoi(data): Thụ lý vụ án mới, tự tính hạn và tạo mốc nhắc việc trước 15 ngày trên Lịch công tác.
+backend_CapNhatThongTinAn(d): Sửa thông tin cơ bản và tái tính toán hạn giải quyết.
+backend_UpdateCaseResolution(payload): Cập nhật kết quả giải quyết (Bản án, QĐCNTT, QĐCN-TTLH, Đình chỉ, Tạm đình chỉ, Gia hạn, Tiếp tục giải quyết). Tự tính lại thời hạn tương ứng.
+backend_UpdateAllParties(idVuAn, parties): Ghi đè toàn bộ đương sự của vụ án trong 2_DuongSu bằng 1 lần ghi mảng duy nhất (< 0.3s).
+backend_KiemTraThongTinDuongSu(idVuAn) & backend_LuuBoSungThongTinDuongSu(payload): Wizard kiểm tra và lưu bổ sung thông tin đương sự còn thiếu.
+backend_ImportCasesChunked(chunk): Đồng bộ phân đoạn dữ liệu từ file Excel TAKV2.
+TOOL_DonDepAnTrung(): Quét và gộp các bản ghi án trùng lặp số thụ lý, giữ lại bản ghi có đương sự đầy đủ nhất.
+📌 5. 4_XuLyLich.gs (Quản lý Lịch Công Tác & Google Calendar)
+api_LayLichTrinhCongTac_Logic(): Lấy toàn bộ danh sách lịch làm việc từ 3_LichTrinh.
+api_LuuLichMoi_Logic(data): Thêm mốc lịch mới gắn với vụ án hoặc việc chung (GENERAL).
+api_LuuLichNhacNho_Logic(payload): Tự động tính ngày ra quyết định (ngày thứ 8 hoặc 16) và ghi mốc nhắc việc.
+api_DongBoLichCaNhan_Logic(): Đồng bộ sự kiện 2 chiều lên Google Calendar cá nhân của Thẩm phán.
+api_XoaLich_Logic(idLich): Xóa mốc lịch trên Sheet và xóa sự kiện trên Google Calendar.
+api_CapNhatTrangThaiLich_Logic(idLich, status): Đánh dấu hoàn thành lịch công tác.
+api_LayTimelineVuAn_Logic(idVuAn): Trích xuất dòng thời gian 3 lớp: Thụ lý gốc → Buổi làm việc trung gian → Mốc kết quả / Tạm đình chỉ.
+📌 6. 5_ThuMuc.gs (Quản lý Thư mục Google Drive)
+taoThuMucHoSoMoi(soTL, loaiAn, ngayTL, duongSu): Tự động tạo cây thư mục lưu trữ: Hồ sơ vụ án / Năm / Loại án / [Số thụ lý] - [Đương sự].
+📌 7. 6_VanBan.gs (Động cơ Soạn thảo Mail Merge V3 & Phân giải Placeholder)
+replaceTextSafe(element, searchKey, replaceStr): Thay thế chuỗi an toàn trong Google Docs, chuyển đổi ký tự $ thành $$$$ chống lỗi Regex $1.
+sanitizeMergedDocument(body): Bộ dọn rác văn bản sau trộn (xóa vết "Tôi và...", "và.............", chuẩn hóa dấu câu ", .", "; .").
+boldNumbersInText(body, searchText): Tự động in đậm toàn bộ con số thời gian trong văn bản.
+formatRepsBlock(repJson): Định dạng đoạn văn bản người đại diện ủy quyền, pháp luật, luật sư.
+buildSmartPartyStringBackend(groups, isLowerXungHo): Đóng gói chuỗi đương sự phức hợp kèm địa chỉ chung (ông A và bà B; cùng địa chỉ: ...).
+backend_buildExactPlaceholders(phMap, roleKey, groups): Xây dựng từ điển biến cá nhân theo thứ tự ({Nguyên đơn 1}, {Nguyên đơn 2}, {Người yêu cầu 1}, {Người yêu cầu 2}, {NYC1}, {NYC2}...).
+api_RunMailMergeV3_Logic(input): Động cơ trộn thư chính:
+Chế độ 1 (Tách trang): Xuất riêng từng tệp văn bản cho từng đương sự nhận triệu tập/thông báo.
+Chế độ 2 (Trộn gộp): Xuất 1 tệp văn bản chung (Bản án, Quyết định, Biên bản). Tự động kích hoạt đồng bộ kết quả giải quyết và thời hạn tố tụng về CSDL.
+📌 8. 7_DongBo.gs (Trigger Tự Động & Dọn Rác Toàn Vẹn CSDL)
+autoDailySync(): Nhiệm vụ tự động kích hoạt lúc 1h15 sáng hàng ngày để quét kiểm tra hạn toàn bộ án và kéo đơn mới từ file Excel gốc.
+api_ThucHienDongBo(): Quét kiểm tra và tái tính toán hạn chuẩn bị xét xử cho toàn bộ án đang thụ lý.
+📌 9. 8_GiaoTiep.gs (Master API Gateway & Router Kép)
+Đóng vai trò Trạm trung chuyển định tuyến toàn diện từ Client (google.script.run) sang các hàm logic Backend tương ứng. Tích hợp Router kép (api_XoaLich / api_XoaLichCongTac, api_LuuLichMoi / api_LuuLichMoi_Logic) triệt tiêu hoàn toàn lỗi đệ quy tràn bộ nhớ (Maximum call stack).
+📌 10. 9_ModuleAI.gs (Động cơ Gemini AI Studio & Copilot Tố Tụng)
+callGeminiAI(systemPrompt, userPrompt): Giao tiếp trực tiếp với Google Gemini AI Studio (các model gemini-3.6-flash, gemini-3.5-flash).
+ai_ProcessAssistantChat(userMessage, contextData): Xử lý đối thoại Trợ lý ảo: Đọc bản nén trạng thái Real-time (Compact Snapshot) từ Client RAM, sinh nút bấm điều khiển [ACTION:...].
+ai_ParseDocumentForCaseInfo(fileName, mimeType, base64Data): Dùng OCR và AI để bóc tách Số thụ lý, Quan hệ tranh chấp, Đương sự từ file Word/PDF.
+ai_ParsePartiesFromScan(base64Data, fileName, mimeType): Bóc tách danh sách đương sự số lượng lớn kèm người đại diện từ văn bản scan.
+backend_CreateTemplateFromDoc(...): Phân tích biểu mẫu Word cũ, tự động cấy các mã {Placeholder} chuẩn vào file Google Docs.
+2.2. Nhóm Điều khiển Client (Frontend Javascript Controllers) — 3 Tệp
+📌 11. JS_HeThong.html (State RAM, UI Engine, Lọc 0ms & Copilot)
+window.G_An / window.G_Cases / window.G_Don / window.G_LichTrinh: Bộ nhớ RAM thời gian thực.
+window.setFilter(key, value, ev) & window.clearAllFilters(): Thiết lập bộ lọc đa tiêu chí và đặt lại mặc định.
+window.toggleCopilotChat() & window.sendCopilotMessage(): Đóng/mở và gửi yêu cầu đến Trợ lý ảo AI Copilot.
+AppUI.showToast(msg, type), AppUI.confirm(...), AppUI.alert(...): Hiển thị thông báo Toast và hộp thoại xác nhận tuỳ biến.
+AppUI.addBackgroundTask(taskId, msg) & AppUI.completeBackgroundTask(...): Quản lý hàng đợi tác vụ chạy ngầm, xuất thẻ Toast nổi đa tầng có nút tải file Word .docx và mở Google Docs.
+window.appNavigate(viewId): Điều hướng SPA giữa các màn hình, dọn sạch backdrop modal và cập nhật tiêu đề trang.
+calculateLiveStatus(an): Tính toán trạng thái thời gian thực (Đã giải quyết, Tạm đình chỉ, Đã quá hạn, Sắp quá hạn 
+≤
+≤
+ 15 ngày, Đang giải quyết).
+window.loadCaseList(isForceRefresh) & window.runFilterEngine(): Tải danh sách án và bộ lọc đa tiêu chí 0ms trên RAM.
+renderCaseTable(data): Vẽ bảng danh sách án, tự động phân tách 2 dòng đỏ/đen cho Thuận tình ly hôn / Việc Dân sự.
+initNotificationSystem(urgentCasesList) & renderReminderCard(): Hub tác nghiệp thông minh 3 ngày (Hôm qua, Hôm nay, Ngày mai) và nhận diện các mốc 24h.
+window.loadBacklogItems() & window.markBacklogItemDone(idLich, idx): Quản lý danh sách việc tồn đọng 7 ngày và nút ✓ Đã xong 1-click giảm ngay số đếm.
+Global Bridge Handlers: window.openAnPhiModal, window.openImportExcelModal, window.openRootFolder, window.openTemplateFolder, window.runCalculator, window.copyFee.
+📌 12. JS_NghiepVu.html (Soạn thảo A4 In-place, Trộn thư V3 & Wizard Án)
+window.getProceduralRoleInfo(loaiAn, quanHe): Tự động xác định danh xưng tiêu đề 4 khối A4 (Nguyên đơn / Bị đơn; Người yêu cầu 1 / Người yêu cầu 2; Người khởi kiện / Người bị kiện...).
+window.loadCaseToA4State(dsList): Phân bổ đương sự vào cây cấu trúc window.a4State (Người 1 vào Khối 1, Người 2 vào Khối 2).
+window.renderA4Editor(): Vẽ giao diện bộ soạn thảo đương sự A4 dạng điền từ trực quan, tự co giãn chữ field-sizing: content.
+window.a4AddMember(...), window.a4DeleteMember(...), window.a4ShowAddRepDialog(...): Thao tác thêm/xóa đương sự và người đại diện/luật sư.
+window.saveA4StateToServer(isAuto): Đóng gói window.a4State và lưu vào Sheet 2_DuongSu.
+window.openDraftingModal(targetId, prefillOptions): Mở modal trộn thư Mail Merge V3; tự động prefill Số phát hành & Ngày ban hành nếu vụ án đã có kết quả trước đó.
+window.filterAndRenderTemplates(...): Lọc thông minh 64 biểu mẫu theo từng phân loại án.
+window.executeMailMergeV3(): Kích hoạt tiến trình trộn thư nền; tự động cập nhật Kết quả và Thời hạn về CSDL khi xuất các mẫu phán quyết.
+window.thucHienThuLyV3(): Thu thập thông tin từ form và gửi về máy chủ khởi tạo vụ án mới.
+window.chuyenDonSangThuLy(idDon): Chuyển toàn bộ dữ liệu từ Sổ đơn sang modal Thụ lý mới 1-click.
+window.openWizardCapNhatDuongSu() & window.submitWizardBoSung(): Wizard kiểm tra và bổ sung thông tin đương sự.
+window.submitResolution() & window.xoaKetQuaGiaiQuyet(): Cập nhật hoặc khôi phục kết quả vụ án.
+window.copyDataForQLTA(idAn): Sao chép cấu trúc thông tin vụ án chuẩn để dán sang phần mềm QLTA - TANDTC.
+📌 13. JS_NghiepVu_Don.html (Quản lý Sổ Nhận Đơn, Tính Án Phí & Fast SMS)
+window.local_calculateCourtFee(loaiAn, giaTriRaw): Tính toán án phí sơ thẩm và tạm ứng án phí trực tiếp trên Client.
+window.moChiTietDon(idDon): Nạp dữ liệu đơn từ RAM window.G_Don lên màn hình chi tiết đơn.
+window.filterDonByStatus(statusCode, btnEl): Bộ lọc Capsule Status Tabs (Tất cả, Chưa xử lý, Bổ sung, Đã hẹn/SMS, HGĐT, Đã thụ lý) chạy 0ms trên RAM.
+window.addPartyGroupV76(type, groupData) & window.addMemberToGroup(...): Thêm khối đương sự đơn an toàn tuyệt đối với tên có dấu nháy đơn (Ka Să K'bi, Hoàng Rung K’Tuấn...).
+window.luuThongTinDon(isAutoSave): Lưu thông tin đơn và đương sự vào CSDL.
+window.sendQuickSMS(idDon) & window.executeFastSMS(): Sinh liên kết giao thức sms: không dấu, mở ứng dụng tin nhắn trên điện thoại/Windows Phone Link và tự ghi lịch hẹn làm việc.
+window.openBulkActionModal() & window.executeBulkDonAction(): Lên lịch hẹn và sinh danh sách link SMS hàng loạt cho nhiều đơn cùng lúc.
+window.openQuickDraftDon(idDon) & window.executeQuickDraftDon(): Soạn thảo nhanh và xuất văn bản cho đơn khởi kiện.
+window.submitSbsForm(): Đóng gói nội dung Yêu cầu Sửa đổi bổ sung đơn (Hình thức, Nội dung, Tài liệu) đưa vào văn bản trộn.
+2.3. Nhóm Giao diện Người dùng (HTML Views & Templates) — 9 Tệp
+📌 14. CSS_DinhDang.html: Master Design Tokens, phông chữ Inter chuẩn số học, khử răng cưa chữ -webkit-font-smoothing: antialiased;.
+📌 15. UI_Chinh.html (hoặc UI_MasterLayout.html): Shell ứng dụng (Sidebar cố định bên trái, Header phẳng, Container nạp View động).
+📌 16. UI_DanhSach.html: Sổ thụ lý điện tử, 8 Thẻ Dashboard thống kê co giãn đàn hồi, Bảng vụ án Sticky Header.
+📌 17. UI_ChiTiet.html: Hồ sơ vụ án chuyên sâu, Trình soạn thảo đương sự A4 trực quan không đường viền.
+📌 18. UI_DanhSach_Don.html: Sổ nhận đơn điện tử, dải Capsule Status Tabs, Bảng danh sách đơn table-elegant.
+📌 19. UI_ChiTiet_Don.html: Chi tiết hồ sơ đơn, nút Chuyển thụ lý 1-click, trạm tính án phí và trạm trộn văn bản Đơn.
+📌 20. UI_Lich.html: Lịch công tác tháng 7 cột chuẩn xác, cơ chế render tức thì 0ms từ RAM, nhận diện mốc tố tụng 24h, Modal Live Search tìm án trực tiếp.
+📌 21. UI_ThongKe.html: Báo cáo thống kê KPI theo Chu kỳ Năm công tác Tòa án (01/10 năm trước → 30/09 năm nay) [1], biểu đồ tỷ lệ giải quyết.
+📌 22. UI_CaiDat.html: Quản trị 12 biến 5_CaiDat, cấu hình Danh xưng Thư ký/Thẩm phán, chẩn đoán lỗi Placeholder trong kho mẫu Drive và bơm mẫu tự động bằng AI.
+📌 23. UI_HopThoai.html: Trung tâm 19 Master Modals và 6 Bộ Datalist tĩnh toàn hệ thống.
+PHẦN 3: BẢN ĐỒ 19 MASTER MODALS & 6 BỘ DATALIST TỐ TỤNG
+3.1. Danh mục 19 Master Modals (UI_HopThoai.html)
+STT	ID Modal	Chức năng nghiệp vụ	Hàm Javascript kích hoạt
+1	modalThemMoi	Thụ lý vụ án mới & Rút trích từ Sổ đơn	window.moModalThemMoi()
+2	modalSuaAn	Sửa thông tin thụ lý vụ án cơ bản	window.openEditCaseModal(idAn)
+3	modalManageParties	Quản lý đương sự & đại diện theo nhóm	window.openManagePartiesModal()
+4	modalSuaDuongSuLe	Sửa thông tin 1 đương sự lẻ	window.openEditSinglePartyModal()
+5	modalSoanThao	Trung tâm xuất văn bản Mail Merge V3 (3 trạm)	window.openDraftingModal(idAn, opts)
+6	modalTinhAnPhi	Công cụ tính án phí sơ thẩm & tạm ứng NQ 326	window.openAnPhiModal()
+7	modalKetQua	Cập nhật kết quả giải quyết vụ án / Tạm đình chỉ	window.openResolutionModal()
+8	modalLich	Lập lịch công tác / Phiên họp / Tiếp dân	window.openTaskModal(idAn, soTL)
+9	modalImportExcel	Đồng bộ dữ liệu phân đoạn từ TAKV2	window.openImportExcelModal()
+10	modalWizardCapNhatDuongSu	Wizard kiểm tra và soát thiếu thông tin đương sự	window.openWizardCapNhatDuongSu()
+11	modalQuickEditDon	Cập nhật nhanh thông tin đơn khởi kiện	window.openQuickEditDon(idDon)
+12	modalQuickDraftDon	Soạn thảo nhanh văn bản cho hồ sơ Đơn	window.openQuickDraftDon(idDon)
+13	modalFastSMS	Lên lịch hẹn & Gửi tin nhắn Fast SMS	window.sendQuickSMS(idDon)
+14	modalBulkActionDon	Lên lịch và gửi SMS hàng loạt cho nhiều đơn	window.openBulkActionModal()
+15	modalDonGhiChu	Xem và cập nhật nhanh ghi chú hồ sơ đơn	window.openNoteModal(idDon)
+16	modalSuaDoiBoSungDon	Nhận xét và yêu cầu Sửa đổi bổ sung đơn	window.submitSbsForm()
+17	modalAITemplateConfig	Cấu hình AI tạo mẫu mới hoặc ghi đè	window.createSmartTemplate(file)
+18	modalTuDienPlaceholder	Tra cứu danh mục mã {Placeholder} trực tuyến	window.openDictionaryModal()
+19	modalViecTonDong	Danh sách việc tồn đọng 7 ngày & nút ✓ Đã xong	window.openBacklogModal()
+3.2. Danh mục 6 Bộ Datalist Tĩnh Tố tụng
+dl_diadiem_lamviec: Gợi ý địa điểm làm việc/xét xử chuẩn của Tòa án nhân dân.
+dl_noidung_lamviec: Gợi ý nội dung làm việc trên Lịch công tác.
+dl_draft_noidung_goiy: Gợi ý nội dung làm việc trên Giấy triệu tập / Giấy báo.
+listXungHo: Danh xưng chuẩn (Ông, Bà, Anh, Chị, Tổ chức).
+listTuCach & listTuCachDon: Tư cách tố tụng chuẩn TANDTC.
+listKetQua: Danh mục loại phán quyết / kết quả giải quyết chuẩn ngành Tòa án.
+PHẦN 4: MA TRẬN ĐỊNH TUYẾN TOÀN DIỆN (API GATEWAY MATRIX)
+Lệnh gọi Frontend (google.script.run)	Trạm Gateway (8_GiaoTiep.gs)	Hàm Backend xử lý logic
+api_LayDanhSachAn()	api_LayDanhSachAn()	3_XuLyAn.gs → layDanhSachAn()
+api_LayDuLieuChiTietAn(id)	api_LayDuLieuChiTietAn(id)	3_XuLyAn.gs → layDuLieuChiTiet(id)
+api_LuuVuAnMoi(data)	api_LuuVuAnMoi(data)	3_XuLyAn.gs → backend_LuuVuAnMoi(data)
+api_CapNhatThongTinAn(d)	api_CapNhatThongTinAn(d)	3_XuLyAn.gs → backend_CapNhatThongTinAn(d)
+api_UpdateCaseResolution(d)	api_UpdateCaseResolution(d)	3_XuLyAn.gs → backend_UpdateCaseResolution(d)
+api_UpdateAllParties(id, ds)	api_UpdateAllParties(id, ds)	3_XuLyAn.gs → backend_UpdateAllParties(id, ds)
+api_KiemTraThongTinDuongSu(id)	api_KiemTraThongTinDuongSu(id)	3_XuLyAn.gs → backend_KiemTraThongTinDuongSu(id)
+api_LuuBoSungThongTinDuongSu(p)	api_LuuBoSungThongTinDuongSu(p)	3_XuLyAn.gs → backend_LuuBoSungThongTinDuongSu(p)
+api_DeleteCase(id)	api_DeleteCase(id)	3_XuLyAn.gs → backend_DeleteCase(id)
+api_LayLichTrinhCongTac()	api_LayLichTrinhCongTac()	4_XuLyLich.gs → api_LayLichTrinhCongTac_Logic()
+api_LuuLichMoi_Logic(d)	api_LuuLichMoi(d)	4_XuLyLich.gs → api_LuuLichMoi_Logic(d)
+api_LuuLichNhacNho(p)	api_LuuLichNhacNho(p)	4_XuLyLich.gs → api_LuuLichNhacNho_Logic(p)
+api_XoaLichCongTac(id) / api_XoaLich(id)	api_XoaLich(id) (Router kép)	4_XuLyLich.gs → api_XoaLich_Logic(id)
+api_CapNhatTrangThaiLich(id, st)	api_CapNhatTrangThaiLich(id, st)	4_XuLyLich.gs → api_CapNhatTrangThaiLich_Logic(id, st)
+api_DongBoLichCaNhan()	api_DongBoLichCaNhan()	4_XuLyLich.gs → api_DongBoLichCaNhan_Logic()
+api_LayTimelineVuAn(id)	api_LayTimelineVuAn(id)	4_XuLyLich.gs → api_LayTimelineVuAn_Logic(id)
+api_GetBieuMauTemplates()	api_GetBieuMauTemplates()	6_VanBan.gs → api_LayDanhSachBieuMau_Logic()
+api_RunMailMergeV3_Logic(p)	api_RunMailMergeV3(p)	6_VanBan.gs → api_RunMailMergeV3_Logic(p)
+api_LayDanhSachDon(s, e)	(Exposed trực tiếp)	0_XuLyDon.gs → api_LayDanhSachDon(s, e)
+api_RutTrichThongTinDon(so)	(Exposed trực tiếp)	0_XuLyDon.gs → api_RutTrichThongTinDon(so)
+api_LuuThongTinDon(p)	(Exposed trực tiếp)	0_XuLyDon.gs → api_LuuThongTinDon(p)
+api_LuuVaTronThuDon_SuperFast	(Exposed trực tiếp)	0_XuLyDon.gs → api_LuuVaTronThuDon_SuperFast
+api_AskGeminiCopilot(m, c)	api_AskGeminiCopilot(m, c)	9_ModuleAI.gs → ai_ProcessAssistantChat(m, c)
+PHẦN 5: CÁC THUẬT TOÁN TỐ TỤNG & ĐỘNG CƠ ĐẶC THÙ
+5.1. Động cơ Thời hạn Tố tụng (Deadline Engine)
+Quy chuẩn thời hạn chuẩn bị xét xử ban đầu:
+Dân sự, Hôn nhân gia đình, Hành chính: 04 tháng.
+Kinh doanh thương mại, Lao động: 02 tháng.
+Hình sự, Việc Dân sự, Việc HNGĐ (Thuận tình ly hôn), Hòa giải đối thoại: 01 tháng (hoặc 20 ngày).
+Quy chuẩn Gia hạn: Tự động cộng thêm 02 tháng (Dân sự, HNGĐ, HC) hoặc 01 tháng (KDTM, LĐ, HS).
+Quy chuẩn Tạm đình chỉ & Tiếp tục giải quyết:
+Hạn mới
+=
+Ng
+a
+ˋ
+y QĐ Ti
+e
+ˆ
+ˊ
+p tục
++
+(
+Tổng thời hạn chuẩn bị x
+e
+ˊ
+t xử
+−
+S
+o
+ˆ
+ˊ
+ ng
+a
+ˋ
+y đ
+a
+˜
+ chạy trước khi tạm đ
+ı
+ˋ
+nh chỉ
+)
+Hạn mới=Ng 
+a
+ˋ
+ y QĐ Ti 
+e
+ˆ
+ 
+ˊ
+ p tục+(Tổng thời hạn chuẩn bị x 
+e
+ˊ
+ t xử−S 
+o
+ˆ
+ 
+ˊ
+  ng 
+a
+ˋ
+ y đ 
+a
+˜
+  chạy trước khi tạm đ 
+ı
+ˋ
+ nh chỉ)
+5.2. Động cơ Mail Merge V3 (Google Docs)
+Phân cấp Biến đơn vs Biến tập hợp:
+Biến cá nhân độc lập (không dính chùm): {Nguyên đơn 1}, {Nguyên đơn 2}, {Người yêu cầu 1}, {Người yêu cầu 2}, {NYC1}, {NYC2}, {Họ và tên Nguyên đơn}, {Họ và tên Bị đơn}.
+Biến tập hợp (gộp thông minh): {Danh sách Nguyên đơn}, {Các Nguyên đơn}, {Danh sách Người yêu cầu}, {Cùng địa chỉ}.
+Smart Context Mapping (Thuận tình ly hôn / Việc HNGĐ):
+Tự động map Người 1 → {Nguyên đơn} / {Người yêu cầu 1}.
+Tự động map Người 2 → {Bị đơn} / {Người yêu cầu 2} (khắc phục hoàn toàn lỗi để trống Bị đơn........... trong biên bản).
+Chống lỗi Regex $1: Mọi giá trị thay thế đều qua hàm xử lý replace(/\$/g, '$$$$') trước khi nạp vào Document Body.
+5.3. Biểu tính Án phí & Tạm ứng (Nghị quyết 326/2016/UBTVQH14)
+Án phí không giá ngạch: Dân sự, Hôn nhân: 300.000đ (Tạm ứng 300.000đ); KDTM: 3.000.000đ (Tạm ứng 3.000.000đ); Hình sự: 200.000đ (Tạm ứng 0đ).
+Án phí có giá ngạch (Dân sự, Hôn nhân):
+≤
+≤
+ 6 triệu: 300.000đ.
+Từ 6 triệu đến 400 triệu: 
+5
+%
+5%
+ giá trị tranh chấp.
+Từ 400 triệu đến 800 triệu: 20.000.000đ 
++
+4
+%
++4%
+ của phần vượt 400 triệu.
+Từ 800 triệu đến 2 tỷ: 36.000.000đ 
++
+3
+%
++3%
+ của phần vượt 800 triệu.
+Từ 2 tỷ đến 4 tỷ: 72.000.000đ 
++
+2
+%
++2%
+ của phần vượt 2 tỷ.
+Trên 4 tỷ: 112.000.000đ 
++
+0.1
+%
++0.1%
+ của phần vượt 4 tỷ.
+Mức tạm ứng án phí sơ thẩm có giá ngạch = 
+50
+%
+50%
+ mức án phí dự tính.
+5.4. Quy tắc Mốc 24h & Ngày làm việc Tố tụng (Điều 147, 148 BLDS 2015)
+Thời hạn 07 ngày hòa giải thành kết thúc vào 24h ngày thứ 7 → Đặt lịch ra Quyết định vào ngày thứ 8.
+Thời hạn 15 ngày đối thoại thành Luật HGĐT kết thúc vào 24h ngày thứ 15 → Đặt lịch ra Quyết định vào ngày thứ 16.
+Nếu ngày ra quyết định trùng vào Thứ 7, Chủ nhật hoặc ngày nghỉ Lễ/Tết, hệ thống tự động tịnh tiến sang ngày làm việc đầu tiên tiếp theo.
+5.5. Thuật toán Bảo toàn Danh xưng & Ký tự Nháy đơn (')
+Khi hiển thị và lưu trữ tên đồng bào có dấu nháy đơn (Ka Să K'bi, Hoàng Rung K’Tuấn, K'Thương...), toàn bộ thuộc tính HTML input đều sử dụng bọc nháy kép value="${String(...).replace(/"/g, '&quot;')}" để không bao giờ bị cắt cụt ký tự sau dấu nháy.
+PHẦN 6: QUY TRÌNH BẢO TRÌ & NÂNG CẤP VỀ SAU (AI WORKING PROTOCOL)
+Khi cần sửa chữa, nâng cấp hoặc bổ sung tính năng trong tương lai, quy trình làm việc chuẩn sẽ diễn ra theo 4 bước:
+Bước 1 (Nạp ngữ cảnh): Người dùng tải tệp thiết kế này (E_THONG_V78_MASTER_SPEC.md) lên và mô tả hiện tượng lỗi hoặc yêu cầu tính năng mới.
+Bước 2 (Phân tích Gap): AI đối chiếu với Ma trận chức năng, xác định chính xác nguyên nhân gốc rễ và chỉ ra danh sách các tệp tin liên quan trực tiếp.
+Bước 3 (Cung cấp tệp): AI yêu cầu người dùng cung cấp chính xác các tệp tin cần sửa đổi.
+Bước 4 (Xuất mã chuẩn hóa): AI tiến hành refactor mã nguồn theo đúng các chuẩn kiến trúc đã cam kết trong tài liệu này (bảo toàn 100% ID, logic không đứt gãy, an toàn dữ liệu). 

@@ -1,214 +1,904 @@
 <!--
-  HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V7.5.3 - GROQ AI EDITION
-  FILE: UI_CaiDat.html
-  ------------------------------------------------------------
-  BẢN CẬP NHẬT THEO YÊU CẦU:
-  - Loại bỏ hoàn toàn khối AI tạo biểu mẫu cũ.
-  - Bổ sung công cụ Download file JSON chứa dữ liệu Placeholder cho việc đối chiếu (Req 6.2).
+  =========================================================================
+  HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.0 - MASTER SETTINGS & SYSTEM CONFIG
+  TỆP: UI_CaiDat.html - THIẾT LẬP HỆ THỐNG, QUẢN LÝ THƯ KÝ & BƠM DỮ LIỆU AI
+  - TUÂN THỦ 100% QUY CHUẨN V8.0 PRODUCTION MASTER
+  - BẢNG QUẢN TRỊ DANH SÁCH THƯ KÝ ĐỘNG (INLINE-EDIT TRỰC TIẾP TRÊN DÒNG)
+  - NÚT TEST KẾT NỐI GEMINI API KEY THỜI GIAN THỰC & CHẨN ĐOÁN KHO MẪU
+  =========================================================================
 -->
 
-<div class="animate-fadeIn p-2 p-md-4">
+<style>
+  .set-main-container {
+    color: #0f172a;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .set-card {
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+
+  .set-card-header {
+    padding: 12px 18px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .set-card-title {
+    font-size: 12.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #1e293b;
+  }
+
+  .btn-action-tool {
+    border-radius: 8px !important;
+    font-weight: 700 !important;
+    font-size: 12px !important;
+    height: 35px !important;
+    padding: 0 0.85rem !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+  .btn-action-primary {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+    border-color: #2563eb !important;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+  }
+  .btn-action-primary:hover { 
+    background-color: #1d4ed8 !important; 
+  }
+  .btn-action-tonal {
+    background-color: #eff6ff !important;
+    color: #1d4ed8 !important;
+    border-color: #bfdbfe !important;
+  }
+  .btn-action-tonal:hover { 
+    background-color: #dbeafe !important; 
+  }
+  .btn-action-outline {
+    background-color: #ffffff !important;
+    color: #475569 !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  }
+  .btn-action-outline:hover { 
+    background-color: #f8fafc !important; 
+    color: #0f172a !important; 
+  }
+  .btn-action-danger {
+    background-color: #ffffff !important;
+    color: #dc2626 !important;
+    border-color: #fecaca !important;
+  }
+  .btn-action-danger:hover { 
+    background-color: #fef2f2 !important; 
+  }
+
+  .set-field-label {
+    font-size: 10.5px;
+    font-weight: 800;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .set-field-control {
+    font-size: 13px;
+    font-weight: 600;
+    color: #0f172a;
+    background-color: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 0.42rem 0.75rem;
+    transition: all 0.15s ease;
+  }
+  .set-field-control:focus {
+    background-color: #ffffff;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    outline: none;
+  }
+
+  .set-hint {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 4px;
+    display: block;
+  }
+</style>
+
+<div class="animate-fadeIn p-2 p-md-3 set-main-container">
   <div class="row justify-content-center">
     <div class="col-12 col-xl-10">
-      
-      <!-- ==========================================
-           PHẦN 1: BRANDING & LOGO
-      =========================================== -->
-      <div class="text-center mb-5">
-        <div class="position-relative d-inline-block">
-          <i class="fas fa-scale-balanced text-primary mb-2" style="font-size: 60px; filter: drop-shadow(0 4px 6px rgba(26,115,232,0.3));"></i>
-          <i class="fas fa-bolt text-warning position-absolute" style="font-size: 24px; bottom: 0; right: -10px;"></i>
+
+      <!-- 1. THANH ĐIỀU HƯỚNG & NÚT LƯU TRÊN CÙNG -->
+      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <button class="btn btn-action-outline btn-action-tool" onclick="window.appNavigate('view-list')">
+          <i class="fas fa-arrow-left text-primary"></i> Sổ Thụ Lý
+        </button>
+        
+        <button class="btn btn-action-primary btn-action-tool shadow-sm px-4" onclick="saveSettingsData()">
+          <i class="fas fa-save"></i> Lưu thiết lập hệ thống
+        </button>
+      </div>
+
+      <!-- 2. BANNER GIỚI THIỆU HỆ THỐNG -->
+      <div class="text-center mb-4 py-2">
+        <div class="position-relative d-inline-block mb-1">
+          <i class="fas fa-scale-balanced text-primary mb-2" style="font-size: 40px; filter: drop-shadow(0 4px 8px rgba(37,99,235,0.2));"></i>
         </div>
-        <h3 class="fw-bold text-dark mt-2 mb-1" style="letter-spacing: 1px; font-size: 24px;">TRỢ LÝ THẨM PHÁN V7.5 <span class="text-primary">GROQ AI</span></h3>
-        <p class="text-muted fst-italic" style="font-size: 14px; font-weight: 500;">
-          "Phiên bản Groq Edition — Tốc độ xử lý cực nhanh, trích xuất chính xác"
+        <h4 class="fw-bold text-dark mt-1 mb-1 text-uppercase" style="letter-spacing: 0.5px; font-size: 17px;">
+          TRỢ LÝ THẨM PHÁN V8.0 <span class="text-primary">COPILOT & AI STUDIO</span>
+        </h4>
+        <p class="text-muted small mb-2" style="font-size: 12.5px;">
+          Trung tâm cấu hình tài khoản Thẩm phán, quản lý danh sách Thư ký & Hạ tầng lưu trữ đám mây
         </p>
-        <div class="mx-auto" style="width: 60px; height: 3px; background: var(--primary); border-radius: 2px;"></div>
+        <div class="mx-auto" style="width: 45px; height: 3px; background: #2563eb; border-radius: 2px;"></div>
       </div>
 
-      <!-- KHỐI 1: ĐỊNH DANH NGHIỆP VỤ -->
-      <div class="bg-white shadow-sm mb-4" style="border-radius: 15px; border: 1px solid #e0e0e0; overflow: hidden;">
-        <div class="p-3 border-bottom bg-light d-flex align-items-center">
-          <i class="fas fa-id-badge text-primary me-2"></i>
-          <h6 class="fw-bold m-0 text-dark text-uppercase" style="font-size: 12px;">1. Thông tin định danh hệ thống</h6>
+      <!-- KHỐI 1: THÔNG TIN THẨM PHÁN & ĐƠN VỊ TÒA ÁN -->
+      <div class="set-card">
+        <div class="set-card-header">
+          <h6 class="set-card-title text-primary">
+            <i class="fas fa-id-card"></i> 1. Thông tin Thẩm phán & Đơn vị Tòa án
+          </h6>
+          <span class="badge bg-light text-primary border" style="font-size: 10.5px;">Tài khoản sử dụng</span>
         </div>
         <div class="p-3 p-md-4">
           <div class="row g-3">
             <div class="col-12 col-md-8">
-              <label class="small-label">Họ và tên Thẩm phán *</label>
-              <input type="text" id="set_tenTP" class="form-control fw-bold border-primary" placeholder="Nhập họ tên đầy đủ...">
+              <label class="set-field-label">Họ và tên Thẩm phán *</label>
+              <input type="text" id="set_tenTP" class="form-control set-field-control fw-bold text-primary" placeholder="Ví dụ: Võ Thành Luân (hoặc Ông Võ Thành Luân)" autocomplete="off">
+              <span class="set-hint">Hệ thống sẽ tự động bóc tách danh xưng ({Danh xưng Thẩm phán} = Ông/Bà) và tên mộc in chữ ký ({Thẩm phán} = Võ Thành Luân).</span>
             </div>
             <div class="col-12 col-md-4">
-              <label class="small-label">Chức vụ hiện tại</label>
-              <input type="text" id="set_chucVu" class="form-control" value="Thẩm phán">
+              <label class="set-field-label">Chức vụ tố tụng</label>
+              <input type="text" id="set_chucVu" class="form-control set-field-control" value="Thẩm phán">
             </div>
-            <div class="col-12 col-md-4">
-              <label class="small-label">Tên Tòa án *</label>
-              <input type="text" id="set_tenToa" class="form-control" placeholder="TAND Khu vực 2...">
+            <div class="col-12 col-md-6">
+              <label class="set-field-label">Tên đơn vị Tòa án *</label>
+              <input type="text" id="set_tenToa" class="form-control set-field-control fw-bold text-dark" placeholder="Ví dụ: Tòa án nhân dân tỉnh Lâm Đồng" autocomplete="off">
             </div>
-            <div class="col-12 col-md-8">
-              <label class="small-label">Địa chỉ Tòa án *</label>
-              <input type="text" id="set_diaChiToa" class="form-control" placeholder="Quốc lộ 20, Đức Trọng, Lâm Đồng...">
-            </div>
-            <div class="col-12">
-              <label class="small-label">Họ tên Thư ký (Nếu có)</label>
-              <input type="text" id="set_tenTK" class="form-control" placeholder="Điền để tự động hóa biên bản...">
+            <div class="col-12 col-md-6">
+              <label class="set-field-label">Địa chỉ trụ sở Tòa án *</label>
+              <input type="text" id="set_diaChiToa" class="form-control set-field-control" placeholder="Ví dụ: Quốc lộ 20, thị trấn Liên Nghĩa, huyện Đức Trọng, tỉnh Lâm Đồng" autocomplete="off">
             </div>
           </div>
         </div>
       </div>
 
-      <!-- KHỐI 2: CẤU HÌNH LƯU TRỮ ĐÁM MÂY -->
-      <div class="bg-white shadow-sm mb-4" style="border-radius: 15px; border: 1px solid #e0e0e0; overflow: hidden;">
-        <div class="p-3 border-bottom bg-light d-flex align-items-center">
-          <i class="fab fa-google-drive text-success me-2"></i>
-          <h6 class="fw-bold m-0 text-dark text-uppercase" style="font-size: 12px;">2. Kết nối Google Drive</h6>
+      <!-- KHỐI 2: QUẢN LÝ DANH SÁCH THƯ KÝ TÒA ÁN (INLINE EDIT 100%) -->
+      <div class="set-card" id="card_quanly_thuky">
+        <div class="set-card-header">
+          <h6 class="set-card-title text-success">
+            <i class="fas fa-users-gear"></i> 2. Quản lý Danh sách Thư ký Tòa án trong đơn vị
+          </h6>
+          <span class="badge bg-light text-success border" style="font-size: 10.5px;">Sửa trực tiếp trên dòng</span>
+        </div>
+        <div class="p-3 p-md-4">
+          <p class="text-muted small mb-3" style="line-height: 1.5;">
+            Danh sách Thư ký dưới đây sẽ được <b>tự động nạp vào ô chọn Thư ký</b> trong Modal Soạn thảo văn bản. Thẩm phán có thể đổi danh xưng (Ông/Bà) hoặc sửa trực tiếp Họ tên trên từng dòng.
+          </p>
+
+          <!-- BẢNG DANH SÁCH THƯ KÝ -->
+          <div class="table-responsive border rounded-3 bg-white mb-3" style="max-height: 240px; overflow-y: auto;">
+            <table class="table table-hover align-middle m-0" style="font-size: 13px;">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 8%;" class="text-center">STT</th>
+                  <th style="width: 22%;">DANH XƯNG</th>
+                  <th style="width: 58%;">HỌ VÀ TÊN THƯ KÝ (SỬA TRỰC TIẾP)</th>
+                  <th style="width: 12%;" class="text-center">XÓA</th>
+                </tr>
+              </thead>
+              <tbody id="table_thuky_body">
+                <tr><td colspan="4" class="text-center p-3 text-muted small"><div class="spinner-border spinner-border-sm me-2 text-primary"></div>Đang nạp danh sách Thư ký...</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- KHUNG THÊM THƯ KÝ MỚI -->
+          <div class="p-3 bg-light rounded-3 border" style="border-color: #e2e8f0 !important;">
+            <span class="small-label text-primary mb-2"><i class="fas fa-plus-circle me-1"></i> Thêm Thư ký mới vào danh sách:</span>
+            <div class="row g-2 align-items-center">
+              <div class="col-md-3 col-4">
+                <select id="new_tk_xh" class="form-select form-select-sm fw-bold">
+                  <option value="Bà">Bà</option>
+                  <option value="Ông">Ông</option>
+                </select>
+              </div>
+              <div class="col-md-6 col-8">
+                <input type="text" id="new_tk_ten" class="form-control form-control-sm fw-bold" placeholder="Nhập họ và tên Thư ký mới..." autocomplete="off">
+              </div>
+              <div class="col-md-3 col-12">
+                <button type="button" class="btn btn-sm btn-action-primary w-100 justify-content-center py-1" onclick="addSecretaryRow()">
+                  <i class="fas fa-user-plus me-1"></i> Thêm vào DS
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- KHỐI 3: KẾT NỐI DRIVE CHO SỔ THỤ LÝ ÁN -->
+      <div class="set-card">
+        <div class="set-card-header">
+          <h6 class="set-card-title text-primary">
+            <i class="fab fa-google-drive"></i> 3. Hạ tầng Google Drive (Sổ Thụ Lý Vụ Án)
+          </h6>
+          <span class="badge bg-light text-primary border" style="font-size: 10.5px;">Lưu trữ đám mây</span>
         </div>
         <div class="p-3 p-md-4">
           <div class="row g-3">
             <div class="col-12">
-              <label class="small-label text-primary">ID Thư mục "Hồ Sơ Vụ Án" (Lưu trữ gốc)</label>
+              <label class="set-field-label text-dark">ID Thư mục gốc "HỒ SƠ VỤ ÁN" (Drive Root Folder)</label>
               <div class="input-group">
-                <span class="input-group-text bg-light"><i class="fas fa-folder text-primary"></i></span>
-                <input type="text" id="set_idRoot" class="form-control fw-bold text-primary" placeholder="Dán ID thư mục gốc từ đường link Drive...">
+                <span class="input-group-text bg-light border-end-0"><i class="fas fa-folder text-primary"></i></span>
+                <input type="text" id="set_idRoot" class="form-control set-field-control border-start-0 fw-bold" placeholder="Dán ID chuỗi ký tự thư mục gốc từ link Drive...">
               </div>
-              <div class="form-text" style="font-size: 11px;">Đây là nơi hệ thống tạo các thư mục con theo loại án và năm.</div>
+              <span class="set-hint">Nơi hệ thống tự động khởi tạo cây thư mục [Năm] / [Loại án] / [Hồ sơ].</span>
             </div>
             <div class="col-12">
-              <label class="small-label text-success">ID Thư mục "Biểu mẫu Văn Bản" (.docx)</label>
+              <label class="set-field-label text-dark">ID Thư mục "BIỂU MẪU VĂN BẢN ÁN" (Google Docs Templates)</label>
               <div class="input-group">
-                <span class="input-group-text bg-light"><i class="fas fa-file-word text-success"></i></span>
-                <input type="text" id="set_idTemplate" class="form-control fw-bold text-success" placeholder="Dán ID thư mục chứa các file mẫu...">
-                <button class="btn btn-outline-success fw-bold" onclick="testDriveLink()"><i class="fas fa-external-link-alt"></i> Mở thử</button>
+                <span class="input-group-text bg-light border-end-0"><i class="fas fa-file-word text-success"></i></span>
+                <input type="text" id="set_idTemplate" class="form-control set-field-control border-start-0 fw-bold" placeholder="Dán ID thư mục chứa các file biểu mẫu Google Docs...">
               </div>
-              <div class="form-text" style="font-size: 11px;">Nơi lưu trữ các file mẫu để thực hiện trộn văn bản (Mail Merge).</div>
+              <span class="set-hint">Nơi lưu trữ các mẫu văn bản tố tụng dùng cho động cơ trộn Mail Merge V3.</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- KHỐI 3: CẤU HÌNH AI (DUY NHẤT GROQ) -->
-      <div class="bg-white shadow-sm mb-4" style="border-radius: 15px; border: 1px solid #e0e0e0; overflow: hidden;">
-        <div class="p-3 border-bottom bg-danger-subtle d-flex align-items-center">
-          <i class="fas fa-bolt text-danger me-2"></i>
-          <h6 class="fw-bold m-0 text-dark text-uppercase" style="font-size: 12px;">3. Cấu hình Trí tuệ nhân tạo (GROQ AI)</h6>
+      <!-- KHỐI 4: KẾT NỐI NGUỒN CẤP CHO SỔ NHẬN ĐƠN -->
+      <div class="set-card">
+        <div class="set-card-header">
+          <h6 class="set-card-title text-warning-emphasis">
+            <i class="fas fa-inbox"></i> 4. Kết nối Nguồn cấp dữ liệu (Sổ Nhận Đơn Khởi Kiện)
+          </h6>
+          <span class="badge bg-light text-warning-emphasis border" style="font-size: 10.5px;">Tiền tố tụng</span>
         </div>
         <div class="p-3 p-md-4">
           <div class="row g-3">
             <div class="col-12">
-              <label class="small-label text-danger">GROQ API KEY (Bắt buộc để sử dụng AI Quét & Trích xuất)</label>
+              <label class="set-field-label text-dark">ID File Excel Sổ đơn gốc của Văn thư (Drive ID)</label>
               <div class="input-group">
-                <span class="input-group-text bg-light"><i class="fas fa-key text-danger"></i></span>
-                <input type="password" id="set_groqKey" class="form-control fw-bold border-danger text-danger" placeholder="Dán mã API Key của Groq vào đây...">
+                <span class="input-group-text bg-light border-end-0"><i class="fas fa-file-excel text-success"></i></span>
+                <input type="text" id="set_idExcelDon" class="form-control set-field-control border-start-0 fw-bold" placeholder="Dán ID file Excel Sổ đơn gốc do Văn thư chia sẻ...">
               </div>
-              <div class="form-text" style="font-size: 11px;">
-                Lấy khóa miễn phí tại <a href="https://console.groq.com/keys" target="_blank" class="fw-bold">Groq Cloud Console</a>.
+              <span class="set-hint">Hệ thống sẽ đọc trực tiếp các sheet để đồng bộ và đối chiếu số liệu tiếp nhận đơn.</span>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="set-field-label text-dark">ID Thư mục Lưu trữ Hồ sơ Đơn</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light border-end-0"><i class="fas fa-folder-open text-warning-emphasis"></i></span>
+                <input type="text" id="set_idFolderDon" class="form-control set-field-control border-start-0 fw-bold" placeholder="Dán ID thư mục lưu đơn...">
+              </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="set-field-label text-dark">ID Thư mục "BIỂU MẪU XỬ LÝ ĐƠN"</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light border-end-0"><i class="fas fa-file-lines text-info"></i></span>
+                <input type="text" id="set_idTemplateDon" class="form-control set-field-control border-start-0 fw-bold" placeholder="Dán ID thư mục chứa mẫu văn bản Đơn...">
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- ĐÃ SỬA: KHỐI 4 TẢI TỪ ĐIỂN PLACEHOLDER (Req 6.2, Req 7) -->
-      <div class="bg-white shadow-sm mb-4" style="border-radius: 15px; border: 1px solid #e0e0e0; overflow: hidden;">
-        <div class="p-3 border-bottom bg-info-subtle d-flex align-items-center">
-          <i class="fas fa-book text-info me-2"></i>
-          <h6 class="fw-bold m-0 text-dark text-uppercase" style="font-size: 12px;">4. Từ điển Placeholder Trộn văn bản</h6>
+      <!-- KHỐI 5: CẤU HÌNH GOOGLE GEMINI AI STUDIO (TÍCH HỢP NÚT PING TEST) -->
+      <div class="set-card">
+        <div class="set-card-header">
+          <h6 class="set-card-title text-primary">
+            <i class="fas fa-robot"></i> 5. Cấu hình Trí tuệ Nhân tạo (Google Gemini AI Studio)
+          </h6>
+          <span class="badge bg-light text-primary border" style="font-size: 10.5px;">Gemini Flash Engine</span>
+        </div>
+        <div class="p-3 p-md-4">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="set-field-label text-primary">GOOGLE GEMINI API KEY *</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light border-end-0"><i class="fas fa-key text-primary"></i></span>
+                <input type="password" id="set_geminiKey" class="form-control set-field-control border-start-0 border-end-0 fw-bold" placeholder="Dán mã API Key bắt đầu bằng AIzaSy...">
+                <button class="btn btn-action-outline border-start-0 border-end-0" type="button" onclick="toggleGeminiKeyVisibility()" title="Ẩn/Hiện khóa API">
+                  <i class="fas fa-eye" id="gemini_eye_icon"></i>
+                </button>
+                <button class="btn btn-action-tonal" type="button" onclick="testGeminiAPIConnection()" title="Kiểm tra kết nối trực tiếp đến Google AI Studio">
+                  <i class="fas fa-bolt me-1"></i> Kiểm tra kết nối
+                </button>
+              </div>
+              <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
+                <span class="set-hint m-0">
+                  <i class="fas fa-info-circle text-primary me-1"></i> Dùng cho Copilot Trợ lý ảo, OCR bóc tách quét tài liệu & Bơm dữ liệu biểu mẫu.
+                </span>
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" class="fw-bold text-primary small text-decoration-none" style="font-size: 12px;">
+                  <i class="fas fa-arrow-up-right-from-square me-1"></i> Lấy API Key miễn phí tại Google AI Studio
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KHỐI 6: TỰ ĐỘNG HÓA TRIGGER HỆ THỐNG -->
+      <div class="set-card">
+        <div class="set-card-header">
+          <h6 class="set-card-title text-dark">
+            <i class="fas fa-clock-rotate-left text-success"></i> 6. Tự động hóa Trigger (Nhiệm vụ chạy ngầm)
+          </h6>
+          <span class="badge bg-light text-secondary border" style="font-size: 10.5px;">1h15 sáng hàng ngày</span>
+        </div>
+        <div class="p-3 p-md-4">
+          <div class="form-check form-switch d-flex align-items-center">
+            <input class="form-check-input me-3" type="checkbox" id="set_autoSync" style="width: 2.5rem; height: 1.3rem; cursor: pointer;">
+            <div>
+              <label class="form-check-label fw-bold text-dark d-block" for="set_autoSync" style="cursor: pointer; font-size: 13px;">
+                Tự động kiểm tra thời hạn toàn bộ án & đồng bộ Sổ nhận đơn mới
+              </label>
+              <span class="text-muted small" style="font-size: 11.5px;">Hệ thống tự động kích hoạt vào lúc 1h15 sáng mỗi ngày để đối chiếu dữ liệu và tính toán hạn giải quyết.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KHỐI 7: TỪ ĐIỂN BIẾN SỐ PLACEHOLDER -->
+      <div class="set-card">
+        <div class="set-card-header">
+          <h6 class="set-card-title text-dark">
+            <i class="fas fa-book-bookmark text-info"></i> 7. Từ điển Biến số Placeholder Trộn văn bản
+          </h6>
+          <button class="btn btn-action-tonal btn-action-tool" onclick="window.openDictionaryModal()">
+            <i class="fas fa-table-list"></i> Xem từ điển trực tuyến
+          </button>
         </div>
         <div class="p-3 p-md-4 text-center">
-          <p class="text-muted mb-3" style="font-size: 13px;">
-            Hệ thống cung cấp sẵn bảng từ điển chứa toàn bộ các biến số (Placeholder) hỗ trợ tự động điền thông tin vào File Word.<br>
-            Bạn có thể tải danh sách này về để dễ dàng tra cứu hoặc đối chiếu với cấu hình trên Sheet <b>6_Placeholder</b>.
+          <p class="text-muted mb-3" style="font-size: 12.5px;">
+            Danh mục các biến số pháp lý ({Số thụ lý}, {Danh xưng Thẩm phán}, {Thẩm phán}, {Danh xưng Thư ký}, {Thư ký}...) hỗ trợ tự động điền nội dung vào văn bản.
           </p>
-          <button type="button" class="btn btn-info text-white fw-bold px-4 py-2 shadow-sm" onclick="downloadPlaceholderDict()">
-             <i class="fas fa-download me-2"></i> TẢI VỀ TỪ ĐIỂN PLACEHOLDER (.JSON)
+          <button class="btn btn-action-outline btn-action-tool" onclick="downloadPlaceholderDict()">
+            <i class="fas fa-download text-primary"></i> Tải về tệp từ điển biến số (.JSON)
           </button>
         </div>
       </div>
 
-      <!-- NÚT LƯU CẤU HÌNH -->
-      <div class="d-flex justify-content-center mb-5 mt-4">
-        <button class="btn btn-primary px-5 py-3 shadow-lg fw-bold" style="border-radius: 12px; font-size: 16px;" onclick="saveSettings()">
-          <i class="fas fa-save me-2"></i> LƯU TOÀN BỘ CẤU HÌNH
+      <!-- KHỐI 8: CHẨN ĐOÁN LỖI PLACEHOLDER TRONG KHO MẪU -->
+      <div class="set-card">
+        <div class="set-card-header">
+          <h6 class="set-card-title text-danger">
+            <i class="fas fa-stethoscope"></i> 8. Chẩn đoán & Sửa lỗi Placeholder trong Kho mẫu
+          </h6>
+          <button class="btn btn-action-danger btn-action-tool shadow-sm" onclick="runTemplateDiagnostics()">
+            <i class="fas fa-magnifying-glass-chart"></i> Quét tìm lỗi mẫu
+          </button>
+        </div>
+        <div class="p-3 p-md-4">
+          <p class="text-muted small mb-3">
+            Hệ thống sẽ quét toàn bộ file mẫu trên Drive để phát hiện các biến viết sai chính tả, thiếu ngoặc nhọn hoặc không hợp lệ.
+          </p>
+          <div id="scan_report_container" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h6 class="fw-bold m-0 text-dark text-uppercase" style="font-size: 12.5px;">KẾT QUẢ QUÉT KIỂM TRA</h6>
+              <span id="scan_summary_badge" class="badge bg-primary px-3 py-2" style="font-size: 11.5px;"></span>
+            </div>
+            <div class="table-responsive rounded-3 border" style="max-height: 380px; overflow-y: auto;">
+              <table class="table table-hover align-middle bg-white m-0" style="font-size: 12.5px;">
+                <thead class="table-light">
+                  <tr>
+                    <th style="width: 28%;" class="border-bottom">TÊN BIỂU MẪU</th>
+                    <th style="width: 14%;" class="border-bottom">PHÂN LOẠI</th>
+                    <th style="width: 44%;" class="border-bottom">TÌNH TRẠNG & TỪ KHÓA BỊ LỖI</th>
+                    <th style="width: 14%;" class="text-center border-bottom">THAO TÁC</th>
+                  </tr>
+                </thead>
+                <tbody id="scan_report_body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KHỐI 9: QUẢN TRỊ KHO MẪU & BƠM DỮ LIỆU BẰNG AI -->
+      <div class="set-card">
+        <div class="set-card-header">
+          <h6 class="set-card-title text-warning-emphasis">
+            <i class="fas fa-brain"></i> 9. Quản trị Kho Mẫu & Bơm Dữ Liệu Tự Động (AI Engine)
+          </h6>
+          <button class="btn btn-action-tonal btn-action-tool" onclick="loadAITemplateManager()">
+            <i class="fas fa-rotate"></i> Kiểm kê mẫu trên Drive
+          </button>
+        </div>
+        <div class="p-3 p-md-4">
+          <p class="text-muted small mb-3">
+            Chọn các Biểu mẫu đang bị <span class="badge bg-warning text-dark border">TRỐNG</span> bên dưới và tải lên một tệp tin (Word/PDF) mẫu cũ. AI sẽ tự động đọc hiểu văn phong, cấy mã Placeholder và bơm đầy nội dung vào biểu mẫu đó.
+          </p>
+          
+          <div id="ai_manager_container" style="display: none;">
+            <div class="input-group input-group-sm mb-3" style="max-width: 300px;">
+              <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+              <input type="text" id="ai_manager_search" class="form-control set-field-control border-start-0" placeholder="Tìm nhanh biểu mẫu..." onkeyup="filterAIManagerList()">
+            </div>
+            
+            <div class="table-responsive border rounded-3" style="max-height: 450px; overflow-y: auto;">
+              <table class="table table-hover align-middle bg-white m-0" style="font-size: 13px;">
+                <thead class="table-light" style="position: sticky; top: 0; z-index: 10;">
+                  <tr>
+                    <th style="width: 8%;" class="text-center border-bottom">STT</th>
+                    <th style="width: 45%;" class="border-bottom">TÊN BIỂU MẪU THEO QUY ĐỊNH</th>
+                    <th style="width: 20%;" class="text-center border-bottom">TÌNH TRẠNG</th>
+                    <th style="width: 27%;" class="text-center border-bottom">THAO TÁC NẠP DỮ LIỆU</th>
+                  </tr>
+                </thead>
+                <tbody id="ai_manager_body"></tbody>
+              </table>
+            </div>
+            
+            <input type="file" id="ai_manager_file_input" class="d-none" accept=".doc,.docx,.pdf" onchange="processAITrainingUpload(this)">
+          </div>
+        </div>
+      </div>
+
+      <!-- NÚT LƯU Ở CHÂN TRANG -->
+      <div class="text-center my-4 pb-4">
+        <button class="btn btn-action-primary btn-action-tool shadow px-5 py-3" style="height: 44px !important; font-size: 13.5px !important; border-radius: 10px !important;" onclick="saveSettingsData()">
+          <i class="fas fa-save me-2"></i> LƯU THAY ĐỔI CÀI ĐẶT
         </button>
       </div>
+
     </div>
   </div>
 </div>
 
-<style>
-  .small-label { font-size: 11px; font-weight: 700; color: #5f6368; text-transform: uppercase; display: block; margin-bottom: 5px; }
-  .form-control:focus, .form-select:focus { box-shadow: none; border-color: var(--primary); }
-</style>
-
 <script>
-  function loadSettingsData() {
-    google.script.run.withSuccessHandler(function(config) {
-      if (config) {
-        document.getElementById('set_tenTP').value = config.TEN_THAM_PHAN || "";
-        document.getElementById('set_tenToa').value = config.TEN_TOA_AN || "";
-        document.getElementById('set_diaChiToa').value = config.DIA_CHI_TOA || "";
-        document.getElementById('set_chucVu').value = config.CHUC_VU || "Thẩm phán";
-        document.getElementById('set_tenTK').value = config.TEN_THU_KY || "";
-        document.getElementById('set_idRoot').value = config.ID_THUMUC_AN || "";
-        document.getElementById('set_idTemplate').value = config.ID_THUMUC_MAU || "";
-        
-        if(document.getElementById('set_groqKey')) {
-          document.getElementById('set_groqKey').value = config.GROQ_API_KEY || "";
-        }
-      }
-    }).api_GetAppIdentity();
+  window.localDsThuKy = [];
+
+  function toggleGeminiKeyVisibility() {
+    var input = document.getElementById('set_geminiKey');
+    var icon = document.getElementById('gemini_eye_icon');
+    if (!input || !icon) return;
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.className = 'fas fa-eye-slash text-danger';
+    } else {
+      input.type = 'password';
+      icon.className = 'fas fa-eye';
+    }
   }
 
-  function saveSettings() {
-    const data = {
-      TEN_THAM_PHAN: document.getElementById('set_tenTP').value.trim(),
-      TEN_TOA_AN: document.getElementById('set_tenToa').value.trim(),
-      DIA_CHI_TOA: document.getElementById('set_diaChiToa').value.trim(),
-      CHUC_VU: document.getElementById('set_chucVu').value.trim(),
-      TEN_THU_KY: document.getElementById('set_tenTK').value.trim(),
-      ID_THUMUC_AN: document.getElementById('set_idRoot').value.trim(),
-      ID_THUMUC_MAU: document.getElementById('set_idTemplate').value.trim(),
-      GROQ_API_KEY: document.getElementById('set_groqKey') ? document.getElementById('set_groqKey').value.trim() : ""
-    };
+  function testGeminiAPIConnection() {
+    var key = document.getElementById('set_geminiKey') ? document.getElementById('set_geminiKey').value.trim() : "";
+    if (!key) {
+      AppUI.alert("Thiếu API Key", "Vui lòng nhập mã Gemini API Key trước khi kiểm tra!");
+      return;
+    }
+
+    AppUI.showToast("Đang kiểm tra kết nối Google AI Studio...", "");
     
-    AppUI.showToast("Đang lưu cấu hình...", "");
-    google.script.run.withSuccessHandler(function(success) {
-      if (success) {
-        AppUI.showToast("Đã cập nhật cài đặt thành công!", "success");
-        if (typeof loadJudgeIdentity === 'function') loadJudgeIdentity();
-      }
-      else {
-        AppUI.showToast("Lỗi: Không thể lưu dữ liệu.", "error");
-      }
-    }).api_SaveAppSettings(data);
+    // Tạm lưu cài đặt để backend dùng key này test ping
+    google.script.run
+      .withSuccessHandler(function() {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            AppUI.hideToast();
+            if (res && res.success) {
+              AppUI.alert("KẾT NỐI THÀNH CÔNG!", "✅ Khóa API của bạn hoạt động hoàn hảo với Google Gemini Flash Engine.");
+            } else {
+              AppUI.alert("KẾT NỐI THẤT BẠI", "❌ Lỗi: " + (res ? res.error : "Không thể kết nối đến máy chủ AI."));
+            }
+          })
+          .withFailureHandler(function(err) {
+            AppUI.hideToast();
+            AppUI.alert("Lỗi kết nối", "Không thể kết nối: " + err.message);
+          })
+          .api_AskGeminiCopilot("ping", { scope: "GLOBAL" });
+      })
+      .api_SaveAppSettings({ GEMINI_API_KEY: key });
   }
 
-  function testDriveLink() {
-    var id = document.getElementById('set_idTemplate').value.trim();
-    if(id) window.open("https://drive.google.com/drive/folders/" + id, '_blank');
-    else AppUI.alert("Thiếu thông tin", "Vui lòng nhập ID Thư mục mẫu trước!");
+  function safeRemoveAccents(str) {
+    if (typeof window.removeAccents === 'function') return window.removeAccents(str);
+    return (str || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D');
   }
 
-  // ĐÃ SỬA: Hàm gọi server lấy Json Placeholder và tự động ép Browser tải về (Req 6.2 / Req 7)
+  // QUẢN LÝ DANH SÁCH THƯ KÝ ĐỘNG (INLINE EDIT TRỰC TIẾP)
+  function renderSecretaryTable() {
+    var tbody = document.getElementById('table_thuky_body');
+    if (!tbody) return;
+
+    if (!window.localDsThuKy || window.localDsThuKy.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="text-center p-3 text-muted small fst-italic">Chưa có Thư ký nào trong danh sách. Hãy thêm Thư ký ở ô bên dưới.</td></tr>';
+      return;
+    }
+
+    var html = window.localDsThuKy.map(function(tk, idx) {
+      var selOng = (tk.xh === 'Ông') ? 'selected' : '';
+      var selBa = (tk.xh === 'Bà') ? 'selected' : '';
+
+      return `
+        <tr>
+          <td class="text-center fw-bold text-secondary">${idx + 1}</td>
+          <td>
+            <select class="form-select form-select-sm fw-bold" onchange="updateSecretaryHonorific(${idx}, this.value)">
+              <option value="Bà" ${selBa}>Bà</option>
+              <option value="Ông" ${selOng}>Ông</option>
+            </select>
+          </td>
+          <td>
+            <input type="text" class="form-control form-control-sm fw-bold text-dark" value="${tk.ten || ''}" placeholder="Họ và tên Thư ký..." oninput="updateSecretaryName(${idx}, this.value)" onblur="this.value = window.toTitleCase(window.cleanHonorificFromName(this.value)); updateSecretaryName(${idx}, this.value)">
+          </td>
+          <td class="text-center">
+            <button type="button" class="btn btn-sm btn-outline-danger p-0 d-inline-flex align-items-center justify-content-center shadow-none" style="width: 26px; height: 26px; border-radius: 6px;" onclick="removeSecretaryRow(${idx})" title="Xóa Thư ký này">
+              <i class="fas fa-trash-alt" style="font-size: 11px;"></i>
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    tbody.innerHTML = html;
+  }
+
+  function updateSecretaryHonorific(idx, val) {
+    if (window.localDsThuKy && window.localDsThuKy[idx]) {
+      window.localDsThuKy[idx].xh = val;
+    }
+  }
+
+  function updateSecretaryName(idx, val) {
+    if (window.localDsThuKy && window.localDsThuKy[idx]) {
+      window.localDsThuKy[idx].ten = val;
+    }
+  }
+
+  function addSecretaryRow() {
+    var xh = document.getElementById('new_tk_xh').value;
+    var tenInput = document.getElementById('new_tk_ten');
+    var rawTen = tenInput ? tenInput.value.trim() : "";
+
+    if (!rawTen) {
+      if (typeof AppUI !== 'undefined') AppUI.alert("Thiếu thông tin", "Vui lòng nhập Họ và tên Thư ký!");
+      return;
+    }
+
+    var properTen = rawTen.replace(/^(Ông|Bà|Anh|Chị|ông|bà|anh|chị)\s+/i, '').trim();
+    if (typeof window.toTitleCase === 'function') {
+      properTen = window.toTitleCase(properTen);
+    }
+
+    if (!window.localDsThuKy) window.localDsThuKy = [];
+    window.localDsThuKy.push({ xh: xh, ten: properTen });
+    tenInput.value = "";
+    renderSecretaryTable();
+  }
+
+  function removeSecretaryRow(idx) {
+    if (!window.localDsThuKy || idx < 0 || idx >= window.localDsThuKy.length) return;
+    window.localDsThuKy.splice(idx, 1);
+    renderSecretaryTable();
+  }
+
+  function loadSettingsData() {
+    if (typeof AppUI !== 'undefined') AppUI.showToast("Đang nạp cấu hình hệ thống...", "");
+    google.script.run
+      .withSuccessHandler(function(config) {
+        if (typeof AppUI !== 'undefined') AppUI.hideToast();
+        if (config) {
+          if (document.getElementById('set_tenTP')) document.getElementById('set_tenTP').value = config.TEN_THAM_PHAN || "";
+          if (document.getElementById('set_tenToa')) document.getElementById('set_tenToa').value = config.TEN_TOA_AN || "";
+          if (document.getElementById('set_diaChiToa')) document.getElementById('set_diaChiToa').value = config.DIA_CHI_TOA || "";
+          if (document.getElementById('set_chucVu')) document.getElementById('set_chucVu').value = config.CHUC_VU || "Thẩm phán";
+          if (document.getElementById('set_idRoot')) document.getElementById('set_idRoot').value = config.ID_THUMUC_AN || "";
+          if (document.getElementById('set_idTemplate')) document.getElementById('set_idTemplate').value = config.ID_THUMUC_MAU || "";
+          if (document.getElementById('set_idExcelDon')) document.getElementById('set_idExcelDon').value = config.ID_EXCEL_DON || "";
+          if (document.getElementById('set_idFolderDon')) document.getElementById('set_idFolderDon').value = config.ID_THUMUC_DON || "";
+          if (document.getElementById('set_idTemplateDon')) document.getElementById('set_idTemplateDon').value = config.ID_THUMUC_MAU_DON || "";
+          if (document.getElementById('set_geminiKey')) document.getElementById('set_geminiKey').value = config.GEMINI_API_KEY || "";
+          if (document.getElementById('set_autoSync')) document.getElementById('set_autoSync').checked = (config.AUTO_SYNC === true || config.AUTO_SYNC === "TRUE" || config.AUTO_SYNC === "true");
+
+          // NẠP DANH SÁCH THƯ KÝ ĐỘNG TỪ CSDL 5_CAIDAT
+          if (config.DS_THU_KY) {
+            try {
+              window.localDsThuKy = typeof config.DS_THU_KY === 'string' ? JSON.parse(config.DS_THU_KY) : config.DS_THU_KY;
+            } catch(e) { window.localDsThuKy = []; }
+          } else {
+            window.localDsThuKy = [
+              { xh: "Bà", ten: "Lường Thị Phương" },
+              { xh: "Ông", ten: "Hoàng Rung K’Tuấn" }
+            ];
+          }
+          renderSecretaryTable();
+        }
+      })
+      .withFailureHandler(function(err) {
+        if (typeof AppUI !== 'undefined') AppUI.showToast("Lỗi tải cài đặt: " + err.message, "error");
+      })
+      .api_GetAppIdentity();
+  }
+
+  function saveSettingsData() {
+    var data = {
+      TEN_THAM_PHAN: document.getElementById('set_tenTP') ? document.getElementById('set_tenTP').value.trim() : "",
+      TEN_TOA_AN: document.getElementById('set_tenToa') ? document.getElementById('set_tenToa').value.trim() : "",
+      DIA_CHI_TOA: document.getElementById('set_diaChiToa') ? document.getElementById('set_diaChiToa').value.trim() : "",
+      CHUC_VU: document.getElementById('set_chucVu') ? document.getElementById('set_chucVu').value.trim() : "Thẩm phán",
+      DS_THU_KY: JSON.stringify(window.localDsThuKy || []),
+      ID_THUMUC_AN: document.getElementById('set_idRoot') ? document.getElementById('set_idRoot').value.trim() : "",
+      ID_THUMUC_MAU: document.getElementById('set_idTemplate') ? document.getElementById('set_idTemplate').value.trim() : "",
+      ID_EXCEL_DON: document.getElementById('set_idExcelDon') ? document.getElementById('set_idExcelDon').value.trim() : "",
+      ID_THUMUC_DON: document.getElementById('set_idFolderDon') ? document.getElementById('set_idFolderDon').value.trim() : "",
+      ID_THUMUC_MAU_DON: document.getElementById('set_idTemplateDon') ? document.getElementById('set_idTemplateDon').value.trim() : "",
+      GEMINI_API_KEY: document.getElementById('set_geminiKey') ? document.getElementById('set_geminiKey').value.trim() : "",
+      AUTO_SYNC: (document.getElementById('set_autoSync') && document.getElementById('set_autoSync').checked) ? "TRUE" : "FALSE"
+    };
+
+    if (typeof AppUI !== 'undefined') AppUI.showToast("Đang lưu cấu hình hệ thống...", "");
+    google.script.run
+      .withSuccessHandler(function(success) {
+        if (success) {
+          if (typeof AppUI !== 'undefined') AppUI.showToast("Đã cập nhật cài đặt thành công!", "success");
+          
+          try { sessionStorage.setItem('judgeConfigV78', JSON.stringify(data)); } catch(e){}
+          if (typeof loadJudgeIdentity === 'function') loadJudgeIdentity();
+          if (typeof window.populateSecretaryDropdown === 'function') window.populateSecretaryDropdown();
+        } else {
+          if (typeof AppUI !== 'undefined') AppUI.showToast("Lỗi: Không thể lưu dữ liệu.", "error");
+        }
+      })
+      .withFailureHandler(function(err) {
+        if (typeof AppUI !== 'undefined') AppUI.showToast("Lỗi kết nối: " + err.message, "error");
+      })
+      .api_SaveAppSettings(data);
+  }
+
   function downloadPlaceholderDict() {
-     AppUI.showToast("Đang chuẩn bị file tải về...", "");
-     google.script.run.withSuccessHandler(function(list) {
-         if(!list || list.length === 0) {
-             AppUI.alert("Lỗi", "Không tìm thấy dữ liệu từ điển.");
-             return;
-         }
-         var jsonStr = JSON.stringify(list, null, 2);
-         var blob = new Blob([jsonStr], { type: "application/json" });
-         var url = window.URL.createObjectURL(blob);
-         var a = document.createElement("a");
-         a.href = url;
-         a.download = "TuDien_Placeholder_V7.5.json";
-         document.body.appendChild(a);
-         a.click();
-         document.body.removeChild(a);
-         window.URL.revokeObjectURL(url);
-         AppUI.hideToast();
-     }).backend_GetAllPlaceholders();
+    if (typeof AppUI !== 'undefined') AppUI.showToast("Đang chuẩn bị tệp từ điển...", "");
+    google.script.run
+      .withSuccessHandler(function(list) {
+        if (!list || list.length === 0) {
+          if (typeof AppUI !== 'undefined') AppUI.alert("Lỗi", "Không tìm thấy dữ liệu từ điển.");
+          return;
+        }
+        var jsonStr = JSON.stringify(list, null, 2);
+        var blob = new Blob([jsonStr], { type: "application/json" });
+        var url = window.URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = "TuDien_Placeholder_V8.0.json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        if (typeof AppUI !== 'undefined') AppUI.hideToast();
+      })
+      .backend_GetAllPlaceholders();
+  }
+
+  // CHẨN ĐOÁN LỖI BIỂU MẪU DRIVE
+  function runTemplateDiagnostics() {
+    var container = document.getElementById('scan_report_container');
+    var tbody = document.getElementById('scan_report_body');
+    var badge = document.getElementById('scan_summary_badge');
+
+    if (!container || !tbody) return;
+    container.style.display = 'block';
+    tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-primary"><div class="spinner-border spinner-border-sm me-2"></div> Đang quét toàn bộ file mẫu trên Google Drive...</td></tr>`;
+
+    if (typeof AppUI !== 'undefined') AppUI.showToast("Đang quét biểu mẫu...", "");
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (typeof AppUI !== 'undefined') AppUI.hideToast();
+        if (!res.success) {
+          tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-danger">Lỗi: ${res.error}</td></tr>`;
+          return;
+        }
+
+        var reports = res.reports || [];
+        if (reports.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-muted">Không tìm thấy file mẫu nào.</td></tr>`;
+          return;
+        }
+
+        var totalFiles = reports.length;
+        var errorFiles = reports.filter(function(r) { return r.issueCount > 0; }).length;
+
+        if (badge) {
+          badge.className = errorFiles > 0 ? "badge bg-danger px-3 py-2" : "badge bg-success px-3 py-2";
+          badge.innerText = `Quét ${totalFiles} file: ${errorFiles} file có lỗi / ${totalFiles - errorFiles} file chuẩn`;
+        }
+
+        var html = reports.map(function(r) {
+          var statusHtml = "";
+          if (r.issueCount === 0) {
+            statusHtml = `<span class="badge bg-success-subtle text-success border border-success px-2 py-1"><i class="fas fa-check-circle me-1"></i>Chuẩn 100% (${r.validCount} biến hợp lệ)</span>`;
+          } else {
+            statusHtml = r.issues.map(function(iss) {
+              return `<div class="mb-1 text-danger small"><i class="fas fa-exclamation-triangle me-1"></i> <b>${iss.raw}</b> ${iss.suggestion ? `&rarr; Sửa: <code class="text-primary fw-bold">${iss.suggestion}</code>` : `<span class="text-muted fst-italic">(${iss.message})</span>`}</div>`;
+            }).join('');
+          }
+
+          var btnFix = (r.issueCount > 0 && r.issues.some(function(i) { return i.suggestion; })) 
+            ? `<button class="btn btn-sm btn-action-danger fw-bold py-1 px-2 mt-1 w-100" style="font-size: 11px; height: 28px;" onclick='autoFixTemplate("${r.fileId}", ${JSON.stringify(r.issues.filter(function(i) { return i.suggestion; })).replace(/"/g, '&quot;')}, this)'><i class="fas fa-wand-magic-sparkles me-1"></i> Tự sửa lỗi</button>` 
+            : "";
+
+          return `
+            <tr>
+              <td><a href="${r.fileUrl}" target="_blank" class="fw-bold text-dark text-decoration-none"><i class="far fa-file-word text-primary me-1"></i> ${r.fileName}</a></td>
+              <td><span class="badge bg-light text-secondary border">${r.category}</span></td>
+              <td>${statusHtml}</td>
+              <td class="text-center">
+                <a href="${r.fileUrl}" target="_blank" class="btn btn-sm btn-action-outline py-1 px-2 w-100 justify-content-center" style="font-size: 11.5px; height: 28px;" title="Mở file trên Drive"><i class="fas fa-arrow-up-right-from-square text-primary me-1"></i> Mở Drive</a>
+                ${btnFix}
+              </td>
+            </tr>`;
+        }).join('');
+        tbody.innerHTML = html;
+      })
+      .withFailureHandler(function(err) {
+        if (typeof AppUI !== 'undefined') AppUI.hideToast();
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-danger">Lỗi kết nối: ${err.message}</td></tr>`;
+      })
+      .api_ScanAndCheckAllTemplates();
+  }
+
+  function autoFixTemplate(fileId, fixes, btnEl) {
+    var oldText = btnEl.innerHTML;
+    btnEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang sửa...';
+    btnEl.disabled = true;
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        btnEl.innerHTML = oldText; btnEl.disabled = false;
+        if (res.success) {
+          if (typeof AppUI !== 'undefined') AppUI.alert("Thành công", `Đã tự động sửa ${res.count} placeholder trong file.`);
+          runTemplateDiagnostics();
+        } else {
+          if (typeof AppUI !== 'undefined') AppUI.alert("Lỗi", res.error);
+        }
+      })
+      .withFailureHandler(function(err) {
+        btnEl.innerHTML = oldText; btnEl.disabled = false;
+        if (typeof AppUI !== 'undefined') AppUI.alert("Lỗi", err.message);
+      })
+      .api_AutoFixTemplatePlaceholders(fileId, fixes);
+  }
+
+  // QUẢN TRỊ BƠM DỮ LIỆU AI VÀO MẪU TRỐNG
+  window.currentTrainTplId = null;
+  window.currentTrainTplName = null;
+
+  function loadAITemplateManager() {
+    var container = document.getElementById('ai_manager_container');
+    var tbody = document.getElementById('ai_manager_body');
+    if (!container || !tbody) return;
+
+    container.style.display = 'block';
+    tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-warning-emphasis"><div class="spinner-border spinner-border-sm me-2 text-primary"></div>Đang kiểm kê Kho biểu mẫu trên Drive...</td></tr>`;
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!res.success) {
+          tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-danger">Lỗi: ${res.error}</td></tr>`;
+          return;
+        }
+
+        var list = res.list || [];
+        if (list.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-muted">Thư mục biểu mẫu hiện đang trống.</td></tr>`;
+          return;
+        }
+
+        var html = list.map(function(t) {
+          var matchNum = t.name.match(/^\s*0*(\d+)[a-zA-Z]?\s*\./);
+          var num = matchNum ? parseInt(matchNum[1], 10) : "?";
+
+          var statusBadge = t.isEmpty 
+            ? '<span class="badge bg-warning text-dark border border-warning shadow-sm"><i class="fas fa-triangle-exclamation me-1"></i> TRỐNG</span>'
+            : '<span class="badge bg-success-subtle text-success border border-success"><i class="fas fa-circle-check me-1"></i> Đã có dữ liệu</span>';
+
+          var actionBtn = t.isEmpty 
+            ? `<button class="btn btn-sm btn-action-primary w-100 justify-content-center py-1" style="font-size: 11.5px; height: 28px;" onclick="triggerAITraining('${t.id}', '${t.name.replace(/"/g, '&quot;')}')"><i class="fas fa-upload me-1"></i> Nạp dữ liệu bằng AI</button>`
+            : `<button class="btn btn-sm btn-action-outline w-100 justify-content-center py-1" style="font-size: 11.5px; height: 28px;" onclick="triggerAITraining('${t.id}', '${t.name.replace(/"/g, '&quot;')}')"><i class="fas fa-sync-alt me-1"></i> Ghi đè lại bằng AI</button>`;
+
+          return `
+            <tr class="ai-manager-row">
+              <td class="text-center fw-bold text-secondary">${num}</td>
+              <td class="fw-bold text-dark"><i class="far fa-file-word text-primary me-2"></i> ${t.name}</td>
+              <td class="text-center">${statusBadge}</td>
+              <td>${actionBtn}</td>
+            </tr>
+          `;
+        }).join('');
+
+        tbody.innerHTML = html;
+      })
+      .withFailureHandler(function(err) {
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-danger">Lỗi mạng: ${err.message}</td></tr>`;
+      })
+      .api_LayDanhSachMauKiemTra();
+  }
+
+  function filterAIManagerList() {
+    var searchInput = document.getElementById('ai_manager_search');
+    if (!searchInput) return;
+    var filter = safeRemoveAccents(searchInput.value.toLowerCase());
+    var rows = document.querySelectorAll('.ai-manager-row');
+    rows.forEach(function(r) {
+      var text = safeRemoveAccents(r.innerText.toLowerCase());
+      r.style.display = text.includes(filter) ? "" : "none";
+    });
+  }
+
+  function triggerAITraining(templateId, templateName) {
+    window.currentTrainTplId = templateId;
+    window.currentTrainTplName = templateName;
+    var fileInput = document.getElementById('ai_manager_file_input');
+    if (fileInput) fileInput.click();
+  }
+
+  function processAITrainingUpload(input) {
+    if (!input.files || input.files.length === 0) return;
+    var file = input.files[0];
+    var reader = new FileReader();
+
+    var targetId = window.currentTrainTplId;
+    var targetName = window.currentTrainTplName;
+
+    if (typeof AppUI !== 'undefined') AppUI.showToast(`AI đang phân tích file "${file.name}" và bơm vào mẫu "${targetName}"...`, "");
+
+    reader.onload = function(e) {
+      var base64Data = e.target.result.split(',')[1];
+      
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (typeof AppUI !== 'undefined') AppUI.hideToast();
+          if (res.success) {
+            if (typeof AppUI !== 'undefined') AppUI.alert("NẠP DỮ LIỆU THÀNH CÔNG!", `✅ AI đã cấy tự động ${res.replacementCount} biến Placeholder và bơm đầy nội dung vào biểu mẫu:\n<b>${targetName}</b>.`);
+            loadAITemplateManager();
+          } else {
+            if (typeof AppUI !== 'undefined') AppUI.alert("Lỗi AI", res.error);
+          }
+          input.value = "";
+        })
+        .withFailureHandler(function(err) {
+          if (typeof AppUI !== 'undefined') {
+            AppUI.hideToast();
+            AppUI.alert("Lỗi mạng", err.message);
+          }
+          input.value = "";
+        })
+        .api_CreateTemplateFromDoc(file.name, file.type, base64Data, targetId, targetName);
+    };
+
+    reader.readAsDataURL(file);
   }
 </script>

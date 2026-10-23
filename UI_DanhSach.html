@@ -1,346 +1,532 @@
 <!--
-  HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V7.5.0 - GROQ AI EDITION
-  FILE: UI_DanhSach.html (SỔ THỤ LÝ ĐIỆN TỬ & DASHBOARD)
-  ------------------------------------------------------------
-  NÂNG CẤP GIAO DIỆN:
-  - Triển khai Dashboard 8 thẻ chỉ số thông minh, hỗ trợ lọc nhanh.
-  - Tối ưu hóa Thanh công cụ (Toolbelt) chống vỡ layout.
-  - Bảng dữ liệu phân loại màu sắc theo trạng thái (Status-coded borders).
-  - Hệ thống nhắc việc tự động (Notification Hub) với hiệu ứng soft-blink.
-  - Cơ chế chọn hàng loạt (Bulk Selection) và xóa nhanh.
+  =========================================================================
+  HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.0 - SỔ THỤ LÝ ĐIỆN TỬ & DASHBOARD VĨ MÔ
+  TỆP: UI_DanhSach.html - SỔ THỤ LÝ, 8 THẺ STATS CO GIÃN & LỌC ĐA TIÊU CHÍ
+  - TUÂN THỦ 100% QUY CHUẨN V8.0 PRODUCTION MASTER
+  - BẢNG DỮ LIỆU HIGH-DPI SẮC NÉT, STICKY HEADER & DÒNG PHÂN TÁCH ĐƯƠNG SỰ
+  - PHẢN HỒI LỌC TỨC THÌ 0MS TRÊN BỘ NHỚ RAM CLIENT
+  =========================================================================
 -->
 
+<style>
+  /* =========================================================================
+     1. DASHBOARD STATS GRID: 8 CỘT ĐÀN HỒI (DESKTOP) & MINI-CHIP (MOBILE)
+     ========================================================================= */
+  .stat-grid-8 {
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 12px;
+  }
 
-<div class="animate-fadeIn p-2 p-md-3">
+  .stat-box {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 10px 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 98px;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .stat-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px -2px rgba(15, 23, 42, 0.08);
+    border-color: #cbd5e1;
+  }
+  
+  .stat-box.active-filter {
+    border: 1.5px solid #2563eb !important;
+    background-color: #ffffff !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12), 0 4px 12px rgba(37, 99, 235, 0.08) !important;
+  }
 
+  .stat-box-title {
+    font-size: 10px;
+    font-weight: 800;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    line-height: 1.3;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
 
-  <!-- ==========================================
-       PHẦN 1: DASHBOARD CHỈ SỐ & THÔNG BÁO
-  =========================================== -->
-  <style>
-    .stat-card {
-      background: #ffffff;
-      border-radius: 12px;
-      padding: 15px;
-      cursor: pointer;
-      border: 1px solid #eef2f7;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      height: 100%;
-      min-height: 95px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
-    .stat-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 8px 20px rgba(30, 41, 59, 0.08);
-      border-color: var(--primary);
-    }
-    .stat-card.active-filter {
-        box-shadow: 0 0 0 2px var(--primary);
-        border-color: var(--primary);
-        background-color: var(--primary-light);
-    }
-    .stat-title {
-      font-size: 10px;
-      font-weight: 800;
-      text-transform: uppercase;
-      color: #64748b;
-      margin-bottom: 6px;
-      letter-spacing: 0.5px;
-    }
-    .stat-main-val {
-      font-size: 24px;
-      font-weight: 800;
-      line-height: 1;
-      margin-bottom: 4px;
-      color: #1e293b;
-    }
-    .stat-sub-val {
-      font-size: 11px;
-      color: #94a3b8;
-      font-weight: 600;
-    }
-   
-    .soft-blink { animation: softBlinkAnim 7s infinite; }
-    @keyframes softBlinkAnim {
-      0% { opacity: 0.4; } 20% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0.4; }
-    }
-   
-    .toolbelt-wrapper {
-      display: flex;
-      flex-wrap: nowrap;
-      align-items: center;
-      gap: 10px;
-      overflow-x: auto;
-      padding: 4px 0;
-    }
-    .toolbelt-wrapper::-webkit-scrollbar { height: 4px; }
-    .toolbelt-wrapper::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 3px; }
-  </style>
+  .stat-box-val {
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1.1;
+    margin: 3px 0 2px;
+    letter-spacing: -0.5px;
+    font-variant-numeric: tabular-nums;
+  }
 
+  .stat-box-sub {
+    font-size: 11px;
+    color: #64748b;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
-  <div class="row g-2 mb-3">
-    <!-- Tổng thụ lý -->
-    <div class="col-6 col-md-3 col-xl">
-      <div class="stat-card sc-all active-filter" onclick="setFilter('category', 'ALL')">
-        <div class="stat-title">Tổng thụ lý</div>
-        <div class="stat-main-val text-primary" id="stat-total">0</div>
-        <div class="stat-sub-val" id="stat-sub-total">Mới: 0 | Cũ: 0</div>
+  .stat-box-reminder {
+    border: 1.5px solid #fecaca !important;
+    background: #fffafa !important;
+  }
+  .stat-box-reminder:hover {
+    border-color: #fca5a5 !important;
+    box-shadow: 0 6px 14px -2px rgba(220, 38, 38, 0.1) !important;
+  }
+  .stat-box-reminder.active-filter {
+    border-color: #dc2626 !important;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12) !important;
+  }
+
+  /* =========================================================================
+     2. THANH CÔNG CỤ TOOLBAR SẮC NÉT & CHỈ BÁO BỘ LỌC
+     ========================================================================= */
+  .toolbar-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    background: #ffffff;
+    padding: 8px 12px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  }
+
+  .search-wrapper {
+    position: relative;
+    flex-grow: 1;
+    min-width: 220px;
+    max-width: 320px;
+  }
+  .search-wrapper .fa-search {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    font-size: 12.5px;
+  }
+  .search-wrapper input {
+    padding-left: 36px !important;
+    border-radius: 20px !important;
+    background-color: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: #0f172a !important;
+    transition: all 0.15s ease;
+  }
+  .search-wrapper input:focus {
+    background-color: #ffffff !important;
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+  }
+
+  .toolbar-container .form-control, 
+  .toolbar-container .form-select {
+    background-color: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #1e293b;
+    padding: 0.38rem 0.6rem;
+    transition: all 0.15s ease;
+  }
+  .toolbar-container .form-control:focus, 
+  .toolbar-container .form-select:focus {
+    background-color: #ffffff;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    outline: none;
+  }
+
+  /* =========================================================================
+     3. BẢNG DỮ LIỆU SỔ THỤ LÝ (HIGH-DPI CRISP TABLE)
+     ========================================================================= */
+  .table-card-wrapper {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 6px -1px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.02);
+  }
+
+  .table-elegant {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13px;
+  }
+  
+  .table-elegant thead th {
+    background-color: #f8fafc;
+    color: #475569;
+    font-weight: 800;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 10px 12px;
+    border-bottom: 1px solid #e2e8f0;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .table-elegant tbody tr {
+    transition: background-color 0.12s ease;
+  }
+  .table-elegant tbody tr:hover {
+    background-color: #f8fafd;
+  }
+  .table-elegant tbody td {
+    padding: 9px 12px;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+    color: #1e293b;
+  }
+
+  /* =========================================================================
+     4. RESPONSIVE BREAKPOINTS (LAPTOP 1366PX & MOBILE)
+     ========================================================================= */
+  @media (max-width: 1440px) {
+    .stat-grid-8 {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  @media (max-width: 767.98px) {
+    .stat-grid-8 {
+      display: flex !important;
+      flex-wrap: nowrap !important;
+      overflow-x: auto !important;
+      gap: 8px !important;
+      padding-bottom: 4px !important;
+      margin-bottom: 10px !important;
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
+    }
+    .stat-grid-8::-webkit-scrollbar { display: none !important; }
+
+    .stat-box {
+      min-height: 40px !important;
+      height: 40px !important;
+      padding: 6px 12px !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      gap: 8px !important;
+      flex: 0 0 auto !important;
+      border-radius: 20px !important;
+    }
+    .stat-box-title {
+      font-size: 10.5px !important;
+      margin: 0 !important;
+      white-space: nowrap !important;
+    }
+    .stat-box-val {
+      font-size: 14.5px !important;
+      margin: 0 !important;
+      font-weight: 800 !important;
+    }
+    .stat-box-sub {
+      display: none !important;
+    }
+    #notification-hub {
+      min-width: 180px !important;
+    }
+  }
+</style>
+
+<div class="animate-fadeIn">
+
+  <!-- ========================================================= -->
+  <!-- 1. KHỐI 8 THẺ THỐNG KÊ DASHBOARD                          -->
+  <!-- ========================================================= -->
+  <div class="stat-grid-8">
+    
+    <!-- 1. TỔNG THỤ LÝ -->
+    <div class="stat-box active-filter sc-all" onclick="window.setFilter('category', 'ALL', event)" title="Xem toàn bộ số lượng án">
+      <div class="stat-box-title">TỔNG THỤ LÝ</div>
+      <div class="stat-box-val text-primary" id="stat-total">0</div>
+      <div class="stat-box-sub" id="stat-sub-total">Mới: 0 | Cũ: 0</div>
+    </div>
+
+    <!-- 2. ĐÃ HOÀN THÀNH (TỰ ĐỘNG ĐỔI SỐ LƯỢNG & TÍNH % THEO HÌNH THỨC KẾT QUẢ ĐANG LỌC) -->
+    <div class="stat-box sc-finished" onclick="window.setFilter('category', 'FINISHED', event)" title="Xem các vụ án đã ra phán quyết giải quyết">
+      <div class="stat-box-title" id="stat-finished-title">ĐÃ HOÀN THÀNH</div>
+      <div class="stat-box-val text-success" id="stat-finished">0</div>
+      <div class="stat-box-sub">
+        <span id="stat-rate-label">Tỷ lệ:</span> <b id="stat-rate-text" class="text-success">0%</b>
       </div>
     </div>
-   
-    <!-- Đã hoàn thành -->
-    <div class="col-6 col-md-3 col-xl">
-      <div class="stat-card sc-finished" onclick="setFilter('category', 'FINISHED')">
-        <div class="stat-title">Đã Hoàn Thành</div>
-        <div class="stat-main-val text-success" id="stat-finished">0</div>
-        <div class="stat-sub-val text-success fw-bold">Tỷ lệ: <span id="stat-rate-text">0%</span></div>
-      </div>
+
+    <!-- 3. ĐANG GIẢI QUYẾT -->
+    <div class="stat-box sc-active" onclick="window.setFilter('category', 'ACTIVE', event)" title="Xem các hồ sơ đang trong thời hạn xử lý">
+      <div class="stat-box-title">ĐANG GIẢI QUYẾT</div>
+      <div class="stat-box-val text-dark" id="stat-active">0</div>
+      <div class="stat-box-sub">Hồ sơ đang xử lý</div>
     </div>
 
+    <!-- 4. SẮP HẾT HẠN -->
+    <div class="stat-box sc-urgent" onclick="window.setFilter('category', 'URGENT', event)" title="Thời hạn chuẩn bị xét xử còn dưới 15 ngày">
+      <div class="stat-box-title">SẮP HẾT HẠN</div>
+      <div class="stat-box-val" style="color: #ea580c;" id="stat-urgent">0</div>
+      <div class="stat-box-sub">Còn &le; 15 ngày</div>
+    </div>
 
-<!-- Đang giải quyết -->
-    <div class="col-6 col-md-3 col-xl">
-      <div class="stat-card sc-active" onclick="setFilter('category', 'ACTIVE')">
-        <div class="stat-title">Đang Giải Quyết</div>
-        <div class="stat-main-val" style="color:#f59e0b;" id="stat-active">0</div>
-        <div class="stat-sub-val">Hồ sơ đang xử lý</div>
-      </div>
+    <!-- 5. QUÁ HẠN -->
+    <div class="stat-box sc-overdue" onclick="window.setFilter('category', 'OVERDUE', event)" title="Các vụ án đã quá thời hạn chuẩn bị xét xử">
+      <div class="stat-box-title">QUÁ HẠN</div>
+      <div class="stat-box-val text-danger" id="stat-overdue">0</div>
+      <div class="stat-box-sub">Cần ưu tiên xử lý</div>
     </div>
-   
-    <!-- Sắp hết hạn -->
-    <div class="col-6 col-md-3 col-xl">
-      <div class="stat-card sc-urgent" onclick="setFilter('category', 'URGENT')">
-        <div class="stat-title">Sắp Hết Hạn</div>
-        <div class="stat-main-val" style="color: #f97316;" id="stat-urgent">0</div>
-        <div class="stat-sub-val">Còn dưới 15 ngày</div>
-      </div>
+
+    <!-- 6. TẠM ĐÌNH CHỈ -->
+    <div class="stat-box sc-frozen" onclick="window.setFilter('category', 'FROZEN', event)" title="Các vụ án đã ra quyết định tạm đình chỉ giải quyết">
+      <div class="stat-box-title">TẠM ĐÌNH CHỈ</div>
+      <div class="stat-box-val text-secondary" id="stat-frozen">0</div>
+      <div class="stat-box-sub">Đang tạm dừng</div>
     </div>
-   
-    <!-- Quá hạn -->
-    <div class="col-6 col-md-3 col-xl">
-      <div class="stat-card sc-overdue" onclick="setFilter('category', 'OVERDUE')">
-        <div class="stat-title">Quá Hạn</div>
-        <div class="stat-main-val text-danger" id="stat-overdue">0</div>
-        <div class="stat-sub-val">Cần ưu tiên xử lý</div>
+
+    <!-- 7. HG ĐỐI THOẠI -->
+    <div class="stat-box sc-hgdt" onclick="window.setFilter('category', 'HGĐT', event)" title="Án giải quyết theo Luật Hòa giải, đối thoại tại Tòa án">
+      <div class="stat-box-title">HG ĐỐI THOẠI</div>
+      <div class="stat-box-val" style="color: #7c3aed;">
+        <span id="stat-hgdt-success">0</span><span style="font-size: 16px; color: #cbd5e1; margin: 0 2px;">/</span><span id="stat-hgdt-total" style="font-size: 18px; font-weight: 700;">0</span>
       </div>
+      <div class="stat-box-sub">Thành công / Tổng</div>
     </div>
-    <!-- Tạm đình chỉ / Đóng băng -->
-    <div class="col-6 col-md-3 col-xl">
-      <div class="stat-card sc-frozen" onclick="setFilter('category', 'FROZEN')">
-        <div class="stat-title">Tạm Đình Chỉ</div>
-        <div class="stat-main-val text-secondary" id="stat-frozen">0</div>
-        <div class="stat-sub-val">Đang tạm dừng</div>
+
+    <!-- 8. TRỢ LÝ NHẮC VIỆC -->
+    <div class="stat-box stat-box-reminder" id="notification-hub" onclick="window.cycleWarningCases ? window.cycleWarningCases() : null" title="Nhấp để xử lý nhanh công việc cấp bách">
+      <div class="stat-box-title" style="color: #b91c1c;">
+        <span><i class="fas fa-bell me-1"></i> NHẮC VIỆC</span>
       </div>
-    </div>
-    <!-- Hòa giải đối thoại -->
-    <div class="col-6 col-md-3 col-xl">
-      <div class="stat-card sc-hoagiai" onclick="setFilter('category', 'HOAGIAI')">
-        <div class="stat-title">HG Đối Thoại</div>
-        <div class="stat-main-val" style="color: #8b5cf6;"><span id="stat-hgdt-success">0</span><span style="font-size:14px; color:#cbd5e1; font-weight: 400;">/</span><span id="stat-hgdt-total" style="font-size:16px;">0</span></div>
-        <div class="stat-sub-val">Thành công / Tổng</div>
-      </div>
-    </div>
-   
-    <!-- Trợ lý nhắc việc -->
-    <div class="col-6 col-md-3 col-xl">
-      <div id="notification-hub" class="stat-card" style="border-color: #bae6fd; background: #f0f9ff; text-align: center;">
-        <div class="fw-bold mb-1" style="font-size: 10px; color: #0284c7; text-transform: uppercase; letter-spacing: 0.5px;">
-          <i class="fas fa-bell me-1"></i> TRỢ LÝ NHẮC VIỆC
-        </div>
-        <div id="notification-text" class="fw-bold text-dark soft-blink" style="font-size: 11.5px; line-height: 1.4;">
-          Hệ thống đang ổn định...
+      <div class="d-flex align-items-center justify-content-center flex-grow-1 text-center py-1">
+        <div id="notification-text" class="fw-bold" style="font-size: 11px; line-height: 1.4; color: #dc2626;">
+          Đang nạp dữ liệu...
         </div>
       </div>
     </div>
   </div>
 
+  <!-- ========================================================= -->
+  <!-- 2. THANH CÔNG CỤ (TÌM KIẾM, LỌC LOẠI ÁN, LỌC KẾT QUẢ)     -->
+  <!-- ========================================================= -->
+  <div class="toolbar-container">
+    
+    <!-- Cụm Tìm kiếm & Bộ lọc -->
+    <div class="d-flex flex-wrap gap-2 align-items-center flex-grow-1">
+      
+      <!-- Ô Tìm kiếm nhanh -->
+      <div class="search-wrapper">
+        <i class="fas fa-search"></i>
+        <input type="text" id="txtSearchMain" class="form-control" placeholder="Tìm số thụ lý, đương sự, tội danh..." oninput="window.runFilterEngine()">
+      </div>
 
-  <!-- ==========================================
-       PHẦN 2: THANH CÔNG CỤ (TOOLBELT)
-  =========================================== -->
-  <div class="bg-white p-2 mb-3 shadow-sm" style="border-radius: 12px; border: 1px solid #eef2f7;">
-    <div class="toolbelt-wrapper">
-     
-      <!-- ĐÃ SỬA: Thêm min-width để chống vỡ layout trên mobile -->
-      <div style="flex: 1 1 250px; min-width: 200px;">
-        <div class="input-group input-group-sm">
-          <span class="input-group-text bg-light border-end-0"><i class="fas fa-search text-muted"></i></span>
-          <input type="text" id="txtSearchMain" class="form-control border-start-0 ps-0 fw-bold"
-                 placeholder="Tìm kiếm nhanh (Số thụ lý, tên đương sự, tội danh...)" style="font-size: 12.5px; color: #334155; box-shadow: none;">
-        </div>
+      <!-- Khoảng ngày thụ lý -->
+      <div style="width: 125px;">
+        <input type="date" id="filter-start" class="form-control" title="Từ ngày thụ lý" onchange="window.runFilterEngine()">
       </div>
-     
-      <div style="width: 130px; flex-shrink: 0;">
-        <input type="date" id="filter-start" class="form-control form-control-sm fw-bold text-muted" title="Từ ngày" onchange="setFilter('start', this.value)" style="font-size: 11.5px;">
+
+      <div style="width: 125px;">
+        <input type="date" id="filter-end" class="form-control" title="Đến ngày thụ lý" onchange="window.runFilterEngine()">
       </div>
-     
-      <div style="width: 130px; flex-shrink: 0;">
-        <input type="date" id="filter-end" class="form-control form-control-sm fw-bold text-muted" title="Đến ngày" onchange="setFilter('end', this.value)" style="font-size: 11.5px;">
-      </div>
-     
-      <div style="width: 150px; flex-shrink: 0;">
-        <select id="filter-loaiAn" class="form-select form-select-sm fw-bold text-muted" onchange="setFilter('loaiAn', this.value)" style="font-size: 11.5px;">
-          <option value="">-- Tất cả án --</option>
-          <option value="Hình sự">Hình sự</option> <option value="Dân sự">Dân sự</option> <option value="Hôn nhân">Hôn nhân</option>
-          <option value="Kinh doanh">Kinh doanh</option> <option value="Lao động">Lao động</option> <option value="Hành chính">Hành chính</option>
-          <option value="HGĐT">HGĐT</option>
+
+      <!-- Dropdown Loại án 1 đến 8 chuẩn TANDTC -->
+      <div style="width: 170px;">
+        <select id="filter-loaiAn" class="form-select fw-bold" onchange="window.setFilter('loaiAn', this.value, event)">
+          <option value="ALL">-- Tất cả loại án --</option>
+          <option value="1. Hình sự">1. Hình sự</option>
+          <option value="2. Dân sự">2. Dân sự</option>
+          <option value="3. Hôn nhân">3. Hôn nhân & Gia đình</option>
+          <option value="4. Kinh doanh">4. Kinh doanh Thương mại</option>
+          <option value="5. Lao động">5. Lao động</option>
+          <option value="6. Hành chính">6. Hành chính</option>
+          <option value="7. Việc dân sự">7. Việc dân sự</option>
+          <option value="8. Hòa giải đối thoại">8. Hòa giải đối thoại</option>
         </select>
       </div>
-     
-      <div style="flex-shrink: 0;">
-        <button class="btn btn-sm btn-light border fw-bold text-danger px-2 shadow-sm" onclick="clearAllFilters()" title="Làm mới bộ lọc" style="font-size: 12px; height: 31px;">
-          <i class="fas fa-filter-circle-xmark"></i>
-        </button>
+
+      <!-- DROPDOWN LỌC KẾT QUẢ THỰC CHẤT -->
+      <div style="width: 180px;">
+        <select id="filter-ketQua" class="form-select fw-bold text-primary" onchange="window.setFilter('ketQua', this.value, event)">
+          <option value="ALL">-- Tất cả kết quả --</option>
+          <option value="BAN_AN">Bản án sơ thẩm</option>
+          <option value="THOA_THUAN">Công nhận sự thỏa thuận</option>
+          <option value="THUAN_TINH">Thuận tình ly hôn</option>
+          <option value="DINH_CHI">Đình chỉ giải quyết vụ án</option>
+          <option value="TRA_HO_SO">Trả hồ sơ ĐTBS (Hình sự)</option>
+          <option value="VIEC_DAN_SU">Quyết định giải quyết việc DS</option>
+          <option value="CHUYEN_DI">Chuyển hồ sơ vụ án</option>
+          <option value="NHAP_VU">Nhập vụ án / vụ việc</option>
+        </select>
       </div>
 
+      <!-- Nút Reset Lọc -->
+      <button class="btn btn-outline-secondary px-2 py-1" onclick="window.clearAllFilters()" title="Xóa toàn bộ bộ lọc">
+        <i class="fas fa-filter-circle-xmark"></i>
+      </button>
+    </div>
 
-      <div class="vr mx-1 d-none d-lg-block" style="opacity: 0.15; height: 25px;"></div>
+    <!-- Cụm Nút Hành Động bên phải -->
+    <div class="d-flex align-items-center gap-2">
+      <!-- Nút Xóa Hàng Loạt (Ẩn mặc định) -->
+      <button id="btn-bulk-delete-case" class="btn btn-danger d-none shadow-sm" onclick="deleteSelectedCases()">
+        <i class="fas fa-trash-alt me-1"></i> XÓA CHỌN (<span id="bulk-case-count">0</span>)
+      </button>
 
-
-      <div style="flex-shrink: 0;">
-        <button class="btn btn-sm btn-outline-success fw-bold px-3 text-nowrap" onclick="openImportExcelModal()" style="font-size: 12px; height: 31px;">
-          <i class="fas fa-file-excel me-1"></i> ĐỒNG BỘ TAKV2
-        </button>
-      </div>
-
-
-      <div style="flex-shrink: 0;">
-        <button class="btn btn-sm btn-primary fw-bold px-3 text-nowrap shadow-sm" onclick="moModalThemMoi()" style="font-size: 12px; height: 31px;">
-          <i class="fas fa-plus-circle me-1"></i> THỤ LÝ
-        </button>
-      </div>
-
-
-      <div style="flex-shrink: 0;">
-        <button id="btn-bulk-delete" class="btn btn-sm btn-danger fw-bold px-3 text-nowrap shadow-sm d-none" onclick="deleteSelectedCases()" style="font-size: 12px; height: 31px;">
-          <i class="fas fa-trash-alt me-1"></i> XÓA CHỌN
-        </button>
-      </div>
-
-
+      <!-- Nút Thụ lý mới -->
+      <button class="btn btn-primary px-3 shadow-sm" onclick="moModalThemMoi()">
+        <i class="fas fa-plus me-1"></i> THỤ LÝ
+      </button>
     </div>
   </div>
 
-
-  <!-- ==========================================
-       PHẦN 3: BẢNG DỮ LIỆU SỔ THỤ LÝ
-  =========================================== -->
-  <div class="bg-white shadow-sm" style="border-radius: 12px; max-height: calc(100vh - 240px); overflow-y: auto; border: 1px solid #eef2f7;">
-    <table class="table table-hover gs-table align-middle m-0" style="min-width: 1100px;">
-      <thead class="table-light">
-        <tr>
-          <th class="text-center border-bottom" style="width: 40px; position: sticky; top: 0; z-index: 100; background: #f8fafc;">
-            <input type="checkbox" class="form-check-input shadow-sm" id="select-all-checkbox" onclick="toggleAllCheckboxes(this.checked)" style="cursor: pointer; width: 1.1rem; height: 1.1rem;">
-          </th>
-          <th class="text-nowrap border-bottom" style="width: 18%; position: sticky; top: 0; z-index: 100; background: #f8fafc;">SỐ / NGÀY THỤ LÝ</th>
-          <th class="text-nowrap border-bottom" style="width: 26%; position: sticky; top: 0; z-index: 100; background: #f8fafc;">ĐƯƠNG SỰ</th>
-          <th class="text-nowrap border-bottom" style="width: 25%; position: sticky; top: 0; z-index: 100; background: #f8fafc;">QUAN HỆ / TỘI DANH</th>
-          <th class="text-nowrap border-bottom" style="width: 16%; position: sticky; top: 0; z-index: 100; background: #f8fafc;">TIẾN ĐỘ / KẾT QUẢ</th>
-          <th class="text-center text-nowrap border-bottom" style="width: 120px; position: sticky; top: 0; z-index: 100; background: #f8fafc;">THAO TÁC</th>
-        </tr>
-      </thead>
-      <tbody id="list-data">
-        <tr><td colspan="6" class="text-center p-5"><div class="spinner-border spinner-border-sm text-primary me-2"></div><span class="text-muted fw-bold small">Đang nạp Sổ thụ lý điện tử...</span></td></tr>
-      </tbody>
-    </table>
+  <!-- ========================================================= -->
+  <!-- 3. BẢNG DANH SÁCH SỔ THỤ LÝ ĐIỆN TỬ                       -->
+  <!-- ========================================================= -->
+  <div class="table-card-wrapper">
+    <div class="table-responsive" style="max-height: calc(100vh - 255px); overflow-y: auto;">
+      <table class="table-elegant m-0">
+        <thead>
+          <tr>
+            <th class="text-center ps-3" style="width: 42px;">
+              <input type="checkbox" class="form-check-input" id="select-all-checkbox" onclick="toggleAllCaseCheckboxes(this.checked)" title="Chọn / Bỏ chọn tất cả">
+            </th>
+            <th style="width: 17%;">SỐ / NGÀY THỤ LÝ</th>
+            <th style="width: 25%;">ĐƯƠNG SỰ</th>
+            <th style="width: 26%;">QUAN HỆ / TỘI DANH</th>
+            <th style="width: 17%;">TIẾN ĐỘ / KẾT QUẢ</th>
+            <th class="text-center" style="width: 15%;">THAO TÁC</th>
+          </tr>
+        </thead>
+        <tbody id="list-data">
+          <tr>
+            <td colspan="6" class="text-center p-5 text-muted">
+              <div class="spinner-border spinner-border-sm me-2 text-primary"></div> Đang kết nối dữ liệu Sổ thụ lý...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 
-
-<!-- SCRIPT ĐIỀU KHIỂN RIÊNG CHO TRANG DANH SÁCH -->
 <script>
-  document.getElementById('txtSearchMain').addEventListener('input', function() { setFilter('keyword', this.value); });
- 
-  function toggleAllCheckboxes(checked) {
+  function toggleAllCaseCheckboxes(checked) {
     document.querySelectorAll('.case-select-checkbox').forEach(cb => { cb.checked = checked; });
-    toggleBulkDeleteButton();
+    toggleBulkCaseDeleteButton();
   }
- 
-  function toggleBulkDeleteButton() {
+
+  function toggleBulkCaseDeleteButton() {
     const checkedCount = document.querySelectorAll('.case-select-checkbox:checked').length;
-    const btnDelete = document.getElementById('btn-bulk-delete');
-    if (btnDelete) {
+    const btnDelete = document.getElementById('btn-bulk-delete-case');
+    const countSpan = document.getElementById('bulk-case-count');
+    
+    if (btnDelete && countSpan) {
       if (checkedCount > 0) {
         btnDelete.classList.remove('d-none');
-        btnDelete.innerHTML = `<i class="fas fa-trash-alt me-1"></i> XÓA (${checkedCount})`;
+        countSpan.innerText = checkedCount;
       } else {
         btnDelete.classList.add('d-none');
       }
     }
   }
- 
-  document.getElementById('list-data').addEventListener('change', function(e) {
+
+  document.addEventListener('change', function(e) {
     if (e.target && e.target.classList.contains('case-select-checkbox')) {
-        toggleBulkDeleteButton();
-        document.getElementById('select-all-checkbox').checked = (document.querySelectorAll('.case-select-checkbox:checked').length === document.querySelectorAll('.case-select-checkbox').length);
+      toggleBulkCaseDeleteButton();
+      const allCheckboxes = document.querySelectorAll('.case-select-checkbox');
+      const checkedCheckboxes = document.querySelectorAll('.case-select-checkbox:checked');
+      const selectAllCb = document.getElementById('select-all-checkbox');
+      if (selectAllCb) selectAllCb.checked = (allCheckboxes.length > 0 && checkedCheckboxes.length === allCheckboxes.length);
     }
   });
 
-
-  // ĐÃ NÂNG CẤP: XÓA CHỌN NHIỀU ÁN
+  // XÓA CHỌN NHIỀU ÁN
   function deleteSelectedCases() {
     const checkedBoxes = document.querySelectorAll('.case-select-checkbox:checked');
     if (checkedBoxes.length === 0) return;
    
-    const confirmMsg = `Bạn sắp xóa <b>${checkedBoxes.length} hồ sơ</b>.\n- Toàn bộ dữ liệu trong Sổ thụ lý sẽ mất.\n- Thư mục tương ứng trên Drive sẽ bị xóa.\n- KHÔNG THỂ KHÔI PHỤC.\n\nBạn có chắc chắn muốn thực hiện?`;
+    const confirmMsg = `Xóa vĩnh viễn <b>${checkedBoxes.length}</b> hồ sơ đã chọn?\nMọi dữ liệu và thư mục Drive của các vụ án này sẽ bị xóa sạch hoàn toàn.`;
    
     AppUI.confirm("Cảnh báo xóa vĩnh viễn", confirmMsg, 'danger', function() {
-        const idsToDelete = Array.from(checkedBoxes).map(cb => cb.dataset.id);
-       
-        // Ẩn nút xóa và hiện Toast
-        document.getElementById('btn-bulk-delete').classList.add('d-none');
-        document.getElementById('select-all-checkbox').checked = false;
-        AppUI.showToast(`Đang dọn dẹp ${idsToDelete.length} hồ sơ...`, "");
-       
-        google.script.run
-            .withSuccessHandler(res => {
-                if (res.success) {
-                    AppUI.showToast("Đã xóa hoàn tất!", "success");
-                    loadCaseList(true); // Tải lại ngầm danh sách
-                } else {
-                    AppUI.showToast("Lỗi hệ thống: " + res.error, "error");
-                }
-            })
-            .withFailureHandler(err => {
-                AppUI.showToast("Lỗi đường truyền: " + err.message, "error");
-            })
-            .api_DeleteMultipleCases(idsToDelete);
+      const idsToDelete = Array.from(checkedBoxes).map(cb => cb.dataset.id);
+      
+      document.getElementById('btn-bulk-delete-case').classList.add('d-none');
+      const selectAllCb = document.getElementById('select-all-checkbox');
+      if (selectAllCb) selectAllCb.checked = false;
+      
+      AppUI.showToast(`Đang dọn dẹp ${idsToDelete.length} hồ sơ...`, "");
+      
+      google.script.run
+        .withSuccessHandler(res => {
+          if (res.success) {
+            AppUI.showToast("Đã xóa hoàn tất!", "success");
+            loadCaseList(true);
+          } else {
+            AppUI.showToast("Lỗi hệ thống: " + res.error, "error");
+          }
+        })
+        .withFailureHandler(err => {
+          AppUI.showToast("Lỗi kết nối: " + err.message, "error");
+        })
+        .api_DeleteMultipleCases(idsToDelete);
     });
   }
 
-
-  // ĐÃ NÂNG CẤP: XÓA MỘT ÁN NGOÀI DANH SÁCH
+  // XÓA MỘT ÁN NGOÀI DANH SÁCH
   function confirmDeleteSingleCase(idAn) {
-    if(event) event.stopPropagation();
+    if (event) event.stopPropagation();
    
-    const an = G_Cases.find(c => c.id === idAn);
+    const an = (window.G_Cases || window.G_An || []).find(c => c.id === idAn);
     const soThuLy = an ? an.soTL : "";
     const confirmMsg = `Xóa vĩnh viễn hồ sơ <b>${soThuLy}</b>?\nDữ liệu không thể khôi phục và hệ thống sẽ xóa cả thư mục Drive.`;
    
     AppUI.confirm("Xác nhận xóa", confirmMsg, 'danger', function() {
-        // Tự động làm mờ dòng hồ sơ trên UI để tạo cảm giác đã xóa
-        let row = document.querySelector(`input[data-id="${idAn}"]`).closest('tr');
-        if(row) { row.style.opacity = '0.4'; row.style.pointerEvents = 'none'; }
+      let row = document.querySelector(`input[data-id="${idAn}"]`);
+      if (row) { 
+        let tr = row.closest('tr');
+        if (tr) { tr.style.opacity = '0.4'; tr.style.pointerEvents = 'none'; }
+      }
        
-        AppUI.showToast("Đang xóa hồ sơ...", "");
-       
-        google.script.run
-            .withSuccessHandler(res => {
-                if (res.success) {
-                    AppUI.showToast("Xóa hồ sơ thành công!", "success");
-                    loadCaseList(true);
-                } else {
-                    AppUI.showToast("Lỗi: " + res.error, "error");
-                    if(row) { row.style.opacity = '1'; row.style.pointerEvents = 'auto'; }
-                }
-            })
-            .withFailureHandler(err => {
-                AppUI.showToast("Lỗi kết nối: " + err.message, "error");
-                if(row) { row.style.opacity = '1'; row.style.pointerEvents = 'auto'; }
-            })
-            .api_DeleteCase(idAn);
+      AppUI.showToast("Đang xóa hồ sơ...", "");
+      
+      google.script.run
+        .withSuccessHandler(res => {
+          if (res.success) {
+            AppUI.showToast("Xóa hồ sơ thành công!", "success");
+            loadCaseList(true);
+          } else {
+            AppUI.showToast("Lỗi: " + res.error, "error");
+            let tr = row.closest('tr');
+            if (tr) { tr.style.opacity = '1'; tr.style.pointerEvents = 'auto'; }
+          }
+        })
+        .withFailureHandler(err => {
+          AppUI.showToast("Lỗi kết nối: " + err.message, "error");
+          let tr = row.closest('tr');
+          if (tr) { tr.style.opacity = '1'; tr.style.pointerEvents = 'auto'; }
+        })
+        .api_DeleteCase(idAn);
     });
   }
 </script>

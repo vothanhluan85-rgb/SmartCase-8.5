@@ -1,317 +1,957 @@
 <!--
-  HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V7.5.3 - GROQ AI EDITION
-  FILE: UI_ThongKe.html (TRUNG TÂM PHÂN TÍCH & THỐNG KÊ)
-  ------------------------------------------------------------
-  BẢN CẬP NHẬT THEO YÊU CẦU:
-  - Bổ sung nút lọc nhanh "Tháng trước".
-  - Phân tích đa chiều: Biểu đồ mỗi loại án chia thành Mới thụ lý / Giải quyết / Tồn.
-  - Tối ưu lại mật độ hiển thị (Information Density) giúp trang gọn gàng hơn.
+  =========================================================================
+  HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.0 - TRUNG TÂM BÁO CÁO THỐNG KÊ TỐ TỤNG
+  TỆP: UI_ThongKe.html - PHÂN TÍCH TIẾN ĐỘ, KẾT QUẢ & CHỈ SỐ KPI CHUẨN TANDTC
+  -------------------------------------------------------------------------
+  - ĐÃ NÂNG CẤP THEO ĐẶC TẢ SPEC-V8.0-FIX-PROD:
+    + Bổ sung Switch Toggle cộng gộp số liệu Hòa giải đối thoại (HGĐT).
+    + Tích hợp Card Thống kê & Tính toán Tỷ lệ Hòa giải, đối thoại thành chung.
+    + Bổ sung ngành án thứ 7 (Luật HGĐT) vào bảng tiến độ ngành án.
+    + Tự động trừ Án chuyển hồ sơ & Nhập vụ án khỏi tổng thụ lý.
+    + Tính "Trả hồ sơ điều tra bổ sung" (Hình sự) là đã giải quyết.
+    + Bộ lọc Quý 1, Quý 2, Quý 3, Quý 4 theo Năm công tác (01/10 -> 30/09).
+  =========================================================================
 -->
 
-<div class="animate-fadeIn p-2 p-md-3">
-  <div class="row justify-content-center">
-    <div class="col-12">
-     
-      <!-- KHỐI 1: TRUNG TÂM ĐIỀU KHIỂN BÁO CÁO -->
-      <div class="gs-card shadow-sm border-0 mb-3" style="background: #fff; border-radius: 10px; border-left: 5px solid #1a73e8 !important; padding: 15px 20px;">
-          <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
-            <div>
-               <h6 class="fw-bold text-dark m-0 text-uppercase" style="font-size: 13px;"><i class="fas fa-chart-line me-2 text-primary"></i>TRUNG TÂM PHÂN TÍCH DỮ LIỆU</h6>
-               <div class="text-muted mt-1" style="font-size: 11px;">Báo cáo số liệu theo thời gian thực (Real-time Analytics)</div>
-            </div>
-            <div class="d-flex flex-wrap gap-2">
-              <button class="btn btn-sm btn-outline-primary shadow-sm" style="font-size: 11px; font-weight: 700;" onclick="setPresetDate('nam_cong_tac')">Năm công tác</button>
-              <button class="btn btn-sm btn-outline-secondary shadow-sm" style="font-size: 11px; font-weight: 700;" onclick="setPresetDate('month')">Tháng này</button>
-              <!-- ĐÃ SỬA: Thêm nút Tháng trước (Req 7) -->
-              <button class="btn btn-sm btn-outline-secondary shadow-sm" style="font-size: 11px; font-weight: 700;" onclick="setPresetDate('last_month')">Tháng trước</button>
-              <button class="btn btn-sm btn-outline-secondary shadow-sm" style="font-size: 11px; font-weight: 700;" onclick="setPresetDate('year')">Năm dương lịch</button>
-            </div>
-          </div>
-         
-          <div class="row g-2 align-items-end bg-light p-2 mt-2 rounded border" style="max-width: 700px;">
-            <div class="col-5">
-              <label class="small text-muted fw-bold mb-1" style="font-size: 10px; text-transform: uppercase;">Ngày bắt đầu kỳ</label>
-              <input type="date" id="rep_start" class="form-control form-control-sm fw-bold border-primary shadow-none" onchange="runClientSideStats()">
-            </div>
-            <div class="col-5">
-              <label class="small text-muted fw-bold mb-1" style="font-size: 10px; text-transform: uppercase;">Ngày chốt số liệu</label>
-              <input type="date" id="rep_end" class="form-control form-control-sm fw-bold border-primary shadow-none" onchange="runClientSideStats()">
-            </div>
-            <div class="col-2">
-              <button class="btn btn-sm btn-primary w-100 fw-bold shadow-sm" style="height: 31px;" onclick="runClientSideStats()" title="Làm mới">
-                <i class="fas fa-sync-alt"></i>
-              </button>
-            </div>
-          </div>
+<style>
+  .tk-analytics-container {
+    color: #0f172a;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .tk-panel-card {
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
+    overflow: hidden;
+  }
+
+  .btn-action-tool {
+    border-radius: 8px !important;
+    font-weight: 700 !important;
+    font-size: 12px !important;
+    height: 35px !important;
+    padding: 0 0.85rem !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+  .btn-action-primary {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+    border-color: #2563eb !important;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+  }
+  .btn-action-primary:hover { 
+    background-color: #1d4ed8 !important; 
+  }
+  .btn-action-tonal {
+    background-color: #eff6ff !important;
+    color: #1d4ed8 !important;
+    border-color: #bfdbfe !important;
+  }
+  .btn-action-tonal:hover { 
+    background-color: #dbeafe !important; 
+  }
+
+  /* Capsule Tabs Lọc Kỳ Báo Cáo */
+  .tk-capsule-btn {
+    white-space: nowrap;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    user-select: none;
+  }
+  .tk-capsule-btn:hover {
+    background: #f8fafc;
+    color: #1e293b;
+    border-color: #cbd5e1;
+  }
+  .tk-capsule-btn.active {
+    background: #eff6ff !important;
+    color: #1d4ed8 !important;
+    border-color: #93c5fd !important;
+    font-weight: 700 !important;
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.12);
+  }
+
+  /* KHỐI 4 CHỈ SỐ KPI VĨ MÔ */
+  .kpi-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .kpi-stat-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 14px 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-stat-card::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    width: 4px;
+  }
+  .kpi-blue::after { background-color: #2563eb; }
+  .kpi-green::after { background-color: #10b981; }
+  .kpi-red::after { background-color: #ef4444; }
+  .kpi-purple::after { background-color: #8b5cf6; }
+
+  .kpi-label {
+    font-size: 10.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #64748b;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .kpi-value {
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1.05;
+    margin-bottom: 6px;
+    letter-spacing: -0.5px;
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi-footnote {
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px dashed #f1f5f9;
+    padding-top: 6px;
+  }
+
+  /* TIÊU ĐỀ PHÂN MỤC */
+  .section-header-title {
+    font-size: 11.5px;
+    font-weight: 800;
+    color: #1e293b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* THANH TIẾN ĐỘ 7 NGÀNH ÁN */
+  .jurisdiction-row {
+    padding: 10px 0;
+    border-bottom: 1px dashed #f1f5f9;
+  }
+  .jurisdiction-row:last-child {
+    border-bottom: none;
+  }
+  .jurisdiction-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+  }
+  .jurisdiction-name {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #1e293b;
+  }
+  .jurisdiction-meta {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #64748b;
+  }
+  .progress-track-slim {
+    background-color: #f1f5f9;
+    border-radius: 6px;
+    height: 7px;
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+  }
+  .progress-fill-slim {
+    background: linear-gradient(90deg, #10b981, #059669);
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.4s ease;
+  }
+  .progress-fill-slim.warning-rate { background: linear-gradient(90deg, #f59e0b, #d97706); }
+  .progress-fill-slim.zero-rate { background: transparent; }
+
+  /* DÒNG PHÂN LOẠI KẾT QUẢ GIẢI QUYẾT */
+  .breakdown-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px dashed #e2e8f0;
+  }
+  .breakdown-item:last-child {
+    border-bottom: none;
+  }
+  .breakdown-badge {
+    padding: 2.5px 7px;
+    border-radius: 5px;
+    font-weight: 700;
+    font-size: 10.5px;
+    min-width: 90px;
+    text-align: center;
+    display: inline-block;
+    border: 1px solid transparent;
+  }
+  .bg-badge-success { background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; }
+  .bg-badge-primary { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
+  .bg-badge-slate { background: #f8fafc; color: #475569; border-color: #cbd5e1; }
+  .bg-badge-purple { background: #faf5ff; color: #7c3aed; border-color: #e9d5ff; }
+  .bg-badge-warning { background: #fffbeb; color: #d97706; border-color: #fde68a; }
+  .bg-badge-danger { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+
+  .breakdown-desc {
+    font-size: 12px;
+    color: #475569;
+    font-weight: 600;
+    flex-grow: 1;
+    padding: 0 10px;
+  }
+  .breakdown-count-box {
+    text-align: right;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+  .breakdown-count {
+    font-size: 14.5px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+  .breakdown-percentage {
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    min-width: 48px;
+    text-align: right;
+  }
+
+  @media (max-width: 991.98px) {
+    .kpi-summary-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (max-width: 575.98px) {
+    .kpi-summary-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<div class="animate-fadeIn p-2 p-md-3 tk-analytics-container">
+  
+  <!-- 1. TIÊU ĐỀ BÁO CÁO & NÚT LÀM MỚI SỐ LIỆU -->
+  <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+    <div>
+      <h5 class="fw-bold text-dark m-0 text-uppercase" style="letter-spacing: 0.4px; font-size: 14.5px;">
+        <i class="fas fa-chart-line text-primary me-2"></i>BÁO CÁO THỐNG KÊ TỐ TỤNG
+      </h5>
+      <span class="text-muted small" style="font-size: 11px;">Theo dõi tiến độ, phân loại kết quả và tỷ lệ hoàn thành theo năm công tác Tòa án (01/10 &rarr; 30/09) [1]</span>
+    </div>
+    
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-action-tonal btn-action-tool" onclick="refreshAndReloadStats()" title="Tải lại toàn bộ số liệu từ máy chủ">
+        <i class="fas fa-sync-alt"></i> Làm mới số liệu
+      </button>
+    </div>
+  </div>
+
+  <!-- 2. THANH CÔNG CỤ LỌC KỲ BÁO CÁO (TÍCH HỢP SWITCH CỘNG HGĐT) -->
+  <div class="tk-panel-card p-3 mb-2">
+    <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+      
+      <!-- Dải Capsule Tabs lọc nhanh -->
+      <div class="d-flex align-items-center gap-1 flex-wrap">
+        <span class="small fw-bold text-muted text-uppercase me-1" style="font-size: 10.5px;">
+          <i class="fas fa-calendar-alt text-primary me-1"></i>Kỳ báo cáo:
+        </span>
+        <button class="tk-capsule-btn active" id="btn-filter-this-year" onclick="setStatsFilter('THIS_YEAR', this)" title="Năm công tác tính từ 01/10 năm trước đến 30/09 năm nay [1]">
+          Năm công tác
+        </button>
+        <button class="tk-capsule-btn" id="btn-filter-q1" onclick="setStatsFilter('Q1', this)" title="Quý 1: Từ 01/10 đến 31/12">
+          Quý 1
+        </button>
+        <button class="tk-capsule-btn" id="btn-filter-q2" onclick="setStatsFilter('Q2', this)" title="Quý 2: Từ 01/01 đến 31/03">
+          Quý 2
+        </button>
+        <button class="tk-capsule-btn" id="btn-filter-q3" onclick="setStatsFilter('Q3', this)" title="Quý 3: Từ 01/04 đến 30/06">
+          Quý 3
+        </button>
+        <button class="tk-capsule-btn" id="btn-filter-q4" onclick="setStatsFilter('Q4', this)" title="Quý 4: Từ 01/07 đến 30/09">
+          Quý 4
+        </button>
+        <button class="tk-capsule-btn" id="btn-filter-this-month" onclick="setStatsFilter('THIS_MONTH', this)">
+          Tháng này
+        </button>
+        <button class="tk-capsule-btn" id="btn-filter-all" onclick="setStatsFilter('ALL', this)">
+          Toàn bộ
+        </button>
       </div>
 
-      <!-- KHỐI 2: KẾT QUẢ TỔNG HỢP (DASHBOARD CARDS) -->
-      <div id="rep_result_area" class="animate-fadeIn">
-        <div class="row g-2 mb-3">
-         
-          <div class="col-6 col-lg-3">
-            <div class="p-3 bg-white shadow-sm rounded h-100" style="border-top: 3px solid #1a73e8;">
-              <span class="text-primary fw-bold d-block mb-1" style="font-size: 11px; text-transform: uppercase;">Tổng thụ lý (Không HGĐT)</span>
-              <div class="h2 fw-bolder text-primary mb-1" id="res_total">0</div>
-              <div class="d-flex justify-content-between pt-1 mt-1 border-top">
-                <div class="sub-stat"><span>Cũ</span><b id="res_cu">0</b></div>
-                <div class="sub-stat"><span>Mới</span><b id="res_moi">0</b></div>
-              </div>
-            </div>
+      <!-- Switch Toggle Cộng HGĐT -->
+      <div class="form-check form-switch d-flex align-items-center gap-2 bg-light px-3 py-1 rounded-3 border">
+        <input class="form-check-input m-0" type="checkbox" id="tk_toggle_include_hgdt" onchange="loadStatsPage()" style="cursor: pointer; width: 2.2rem; height: 1.1rem;">
+        <label class="form-check-label small fw-bold text-dark" for="tk_toggle_include_hgdt" style="cursor: pointer; font-size: 11.5px;">
+          Cộng HGĐT vào Tổng thụ lý & Giải quyết
+        </label>
+      </div>
+      
+      <!-- Cụm chọn khoảng ngày tự do -->
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <div class="d-flex align-items-center gap-1 bg-light px-2 rounded-3 border" style="border-color: #e2e8f0 !important; height: 35px;">
+          <div class="d-flex align-items-center">
+            <span class="text-secondary fw-bold me-1" style="font-size: 10.5px; text-transform: uppercase;">Từ:</span>
+            <input type="date" id="tk_filter_start" class="form-control form-control-sm border-0 bg-transparent fw-bold text-dark p-0" style="width: 115px; font-size: 12px;">
           </div>
-         
-          <div class="col-6 col-lg-3">
-            <div class="p-3 bg-white shadow-sm rounded h-100" style="border-top: 3px solid #188038;">
-              <span class="text-success fw-bold d-block mb-1" style="font-size: 11px; text-transform: uppercase;">Đã giải quyết</span>
-              <div class="h2 fw-bolder text-success mb-1" id="res_resolved">0</div>
-              <div class="text-end pt-1 mt-1 border-top">
-                <div class="sub-stat justify-content-end text-success"><span>Tỷ lệ GQ</span><b id="res_rate">0%</b></div>
-              </div>
-            </div>
-          </div>
-         
-          <div class="col-6 col-lg-3">
-            <div class="p-3 bg-white shadow-sm rounded h-100" style="border-top: 3px solid #d93025;">
-              <span class="text-danger fw-bold d-block mb-1" style="font-size: 11px; text-transform: uppercase;">Án tồn (Đang GQ)</span>
-              <div class="h2 fw-bolder text-danger mb-1" id="res_pending">0</div>
-              <div class="d-flex justify-content-between pt-1 mt-1 border-top">
-                <div class="sub-stat text-danger" title="Quá thời hạn"><span>Q.Hạn</span><b id="det_overdue_card">0</b></div>
-                <div class="sub-stat text-warning text-dark" title="Còn dưới 15 ngày"><span>Sắp</span><b id="det_urgent_card">0</b></div>
-              </div>
-            </div>
-          </div>
-         
-          <div class="col-6 col-lg-3">
-            <div class="p-3 bg-white shadow-sm rounded h-100" style="border-top: 3px solid #6f42c1;">
-              <span class="text-purple fw-bold d-block mb-1" style="font-size: 11px; text-transform: uppercase;">Hòa giải - Đối thoại</span>
-              <div class="h2 fw-bolder text-purple mb-1" id="res_hgdt">0</div>
-              <div class="text-end pt-1 mt-1 border-top">
-                 <div class="sub-stat justify-content-end text-purple"><span>Thành công</span><b id="res_hgdt_success">0</b></div>
-              </div>
-            </div>
+          <span class="text-muted px-1" style="font-size: 11px;">–</span>
+          <div class="d-flex align-items-center">
+            <span class="text-secondary fw-bold me-1" style="font-size: 10.5px; text-transform: uppercase;">Đến:</span>
+            <input type="date" id="tk_filter_end" class="form-control form-control-sm border-0 bg-transparent fw-bold text-dark p-0" style="width: 115px; font-size: 12px;">
           </div>
         </div>
 
-        <!-- KHỐI 3: PHÂN TÍCH CHI TIẾT -->
-        <div class="row g-2">
-          <div class="col-lg-4">
-            <div class="bg-white p-3 shadow-sm rounded h-100" style="border: 1px solid #e0e0e0;">
-              <h6 class="fw-bold text-dark mb-3 text-uppercase" style="font-size: 12px;"><i class="fas fa-exclamation-triangle me-2 text-warning"></i>Phân tích Trạng thái Án tồn</h6>
-             
-              <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
-                <div><span class="badge bg-danger me-2 shadow-sm" style="width: 70px;">Quá hạn</span><span class="small text-muted fw-bold" style="font-size: 11px;">Vượt thời hạn</span></div>
-                <div class="text-end"><span class="h6 fw-bold text-danger mb-0" id="det_overdue">0</span><span class="small text-muted ms-1 fw-bold" id="per_overdue" style="font-size: 10px;">(0%)</span></div>
-              </div>
-             
-              <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
-                <div><span class="badge bg-warning text-dark me-2 shadow-sm" style="width: 70px;">Sắp hạn</span><span class="small text-muted fw-bold" style="font-size: 11px;">Còn &lt; 15 ngày</span></div>
-                <div class="text-end"><span class="h6 fw-bold text-warning mb-0" id="det_urgent">0</span><span class="small text-muted ms-1 fw-bold" id="per_urgent" style="font-size: 10px;">(0%)</span></div>
-              </div>
-             
-              <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
-                <div><span class="badge bg-secondary me-2 shadow-sm" style="width: 70px;">Tạm Đ.Chỉ</span><span class="small text-muted fw-bold" style="font-size: 11px;">Đã ra QĐ</span></div>
-                <div class="text-end"><span class="h6 fw-bold text-secondary mb-0" id="det_suspended">0</span><span class="small text-muted ms-1 fw-bold" id="per_suspended" style="font-size: 10px;">(0%)</span></div>
-              </div>
-             
-              <div class="d-flex justify-content-between align-items-center">
-                <div><span class="badge bg-dark me-2 shadow-sm" style="width: 70px;">Đóng băng</span><span class="small text-muted fw-bold" style="font-size: 11px;">&gt; 15 ngày im lặng</span></div>
-                <div class="text-end"><span class="h6 fw-bold text-dark mb-0" id="det_frozen">0</span><span class="small text-muted ms-1 fw-bold" id="per_frozen" style="font-size: 10px;">(0%)</span></div>
-              </div>
-            </div>
-          </div>
-         
-          <div class="col-lg-8">
-            <div class="bg-white p-3 shadow-sm rounded h-100" style="border: 1px solid #e0e0e0;">
-              <div class="d-flex justify-content-between align-items-center mb-3">
-                  <h6 class="fw-bold text-dark m-0 text-uppercase" style="font-size: 12px;"><i class="fas fa-layer-group me-2 text-info"></i>Cơ cấu từng loại án</h6>
-                  <div class="d-flex gap-3 small fw-bold" style="font-size: 10px;">
-                      <div><span style="display:inline-block; width:10px; height:10px; background:#1a73e8; margin-right:4px; border-radius:2px;"></span>Mới thụ lý</div>
-                      <div><span style="display:inline-block; width:10px; height:10px; background:#188038; margin-right:4px; border-radius:2px;"></span>Đã GQ</div>
-                      <div><span style="display:inline-block; width:10px; height:10px; background:#d93025; margin-right:4px; border-radius:2px;"></span>Đang tồn</div>
-                  </div>
-              </div>
-              <div id="chart-types-container" class="pe-2 overflow-auto" style="max-height: 250px;"></div>
-            </div>
+        <button class="btn btn-action-primary btn-action-tool" onclick="applyStatsFilterCustom()">
+          <i class="fas fa-filter"></i> Lọc
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 3. CARD THỐNG KÊ TỶ LỆ HÒA GIẢI, ĐỐI THOẠI THÀNH CHUNG -->
+  <div class="tk-panel-card p-3 mb-2">
+    <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+      <h6 class="section-header-title text-success">
+        <i class="fas fa-handshake-angle text-success"></i> TỶ LỆ HÒA GIẢI, ĐỐI THOẠI THÀNH CHUNG
+      </h6>
+      <span class="badge bg-success-subtle text-success border border-success px-3 py-1" id="tk_lbl_tyle_hg_chung" style="font-size: 12px; font-weight: 800;">0% (0/0 vụ)</span>
+    </div>
+    <div class="row g-2 text-center" style="font-size: 12px;">
+      <div class="col-md-3 col-6 p-2 border rounded bg-light">
+        <span class="text-muted d-block small">CN Thỏa thuận (DS/KDTM/LĐ)</span>
+        <b class="text-primary fs-6" id="tk_hg_cntt">0</b>
+      </div>
+      <div class="col-md-3 col-6 p-2 border rounded bg-light">
+        <span class="text-muted d-block small">Thuận tình ly hôn</span>
+        <b class="text-purple fs-6" style="color: #7c3aed;" id="tk_hg_ttlh">0</b>
+      </div>
+      <div class="col-md-3 col-6 p-2 border rounded bg-light">
+        <span class="text-muted d-block small">Đình chỉ (Hòa giải đoàn tụ)</span>
+        <b class="text-secondary fs-6" id="tk_hg_dcht">0</b>
+      </div>
+      <div class="col-md-3 col-6 p-2 border rounded bg-light">
+        <span class="text-muted d-block small">Hòa giải, đối thoại thành (HGĐT)</span>
+        <b class="text-success fs-6" id="tk_hg_hgdt_thanh">0</b>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. 4 THẺ CHỈ SỐ VĨ MÔ (ĐÃ TRỪ CHUYỂN HỒ SƠ & NHẬP VỤ ÁN KHỎI THỤ LÝ) -->
+  <div class="kpi-summary-grid">
+    <!-- Thẻ 1: Tổng thụ lý thực tế -->
+    <div class="kpi-stat-card kpi-blue">
+      <div class="kpi-label">
+        <span>TỔNG THỤ LÝ THỰC TẾ</span>
+        <i class="fas fa-folder-open text-primary"></i>
+      </div>
+      <div class="kpi-value text-primary" id="tk_tongAn">0</div>
+      <div class="kpi-footnote text-muted">
+        <span id="tk_anCu" class="badge bg-light text-secondary border">Cũ: 0</span>
+        <span id="tk_anMoi" class="badge bg-light text-primary border">Mới: 0</span>
+      </div>
+    </div>
+    
+    <!-- Thẻ 2: Đã giải quyết -->
+    <div class="kpi-stat-card kpi-green">
+      <div class="kpi-label">
+        <span>ĐÃ GIẢI QUYẾT (XONG)</span>
+        <i class="fas fa-check-double text-success"></i>
+      </div>
+      <div class="kpi-value text-success" id="tk_daXong">0</div>
+      <div class="kpi-footnote text-muted">
+        <span>Tỷ lệ hoàn thành chung:</span>
+        <span class="text-success fw-bold" style="font-size: 13px;" id="tk_tyLeChung">0%</span>
+      </div>
+    </div>
+    
+    <!-- Thẻ 3: Án tồn đang giải quyết -->
+    <div class="kpi-stat-card kpi-red">
+      <div class="kpi-label">
+        <span>ÁN TỒN (ĐANG GIẢI QUYẾT)</span>
+        <i class="fas fa-hourglass-half text-danger"></i>
+      </div>
+      <div class="kpi-value text-danger" id="tk_dangGQ">0</div>
+      <div class="kpi-footnote text-muted">
+        <span id="tk_quaHan" class="text-danger fw-bold">Quá hạn: 0</span>
+        <span id="tk_sapHan" class="text-warning-emphasis fw-bold">Sắp hết: 0</span>
+      </div>
+    </div>
+
+    <!-- Thẻ 4: Hòa giải đối thoại độc lập -->
+    <div class="kpi-stat-card kpi-purple">
+      <div class="kpi-label">
+        <span>HÒA GIẢI ĐỐI THOẠI (HGĐT)</span>
+        <i class="fas fa-handshake" style="color: #8b5cf6;"></i>
+      </div>
+      <div class="kpi-value" style="color: #8b5cf6;" id="tk_hgdtTong">0</div>
+      <div class="kpi-footnote text-muted">
+        <span>Hòa giải thành:</span>
+        <span style="font-size: 13px; color: #8b5cf6;" class="fw-bold" id="tk_hgdtThanh">0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. TIẾN ĐỘ 7 NGÀNH ÁN & PHÂN LOẠI KẾT QUẢ THỰC CHẤT -->
+  <div class="row g-2">
+    <!-- CỘT TRÁI: TIẾN ĐỘ 7 NGÀNH ÁN TỐ TỤNG CHUẨN TANDTC -->
+    <div class="col-lg-7">
+      <div class="tk-panel-card p-3 h-100">
+        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+          <h6 class="section-header-title">
+            <i class="fas fa-layer-group text-primary"></i>TIẾN ĐỘ 7 NGÀNH ÁN TỐ TỤNG
+          </h6>
+          <span class="badge bg-light text-primary border" style="font-size: 10.5px;">Tỷ lệ giải quyết</span>
+        </div>
+        <div id="tk_coCauContainer">
+          <div class="text-center p-4 text-muted small">
+            <div class="spinner-border spinner-border-sm text-primary me-2"></div> Đang tổng hợp dữ liệu 7 ngành án...
           </div>
         </div>
       </div>
     </div>
+
+    <!-- CỘT PHẢI: PHÂN LOẠI HÌNH THỨC GIẢI QUYẾT & TÌNH TRẠNG ÁN TỒN -->
+    <div class="col-lg-5 d-flex flex-column gap-2">
+      
+      <!-- KHỐI PHÂN LOẠI KẾT QUẢ ĐÃ GIẢI QUYẾT (TÍNH % TRÊN TỔNG ÁN ĐÃ GIẢI QUYẾT) -->
+      <div class="tk-panel-card p-3">
+        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+          <h6 class="section-header-title">
+            <i class="fas fa-gavel text-success"></i>PHÂN LOẠI THEO HÌNH THỨC
+          </h6>
+          <span class="badge bg-light text-secondary border" style="font-size: 10.5px;">% / Tổng Đã giải quyết</span>
+        </div>
+        
+        <!-- 1. Bản án sơ thẩm -->
+        <div class="breakdown-item">
+          <div class="breakdown-badge bg-badge-success">Bản án</div>
+          <div class="breakdown-desc">Xét xử sơ thẩm</div>
+          <div class="breakdown-count-box">
+            <span class="breakdown-count text-success" id="tk_kq_banAn">0</span>
+            <span class="breakdown-percentage" id="tk_pct_banAn">(0.0%)</span>
+          </div>
+        </div>
+
+        <!-- 2. Công nhận sự thỏa thuận -->
+        <div class="breakdown-item">
+          <div class="breakdown-badge bg-badge-primary">Thỏa thuận</div>
+          <div class="breakdown-desc">Công nhận sự thỏa thuận của đương sự</div>
+          <div class="breakdown-count-box">
+            <span class="breakdown-count text-primary" id="tk_kq_thoaThuan">0</span>
+            <span class="breakdown-percentage" id="tk_pct_thoaThuan">(0.0%)</span>
+          </div>
+        </div>
+
+        <!-- 3. Thuận tình ly hôn -->
+        <div class="breakdown-item">
+          <div class="breakdown-badge bg-badge-purple">Thuận tình LH</div>
+          <div class="breakdown-desc">Công nhận thuận tình ly hôn</div>
+          <div class="breakdown-count-box">
+            <span class="breakdown-count" style="color: #7c3aed;" id="tk_kq_thuanTinh">0</span>
+            <span class="breakdown-percentage" id="tk_pct_thuanTinh">(0.0%)</span>
+          </div>
+        </div>
+
+        <!-- 4. Đình chỉ giải quyết -->
+        <div class="breakdown-item">
+          <div class="breakdown-badge bg-badge-slate">Đình chỉ</div>
+          <div class="breakdown-desc">Đình chỉ giải quyết vụ án</div>
+          <div class="breakdown-count-box">
+            <span class="breakdown-count text-secondary" id="tk_kq_dinhChi">0</span>
+            <span class="breakdown-percentage" id="tk_pct_dinhChi">(0.0%)</span>
+          </div>
+        </div>
+
+        <!-- 5. Trả hồ sơ điều tra bổ sung (Hình sự) -->
+        <div class="breakdown-item">
+          <div class="breakdown-badge bg-badge-danger">Trả HS ĐTBS</div>
+          <div class="breakdown-desc">Trả hồ sơ điều tra bổ sung (Hình sự)</div>
+          <div class="breakdown-count-box">
+            <span class="breakdown-count text-danger" id="tk_kq_traHoSo">0</span>
+            <span class="breakdown-percentage" id="tk_pct_traHoSo">(0.0%)</span>
+          </div>
+        </div>
+
+        <!-- 6. Giải quyết việc dân sự -->
+        <div class="breakdown-item">
+          <div class="breakdown-badge bg-badge-warning">Việc Dân sự</div>
+          <div class="breakdown-desc">Quyết định giải quyết việc dân sự</div>
+          <div class="breakdown-count-box">
+            <span class="breakdown-count text-warning-emphasis" id="tk_kq_viecDanSu">0</span>
+            <span class="breakdown-percentage" id="tk_pct_viecDanSu">(0.0%)</span>
+          </div>
+        </div>
+
+        <!-- CÁC TRƯỜNG HỢP ĐÃ TRỪ KHỎI TỔNG THỤ LÝ (CHÚ THÍCH MINH BẠCH) -->
+        <div class="mt-2 pt-2 border-top bg-light p-2 rounded-2">
+          <div class="d-flex justify-content-between align-items-center small mb-1">
+            <span class="text-muted"><i class="fas fa-arrow-right-from-bracket me-1 text-warning"></i> Chuyển hồ sơ (Đã trừ khỏi thụ lý):</span>
+            <b class="text-dark" id="tk_kq_chuyenHoSo">0</b>
+          </div>
+          <div class="d-flex justify-content-between align-items-center small">
+            <span class="text-muted"><i class="fas fa-object-group me-1 text-primary"></i> Nhập vụ án (Đã trừ khỏi thụ lý):</span>
+            <b class="text-dark" id="tk_kq_nhapVuAn">0</b>
+          </div>
+        </div>
+      </div>
+
+      <!-- KHỐI TÌNH TRẠNG ÁN TỒN (ĐANG GIẢI QUYẾT) -->
+      <div class="tk-panel-card p-3">
+        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+          <h6 class="section-header-title">
+            <i class="fas fa-triangle-exclamation text-warning"></i>TÌNH TRẠNG ÁN TỒN
+          </h6>
+          <span class="badge bg-light text-secondary border" style="font-size: 10.5px;">Thời gian thực</span>
+        </div>
+        
+        <div class="breakdown-item">
+          <div class="breakdown-badge bg-badge-danger">Quá hạn</div>
+          <div class="breakdown-desc">Vượt thời hạn chuẩn bị xét xử</div>
+          <div class="breakdown-count text-danger" id="tk_row_quaHan">0</div>
+        </div>
+        
+        <div class="breakdown-item">
+          <div class="breakdown-badge bg-badge-warning">Sắp hạn</div>
+          <div class="breakdown-desc">Thời hạn còn &le; 15 ngày</div>
+          <div class="breakdown-count text-warning-emphasis" id="tk_row_sapHan">0</div>
+        </div>
+        
+        <div class="breakdown-item">
+          <div class="breakdown-badge bg-badge-slate">Tạm Đ.Chỉ</div>
+          <div class="breakdown-desc">Đã ra QĐ Tạm đình chỉ vụ án</div>
+          <div class="breakdown-count text-secondary" id="tk_row_tdc">0</div>
+        </div>
+        
+        <div class="breakdown-item">
+          <div class="breakdown-badge bg-badge-primary">Trong hạn</div>
+          <div class="breakdown-desc">Đang giải quyết trong luật định</div>
+          <div class="breakdown-count text-primary" id="tk_row_trongHan">0</div>
+        </div>
+      </div>
+
+    </div>
   </div>
+
 </div>
 
-<style>
-  .sub-stat { display: flex; align-items: baseline; gap: 5px; }
-  .sub-stat span { font-size: 10px; font-weight: 700; color: #5f6368; text-transform: uppercase; }
-  .sub-stat b { font-size: 14px; font-weight: 900; color: #202124; }
-  .text-purple { color: #6f42c1; }
-  
-  /* Style cho biểu đồ đa tầng (Req 7) */
-  .bar-chart-row { margin-bottom: 12px; }
-  .bar-chart-label { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; color: #334155; margin-bottom: 4px; }
-  .bar-chart-track { display: flex; height: 10px; border-radius: 5px; background-color: #f1f5f9; overflow: hidden; }
-  .bar-segment { height: 100%; transition: width 0.8s ease; display: flex; align-items: center; justify-content: center; font-size: 8px; color: white; font-weight: bold; overflow: hidden; }
-</style>
-
 <script>
-  function loadStatsPage() { setPresetDate('nam_cong_tac'); }
+  /**
+   * =========================================================================
+   * LOGIC TÍNH TOÁN BÁO CÁO THỐNG KÊ TỐ TỤNG CHUẨN TANDTC (ĐÃ NÂNG CẤP)
+   * - ĐẾM TRỰC TIẾP 100% TỪ RAM DỮ LIỆU CSDL (window.G_An)
+   * - HỖ TRỢ SWITCH TOGGLE CỘNG GỘP SỐ LIỆU HGĐT VÀO TỔNG THỤ LÝ & GIẢI QUYẾT
+   * - TÍNH TOÁN CHỈ SỐ: TỶ LỆ HÒA GIẢI, ĐỐI THOẠI THÀNH CHUNG
+   * - HIỂN THỊ ĐỦ 7 NGÀNH ÁN TỐ TỤNG TRÊN BẢNG TIẾN ĐỘ
+   * =========================================================================
+   */
 
-  function formatDateForInput(dateObj) {
-    var y = dateObj.getFullYear();
-    var m = ("0" + (dateObj.getMonth() + 1)).slice(-2);
-    var d = ("0" + dateObj.getDate()).slice(-2);
-    return y + "-" + m + "-" + d;
-  }
-
-  function setPresetDate(type) {
-    var today = new Date();
-    var start, end;
-    if (type === 'month') {
-      start = new Date(today.getFullYear(), today.getMonth(), 1);
-      end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    } else if (type === 'last_month') {
-      // ĐÃ SỬA: Lọc tháng trước (Req 7)
-      start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-      end = new Date(today.getFullYear(), today.getMonth(), 0);
-    } else if (type === 'year') {
-      start = new Date(today.getFullYear(), 0, 1);
-      end = today;
-    } else if (type === 'nam_cong_tac') {
-      var startYear = today.getMonth() < 9 ? today.getFullYear() - 1 : today.getFullYear();
-      start = new Date(startYear, 9, 1);
-      end = today;
-    } else {
-      document.getElementById('rep_start').value = "";
-      document.getElementById('rep_end').value = "";
-      runClientSideStats();
-      return;
+  function safeGetStatisticalStartDate() {
+    if (typeof window.getStatisticalStartDate === 'function') {
+      return window.getStatisticalStartDate();
     }
-    document.getElementById('rep_start').value = formatDateForInput(start);
-    document.getElementById('rep_end').value = formatDateForInput(end);
-    runClientSideStats();
+    var now = new Date();
+    var y = now.getFullYear();
+    var m = now.getMonth();
+    var startYear = (m >= 9) ? y : (y - 1);
+    return startYear + "-10-01";
   }
 
-  function runClientSideStats() {
-    if (typeof G_Cases === 'undefined' || G_Cases.length === 0) return;
-   
-    var startVal = document.getElementById('rep_start').value;
-    var endVal = document.getElementById('rep_end').value;
-    var sTime = startVal ? new Date(startVal).getTime() : 0;
-    var eTime = endVal ? new Date(endVal).getTime() + 86399999 : Infinity;
-    var todayTime = new Date().getTime();
-   
-    var stats = {
-      cuChuyenSang: 0, thuLyMoi: 0, total: 0, resolved: 0,
-      pending: 0, overdue: 0, urgent: 0, suspended: 0, frozen: 0,
-      hgdtTotal: 0, hgdtSuccess: 0, 
-      types: {} // ĐÃ SỬA: Cấu trúc object phức tạp hơn để gom 3 chỉ số cho từng loại án (Req 7)
+  function safeRemoveAccents(str) {
+    if (typeof window.removeAccents === 'function') return window.removeAccents(str);
+    return (str || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D');
+  }
+
+  function safeParseVNDate(val) {
+    if (!val) return null;
+    if (typeof window.parseVNDate === 'function') return window.parseVNDate(val);
+    if (val instanceof Date) return isNaN(val.getTime()) ? null : val.getTime();
+    var str = String(val).trim();
+    var m = str.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+    if (m) {
+      return new Date(parseInt(m[3], 10), parseInt(m[2], 10) - 1, parseInt(m[1], 10)).getTime();
+    }
+    var t = Date.parse(str);
+    return isNaN(t) ? null : t;
+  }
+
+  function tk_formatDateYMD(d) {
+    if (!d || isNaN(d.getTime())) return "";
+    return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+  }
+
+  function setStatsFilter(type, btnEl) {
+    var d = new Date();
+    var start = "", end = "";
+
+    var curY = d.getFullYear();
+    var curM = d.getMonth(); // 0-11 (9 là tháng 10)
+    var startYear = (curM >= 9) ? curY : (curY - 1);
+
+    if (type === 'THIS_MONTH') {
+      var firstDay = new Date(d.getFullYear(), d.getMonth(), 1);
+      var lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+      start = tk_formatDateYMD(firstDay);
+      end = tk_formatDateYMD(lastDay);
+    } else if (type === 'THIS_YEAR') {
+      start = startYear + "-10-01";
+      end = ""; // Đến hiện tại
+    } else if (type === 'Q1') {
+      start = startYear + "-10-01";
+      end = startYear + "-12-31";
+    } else if (type === 'Q2') {
+      start = (startYear + 1) + "-01-01";
+      end = (startYear + 1) + "-03-31";
+    } else if (type === 'Q3') {
+      start = (startYear + 1) + "-04-01";
+      end = (startYear + 1) + "-06-30";
+    } else if (type === 'Q4') {
+      start = (startYear + 1) + "-07-01";
+      end = (startYear + 1) + "-09-30";
+    } else if (type === 'ALL') {
+      start = "";
+      end = "";
+    }
+
+    document.getElementById('tk_filter_start').value = start;
+    document.getElementById('tk_filter_end').value = end;
+
+    document.querySelectorAll('.tk-capsule-btn').forEach(function(b) {
+      b.classList.remove('active');
+    });
+    if (btnEl) btnEl.classList.add('active');
+
+    if (typeof window.G_Filter !== 'undefined') {
+      window.G_Filter.start = start;
+      window.G_Filter.end = end;
+    }
+    if (document.getElementById('filter-start')) document.getElementById('filter-start').value = start;
+    if (document.getElementById('filter-end')) document.getElementById('filter-end').value = end;
+
+    loadStatsPage();
+  }
+
+  function applyStatsFilterCustom() {
+    var start = document.getElementById('tk_filter_start').value;
+    var end = document.getElementById('tk_filter_end').value;
+    
+    document.querySelectorAll('.tk-capsule-btn').forEach(function(b) {
+      b.classList.remove('active');
+    });
+
+    if (typeof window.G_Filter !== 'undefined') {
+      window.G_Filter.start = start;
+      window.G_Filter.end = end;
+    }
+
+    if (document.getElementById('filter-start')) document.getElementById('filter-start').value = start;
+    if (document.getElementById('filter-end')) document.getElementById('filter-end').value = end;
+
+    loadStatsPage();
+  }
+
+  function syncStatsFilterUI() {
+    if (typeof window.G_Filter === 'undefined') return;
+    var s = window.G_Filter.start || "";
+    var e = window.G_Filter.end || "";
+    var elS = document.getElementById('tk_filter_start');
+    var elE = document.getElementById('tk_filter_end');
+    if (elS && !elS.value) elS.value = s;
+    if (elE && !elE.value) elE.value = e;
+  }
+
+  function refreshAndReloadStats() {
+    if (typeof window.loadCaseList === 'function') {
+      if (typeof AppUI !== 'undefined') AppUI.showToast("Đang đồng bộ số liệu từ máy chủ...", "");
+      window.loadCaseList(true);
+      setTimeout(function() {
+        loadStatsPage();
+        if (typeof AppUI !== 'undefined') AppUI.showToast("Đã cập nhật số liệu mới nhất!", "success");
+      }, 1000);
+    } else {
+      loadStatsPage();
+    }
+  }
+
+  function loadStatsPage() {
+    var rawAnList = window.G_An || window.G_Cases || [];
+    if (!rawAnList || rawAnList.length === 0) return;
+
+    syncStatsFilterUI();
+
+    var isIncludeHGDT = document.getElementById('tk_toggle_include_hgdt') ? document.getElementById('tk_toggle_include_hgdt').checked : false;
+
+    var tongThulyThucTe = 0, daXong = 0, dangGQ = 0, quaHan = 0, sapHan = 0, tdc = 0, trongHan = 0;
+    var anCu = 0, anMoi = 0;
+    var hgdtTong = 0, hgdtThanh = 0, hgdtDangGQ = 0;
+    
+    // Các vụ loại trừ khỏi thụ lý
+    var soLuongChuyenHoSo = 0;
+    var soLuongNhapVuAn = 0;
+
+    // Bộ đếm phân loại kết quả thực chất
+    var resCount_BanAn = 0;
+    var resCount_ThoaThuan = 0;
+    var resCount_ThuanTinh = 0;
+    var resCount_DinhChi = 0;
+    var resCount_DinhChiDoanTu = 0;
+    var resCount_TraHoSo = 0;
+    var resCount_ViecDanSu = 0;
+
+    var filterObj = window.G_Filter || {};
+    var startFilterStr = filterObj.start || safeGetStatisticalStartDate();
+    var sTime = new Date(startFilterStr).getTime();
+    var eTime = filterObj.end ? new Date(filterObj.end).getTime() + 86399999 : Infinity;
+    var isPeriodFilter = Boolean(filterObj.start || filterObj.end);
+
+    // 7 Ngành án tố tụng chuẩn mực theo thứ tự TANDTC (Bổ sung ngành án HGĐT)
+    var cats = {
+      "Hình sự": { total: 0, done: 0, pending: 0 },
+      "Dân sự": { total: 0, done: 0, pending: 0 },
+      "Hôn nhân & Gia đình": { total: 0, done: 0, pending: 0 },
+      "Kinh doanh Thương mại": { total: 0, done: 0, pending: 0 },
+      "Lao động": { total: 0, done: 0, pending: 0 },
+      "Hành chính": { total: 0, done: 0, pending: 0 },
+      "Hòa giải đối thoại (Luật HGĐT)": { total: 0, done: 0, pending: 0 }
     };
 
-    for (var i = 0; i < G_Cases.length; i++) {
-      var c = G_Cases[i];
-      var hasResult = (c.ketQuaGiaiQuyet && c.ketQuaGiaiQuyet.trim() !== "");
-      var kqDateTS = hasResult ? parseVNDate(c.ketQuaGiaiQuyet) : null;
-      var acceptedTime = c.rawDate;
+    rawAnList.forEach(function(c) {
+      var kqRaw = String(c.ketQuaGiaiQuyet || "").trim();
+      var kqLower = safeRemoveAccents(kqRaw).toLowerCase();
+      var loaiAnRaw = String(c.loaiAn || "").trim();
+      var loaiAnClean = safeRemoveAccents(loaiAnRaw).toLowerCase();
+      var soTLRaw = String(c.soTL || "").toLowerCase();
+      var quanHeClean = safeRemoveAccents(String(c.quanHe || "")).toLowerCase();
+      var ghiChuClean = safeRemoveAccents(String(c.ghiChu || "")).toLowerCase();
 
-      if (acceptedTime > eTime) continue;
-      if (hasResult && kqDateTS < sTime) continue;
+      // 1. NHẬN DIỆN ÁN HÒA GIẢI ĐỐI THOẠI (LUẬT HGĐT)
+      var isHGDT = (c.isHGDT === true || loaiAnClean.includes("hoa giai") || loaiAnClean.includes("doi thoai") || loaiAnClean.includes("hgdt") || soTLRaw.includes("hgdt") || soTLRaw.includes("hgđt"));
 
-      var isResolvedInPeriod = (hasResult && kqDateTS <= eTime);
+      // 2. NHẬN DIỆN KẾT QUẢ THỰC CHẤT & THỦ TỤC TRUNG GIAN
+      var isProceduralOnly = (kqLower.includes("tam dinh chi") || kqLower.includes("gia han") || kqLower.includes("tiep tuc"));
+      
+      // Trả hồ sơ ĐTBS trong Án Hình sự -> Được tính là đã giải quyết
+      var isCriminalCase = loaiAnClean.includes("hinh su") || loaiAnClean.includes("1.");
+      var isTraHoSoDTBS = isCriminalCase && (kqLower.includes("tra ho so") || kqLower.includes("dieu tra bo sung") || kqLower.includes("dtbs"));
 
-      var loaiGoc = c.loaiAn.split('. ')[1] ? c.loaiAn.split('. ')[1].trim() : c.loaiAn;
-      if (!stats.types[loaiGoc]) stats.types[loaiGoc] = { total: 0, new: 0, resolved: 0, pending: 0 };
-      stats.types[loaiGoc].total++;
+      // Nhận diện Án chuyển hồ sơ & Nhập vụ án
+      var isTransferred = (kqLower.includes("chuyen ho so") || kqLower.includes("chuyen vu an") || kqLower.includes("chuyen di") || (kqLower.includes("chuyen") && !kqLower.includes("chuyen sang")));
+      var isMergedCase = (kqLower.includes("nhap vu an") || kqLower.includes("nhap vu viec") || kqLower.includes("nhap vu"));
 
-      if (c.isHGDT) {
-        stats.hgdtTotal++;
-        if (isResolvedInPeriod) {
-            stats.hgdtSuccess++;
-            stats.types[loaiGoc].resolved++;
-        } else {
-            stats.types[loaiGoc].pending++;
-        }
-        if (acceptedTime >= sTime) stats.types[loaiGoc].new++;
-      } else {
-        if (acceptedTime < sTime) stats.cuChuyenSang++; 
-        else {
-            stats.thuLyMoi++;
-            stats.types[loaiGoc].new++;
-        }
-        
-        stats.total++;
-       
-        if (isResolvedInPeriod) {
-          stats.resolved++;
-          stats.types[loaiGoc].resolved++;
-        } else {
-          stats.pending++;
-          stats.types[loaiGoc].pending++;
-          
-          if (c.trangThai.indexOf('Tạm đình chỉ') !== -1) {
-            stats.suspended++;
-          } else {
-            if (c.rawHanDate > 0) {
-              var diffDays = Math.ceil((c.rawHanDate - todayTime) / 86400000);
-              if (diffDays < 0) stats.overdue++; else if (diffDays <= 15) stats.urgent++;
-            }
-            if (c.isFrozen || c.frozenDays > 15) stats.frozen++;
-          }
-        }
+      var hasActualResult = (c.trangThai === "Đã giải quyết" || isTraHoSoDTBS || (kqRaw !== "" && kqRaw !== "---" && !isProceduralOnly));
+      var kqDateTS = hasActualResult ? safeParseVNDate(kqRaw) : null;
+
+      // Lọc theo kỳ báo cáo
+      if (isPeriodFilter) {
+        if (c.rawDate && c.rawDate > eTime) return; 
+        if (hasActualResult && kqDateTS && kqDateTS < sTime) return; 
       }
+
+      var isDone = (c.liveStatus === "Đã giải quyết" || c.trangThai === "Đã giải quyết" || isTraHoSoDTBS);
+      var isTDC = (c.liveStatus === "Tạm đình chỉ" || c.trangThai === "Tạm đình chỉ");
+
+      // LOẠI TRỪ ÁN CHUYỂN & ÁN NHẬP
+      if (isTransferred) { soLuongChuyenHoSo++; return; }
+      if (isMergedCase) { soLuongNhapVuAn++; return; }
+
+      // PHÂN TÍCH HGĐT
+      if (isHGDT) {
+        hgdtTong++;
+        cats["Hòa giải đối thoại (Luật HGĐT)"].total++;
+        if (isDone || kqLower.includes("thanh") || kqLower.includes("qdcnhgdt") || kqLower.includes("qđcnhgđt")) {
+          hgdtThanh++;
+          cats["Hòa giải đối thoại (Luật HGĐT)"].done++;
+        } else {
+          hgdtDangGQ++;
+          cats["Hòa giải đối thoại (Luật HGĐT)"].pending++;
+        }
+
+        if (!isIncludeHGDT) return;
+      }
+
+      // TỔNG HỢP VĨ MÔ
+      tongThulyThucTe++;
+      if (c.rawDate && c.rawDate < sTime) anCu++; else anMoi++;
+
+      if (isDone) {
+        daXong++;
+
+        if (isTraHoSoDTBS) {
+          resCount_TraHoSo++;
+        } else if (kqLower.includes("ban an") || kqLower.includes("xet xu") || kqLower.includes("tuyen an")) {
+          resCount_BanAn++;
+        } else if (kqLower.includes("thuan tinh") || kqLower.includes("ttlh") || kqLower.includes("qdcnttlh") || kqLower.includes("qđcnttlh") || (loaiAnClean.includes("hon nhan") && quanHeClean.includes("thuan tinh"))) {
+          resCount_ThuanTinh++;
+        } else if (kqLower.includes("thoa thuan") || kqLower.includes("qdcntt") || kqLower.includes("qđcntt") || kqLower.includes("hoa giai thanh")) {
+          resCount_ThoaThuan++;
+        } else if (kqLower.includes("dinh chi") && !kqLower.includes("tam dinh chi")) {
+          resCount_DinhChi++;
+          if (ghiChuClean.includes("doan tu") || kqLower.includes("doan tu") || quanHeClean.includes("doan tu")) {
+            resCount_DinhChiDoanTu++;
+          }
+        } else if (kqLower.includes("giai quyet viec") || kqLower.includes("viec dan su") || kqLower.includes("vds") || loaiAnClean.includes("viec")) {
+          resCount_ViecDanSu++;
+        } else {
+          resCount_BanAn++;
+        }
+      } else {
+        dangGQ++;
+        if (c.liveStatus === "Đã quá hạn") quaHan++;
+        else if (c.liveStatus === "Sắp quá hạn") sapHan++;
+        else if (isTDC) tdc++;
+        else trongHan++;
+      }
+
+      // Phân bổ vào 6 nhóm ngành án tố tụng
+      if (!isHGDT) {
+        var catName = "Dân sự";
+        if (isCriminalCase) catName = "Hình sự";
+        else if (loaiAnClean.includes("hon nhan") || loaiAnClean.includes("hngd") || loaiAnClean.includes("3.")) catName = "Hôn nhân & Gia đình";
+        else if (loaiAnClean.includes("kinh doanh") || loaiAnClean.includes("thuong mai") || loaiAnClean.includes("4.")) catName = "Kinh doanh Thương mại";
+        else if (loaiAnClean.includes("lao dong") || loaiAnClean.includes("5.")) catName = "Lao động";
+        else if (loaiAnClean.includes("hanh chinh") || loaiAnClean.includes("6.")) catName = "Hành chính";
+        else catName = "Dân sự";
+
+        cats[catName].total++;
+        if (isDone) cats[catName].done++;
+        else cats[catName].pending++;
+      }
+    });
+
+    function safeSetText(id, text) {
+      var el = document.getElementById(id);
+      if (el) el.innerText = text;
     }
 
-    document.getElementById('res_total').innerText = stats.total;
-    document.getElementById('res_cu').innerText = stats.cuChuyenSang;
-    document.getElementById('res_moi').innerText = stats.thuLyMoi;
-    document.getElementById('res_resolved').innerText = stats.resolved;
-    document.getElementById('res_pending').innerText = stats.pending;
-    document.getElementById('det_overdue_card').innerText = stats.overdue;
-    document.getElementById('det_urgent_card').innerText = stats.urgent;
-    var rate = stats.total > 0 ? Math.round((stats.resolved / stats.total) * 100) : 0;
-    document.getElementById('res_rate').innerText = rate + "%";
-    document.getElementById('res_hgdt').innerText = stats.hgdtTotal;
-    document.getElementById('res_hgdt_success').innerText = stats.hgdtSuccess;
-
-    var p = stats.pending || 1;
-    document.getElementById('det_overdue').innerText = stats.overdue;
-    document.getElementById('per_overdue').innerText = "(" + Math.round((stats.overdue / p) * 100) + "%)";
-    document.getElementById('det_urgent').innerText = stats.urgent;
-    document.getElementById('per_urgent').innerText = "(" + Math.round((stats.urgent / p) * 100) + "%)";
-    document.getElementById('det_suspended').innerText = stats.suspended;
-    document.getElementById('per_suspended').innerText = "(" + Math.round((stats.suspended / p) * 100) + "%)";
-    document.getElementById('det_frozen').innerText = stats.frozen;
-    document.getElementById('per_frozen').innerText = "(" + Math.round((stats.frozen / p) * 100) + "%)";
-
-    // ĐÃ SỬA: Vẽ biểu đồ đa tầng hiển thị 3 chỉ số (Mới / Đã GQ / Tồn) (Req 7)
-    var chartHtml = "";
-    var sortableTypes = [];
-    for (var type in stats.types) sortableTypes.push({ name: type, data: stats.types[type] });
-    sortableTypes.sort(function(a, b) { return b.data.total - a.data.total; });
-
-    sortableTypes.forEach(function(item) {
-      if (item.data.total === 0) return;
-      
-      var tName = item.name;
-      var d = item.data;
-      var maxScale = d.total; 
-      
-      var pctNew = maxScale > 0 ? (d.new / maxScale) * 100 : 0;
-      var pctRes = maxScale > 0 ? (d.resolved / maxScale) * 100 : 0;
-      var pctPen = maxScale > 0 ? (d.pending / maxScale) * 100 : 0;
-      
-      chartHtml += `
-      <div class="bar-chart-row">
-        <div class="bar-chart-label">
-           <span>${tName}</span>
-           <span class="text-muted"><b class="text-primary">${d.new}</b> / <b class="text-success">${d.resolved}</b> / <b class="text-danger">${d.pending}</b> (Tổng: ${d.total})</span>
-        </div>
-        <div class="bar-chart-track">
-           <div class="bar-segment" style="width: ${pctNew}%; background-color: #1a73e8;" title="Mới: ${d.new}">${d.new > 0 && pctNew > 5 ? d.new : ''}</div>
-           <div class="bar-segment" style="width: ${pctRes}%; background-color: #188038;" title="Đã GQ: ${d.resolved}">${d.resolved > 0 && pctRes > 5 ? d.resolved : ''}</div>
-           <div class="bar-segment" style="width: ${pctPen}%; background-color: #d93025;" title="Tồn: ${d.pending}">${d.pending > 0 && pctPen > 5 ? d.pending : ''}</div>
-        </div>
-      </div>`;
-    });
+    // 1. Điền 4 Thẻ KPI Vĩ Mô
+    safeSetText('tk_tongAn', tongThulyThucTe);
+    safeSetText('tk_anCu', "Cũ: " + anCu);
+    safeSetText('tk_anMoi', "Mới: " + anMoi);
+    safeSetText('tk_daXong', daXong);
     
-    document.getElementById('chart-types-container').innerHTML = chartHtml || "<div class='text-muted small italic p-3 bg-light rounded text-center border'>Không có dữ liệu trong giai đoạn này.</div>";
+    var tyLeChung = tongThulyThucTe > 0 ? Math.round((daXong / tongThulyThucTe) * 100) : 0;
+    safeSetText('tk_tyLeChung', tyLeChung + "%");
+
+    safeSetText('tk_dangGQ', dangGQ);
+    safeSetText('tk_quaHan', "Quá hạn: " + quaHan);
+    safeSetText('tk_sapHan', "Sắp hết: " + sapHan);
+
+    safeSetText('tk_hgdtTong', hgdtTong);
+    safeSetText('tk_hgdtThanh', hgdtThanh);
+
+    // 2. TÍNH TỶ LỆ HÒA GIẢI THÀNH CHUNG
+    var tongHoaGiaiThanhChung = resCount_ThoaThuan + resCount_ThuanTinh + resCount_DinhChiDoanTu + hgdtThanh;
+    var tongAnCoTheHoaGiai = daXong - resCount_TraHoSo;
+    if (!isIncludeHGDT) tongAnCoTheHoaGiai += hgdtTong;
+    var tyLeHGChung = tongAnCoTheHoaGiai > 0 ? Math.round((tongHoaGiaiThanhChung / tongAnCoTheHoaGiai) * 100) : 0;
+
+    safeSetText('tk_lbl_tyle_hg_chung', tyLeHGChung + "% (" + tongHoaGiaiThanhChung + "/" + tongAnCoTheHoaGiai + " vụ)");
+    safeSetText('tk_hg_cntt', resCount_ThoaThuan);
+    safeSetText('tk_hg_ttlh', resCount_ThuanTinh);
+    safeSetText('tk_hg_dcht', resCount_DinhChiDoanTu);
+    safeSetText('tk_hg_hgdt_thanh', hgdtThanh);
+
+    // 3. Điền Bảng phân loại kết quả giải quyết (TÍNH % TRÊN TỔNG ÁN ĐÃ GIẢI QUYẾT - daXong)
+    safeSetText('tk_kq_banAn', resCount_BanAn);
+    safeSetText('tk_kq_thoaThuan', resCount_ThoaThuan);
+    safeSetText('tk_kq_thuanTinh', resCount_ThuanTinh);
+    safeSetText('tk_kq_dinhChi', resCount_DinhChi);
+    safeSetText('tk_kq_traHoSo', resCount_TraHoSo);
+    safeSetText('tk_kq_viecDanSu', resCount_ViecDanSu);
+
+    function calcPctOnDone(count) {
+      if (!daXong || daXong === 0) return "(0.0%)";
+      var pct = ((count / daXong) * 100).toFixed(1);
+      return "(" + pct + "%)";
+    }
+
+    safeSetText('tk_pct_banAn', calcPctOnDone(resCount_BanAn));
+    safeSetText('tk_pct_thoaThuan', calcPctOnDone(resCount_ThoaThuan));
+    safeSetText('tk_pct_thuanTinh', calcPctOnDone(resCount_ThuanTinh));
+    safeSetText('tk_pct_dinhChi', calcPctOnDone(resCount_DinhChi));
+    safeSetText('tk_pct_traHoSo', calcPctOnDone(resCount_TraHoSo));
+    safeSetText('tk_pct_viecDanSu', calcPctOnDone(resCount_ViecDanSu));
+    
+    safeSetText('tk_kq_chuyenHoSo', soLuongChuyenHoSo);
+    safeSetText('tk_kq_nhapVuAn', soLuongNhapVuAn);
+
+    // 4. Điền Tình trạng án tồn
+    safeSetText('tk_row_quaHan', quaHan);
+    safeSetText('tk_row_sapHan', sapHan);
+    safeSetText('tk_row_tdc', tdc);
+    safeSetText('tk_row_trongHan', trongHan);
+
+    // 5. Render 7 thanh tiến độ ngành án
+    var container = document.getElementById('tk_coCauContainer');
+    var htmlBars = "";
+
+    var keys = Object.keys(cats);
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i];
+      var d = cats[k];
+      var rate = d.total > 0 ? Math.round((d.done / d.total) * 100) : 0;
+      var barClass = rate >= 80 ? "" : (rate > 0 ? "warning-rate" : "zero-rate");
+      var isHgdtRow = k.includes("Hòa giải đối thoại");
+
+      htmlBars += `
+        <div class="jurisdiction-row animate-fadeIn ${isHgdtRow ? 'bg-light p-2 rounded-2 border' : ''}">
+          <div class="jurisdiction-header">
+            <span class="jurisdiction-name ${isHgdtRow ? 'text-purple fw-bold' : ''}">${i + 1}. ${k.startsWith('Hòa') ? k : 'Án ' + k}</span>
+            <span class="jurisdiction-meta">Tiến độ: <b class="${rate >= 80 ? 'text-success' : (rate > 0 ? 'text-warning' : 'text-secondary')}">${rate}%</b> (Đã xong: <b>${d.done}</b> / Tồn: <b>${d.pending}</b> / Thụ lý: <b>${d.total}</b>)</span>
+          </div>
+          <div class="progress-track-slim">
+            <div class="progress-fill-slim ${barClass}" style="width: ${rate}%;"></div>
+          </div>
+        </div>
+      `;
+    }
+
+    if (container) container.innerHTML = htmlBars;
   }
 </script>

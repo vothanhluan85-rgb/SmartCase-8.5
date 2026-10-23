@@ -1,392 +1,1020 @@
 <!--
-  HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V7.5.3
-  FILE: UI_Lich.html (BẢN TỐI ƯU UX - CẢNH BÁO MÀU SẮC RÕ RÀNG)
-  ------------------------------------------------------------
-  BẢN CẬP NHẬT THEO YÊU CẦU:
-  - Cải thiện màu sắc thẻ lịch: Tăng độ tương phản màu Vàng khi được chọn (Req 5).
+  =========================================================================
+  HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.0 - TRUNG TÂM LỊCH CÔNG TÁC TỐ TỤNG
+  TỆP: UI_Lich.html - LƯỚI LỊCH 7 CỘT SẮC NÉT, MÃ MÀU CHUẨN & LOAD TỨC THÌ 0MS
+  - TUÂN THỦ 100% QUY CHUẨN V8.0 PRODUCTION MASTER
+  - LƯỚI LỊCH 7 CỘT HIỂN THỊ ĐỦ THÁNG TRƯỚC/SAU, DOUBLE-CLICK TẠO LỊCH NHANH
+  - 5 MÃ MÀU NGHIỆP VỤ RÕ RÀNG & MỜ HÓA SỰ KIỆN QUÁ KHỨ / ĐÃ HOÀN THÀNH
+  - MODAL LIVE-SEARCH TÌM VỤ ÁN GẮN LỊCH TRỰC TIẾP
+  =========================================================================
 -->
 
-<link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
-<script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
-<script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/vi.js'></script>
+<style>
+  /* =========================================================================
+     1. GIAO DIỆN CHỦ ĐẠO LỊCH CÔNG TÁC (HIGH CONTRAST & CRISP TYPOGRAPHY)
+     ========================================================================= */
+  .cal-module-container {
+    color: #0f172a;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-<div class="animate-fadeIn p-2 p-md-3" style="height: calc(100vh - 65px); display: flex; flex-direction: column; overflow: hidden; position: relative;">
- 
-  <div class="d-flex justify-content-end mb-2" style="flex-shrink: 0;">
-    <div class="d-flex gap-2">
-      <button class="btn btn-sm btn-outline-success fw-bold px-3 shadow-sm" onclick="syncWithGoogleCalendar()"><i class="fas fa-sync-alt me-1"></i> ĐỒNG BỘ GCAL</button>
-      <button class="btn btn-sm btn-primary text-white fw-bold shadow-sm px-3" onclick="openCalendarModal(null, 'new')"><i class="fas fa-plus me-1"></i> THÊM MỚI</button>
-    </div>
-  </div>
+  .cal-main-card {
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #cbd5e1;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+    overflow: hidden;
+  }
 
-  <div class="row g-2" style="flex-grow: 1; min-height: 0;">
-    <div class="col-12 col-lg-8" style="height: 100%;">
-      <div class="bg-white shadow-sm p-2 w-100" style="border-radius: 12px; border: 1px solid #eef2f7; height: 100%; display: flex; flex-direction: column;">
-        <div id="calendar" style="flex-grow: 1; min-height: 0;"></div>
+  .btn-action-tool {
+    border-radius: 8px !important;
+    font-weight: 700 !important;
+    font-size: 12px !important;
+    height: 35px !important;
+    padding: 0 0.85rem !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+  .btn-action-primary {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+    border-color: #2563eb !important;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+  }
+  .btn-action-primary:hover { background-color: #1d4ed8 !important; }
+
+  .btn-action-tonal {
+    background-color: #eff6ff !important;
+    color: #1d4ed8 !important;
+    border-color: #bfdbfe !important;
+  }
+  .btn-action-tonal:hover { background-color: #dbeafe !important; }
+
+  .btn-action-outline {
+    background-color: #ffffff !important;
+    color: #334155 !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  }
+  .btn-action-outline:hover { background-color: #f8fafc !important; color: #0f172a !important; }
+
+  /* Capsule Tabs lọc */
+  .cal-filter-scroll {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .cal-filter-scroll::-webkit-scrollbar { display: none; }
+
+  .cal-capsule-btn {
+    white-space: nowrap;
+    font-size: 11.5px;
+    font-weight: 700;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    user-select: none;
+  }
+  .cal-capsule-btn:hover { background: #f8fafc; color: #0f172a; border-color: #94a3b8; }
+  .cal-capsule-btn.active {
+    background: #eff6ff !important;
+    color: #1d4ed8 !important;
+    border-color: #3b82f6 !important;
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.15);
+  }
+
+  /* =========================================================================
+     2. LƯỚI LỊCH THÁNG (7 CỘT RÕ NÉT, ĐỘ TƯƠNG PHẢN CAO)
+     ========================================================================= */
+  .cal-grid-header {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    background-color: #f1f5f9;
+    border-bottom: 1px solid #cbd5e1;
+    width: 100%;
+  }
+  .cal-grid-weekday {
+    padding: 9px 4px;
+    text-align: center;
+    font-size: 11.5px;
+    font-weight: 800;
+    color: #334155;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-right: 1px solid #e2e8f0;
+  }
+  .cal-grid-weekday:last-child,
+  .cal-grid-weekday:nth-child(6) {
+    color: #dc2626; /* T7, CN */
+  }
+
+  .cal-grid-body {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    background-color: #cbd5e1;
+    gap: 1px;
+    width: 100%;
+  }
+
+  .cal-day-cell {
+    min-height: 115px;
+    padding: 5px 6px;
+    background-color: #ffffff;
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.12s ease;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .cal-day-cell:hover { background-color: #f8fafc; }
+  .cal-day-cell.other-month { background-color: #fcfcfd; }
+  .cal-day-cell.other-month .cal-date-num { color: #94a3b8; }
+  .cal-day-cell.is-selected { box-shadow: inset 0 0 0 2px #2563eb !important; background-color: #eff6ff; }
+  .cal-day-cell.is-today { background-color: #f0fdf4 !important; }
+
+  .cal-cell-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .cal-date-num {
+    font-size: 12px;
+    font-weight: 800;
+    color: #0f172a;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .is-today .cal-date-num { 
+    background-color: #16a34a; 
+    color: #ffffff !important; 
+    box-shadow: 0 1px 3px rgba(22, 163, 74, 0.3);
+  }
+  .is-selected:not(.is-today) .cal-date-num {
+    background-color: #2563eb;
+    color: #ffffff !important;
+  }
+
+  /* =========================================================================
+     3. VIÊN THUỐC SỰ KIỆN RÕ NÉT (MÃ MÀU SẮC NÉT & LÀM MỜ QUÁ KHỨ)
+     ========================================================================= */
+  .cal-event-pill {
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 3px 6px;
+    border-radius: 5px;
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    line-height: 1.35;
+    border-left: 3.5px solid transparent;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    transition: all 0.12s ease;
+  }
+  .cal-event-pill:hover { filter: brightness(0.95); transform: scale(1.01); }
+
+  /* 5 NHÓM MÀU NGHIỆP VỤ SỰ KIỆN TƯƠNG LAI & HIỆN TẠI */
+  .pill-trial { 
+    background: #fee2e2 !important; 
+    color: #991b1b !important; 
+    border-left-color: #dc2626 !important; 
+  }
+  .pill-session { 
+    background: #dcfce7 !important; 
+    color: #14532d !important; 
+    border-left-color: #16a34a !important; 
+  }
+  .pill-remind { 
+    background: #fef3c7 !important; 
+    color: #78350f !important; 
+    border-left-color: #d97706 !important; 
+  }
+  .pill-milestone { 
+    background: #ffedd5 !important; 
+    color: #9a3412 !important; 
+    border-left-color: #ea580c !important; 
+    font-weight: 800; 
+  }
+  .pill-thamdinh { 
+    background: #f3e8ff !important; 
+    color: #581c87 !important; 
+    border-left-color: #9333ea !important; 
+  }
+  .pill-future-general { 
+    background: #eff6ff !important; 
+    color: #1e40af !important; 
+    border-left-color: #2563eb !important; 
+  }
+
+  /* SỰ KIỆN QUÁ KHỨ (LÀM MỜ) VÀ ĐÃ HOÀN THÀNH (GÁCH NGANG) */
+  .pill-past {
+    opacity: 0.45 !important;
+    filter: grayscale(0.4) !important;
+  }
+  .pill-past:hover {
+    opacity: 0.85 !important;
+    filter: none !important;
+  }
+  .pill-done { 
+    text-decoration: line-through !important; 
+    opacity: 0.5 !important; 
+  }
+
+  /* =========================================================================
+     4. DÒNG THỜI GIAN TIMELINE AGENDA
+     ========================================================================= */
+  .timeline-container {
+    height: calc(100vh - 180px);
+    display: flex;
+    flex-direction: column;
+  }
+  .timeline-body {
+    padding: 10px;
+    overflow-y: auto;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background-color: #f8fafc;
+  }
+
+  .agenda-task-card {
+    background: #ffffff;
+    border-radius: 10px;
+    border: 1px solid #cbd5e1;
+    padding: 10px 12px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+    transition: all 0.15s ease;
+  }
+  .agenda-task-card.is-today-card { border-left: 4px solid #16a34a !important; background-color: #f0fdf4; }
+  .agenda-task-card.is-completed { opacity: 0.6; background-color: #f1f5f9; }
+  .agenda-task-card.is-past-card { opacity: 0.55; }
+  .agenda-task-card.is-past-card:hover { opacity: 0.95; }
+
+  .case-search-dropdown {
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 1055;
+    background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px;
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15); max-height: 200px; 
+    overflow-y: auto; display: none; margin-top: 4px;
+  }
+  .case-search-item { 
+    padding: 8px 12px; border-bottom: 1px solid #f1f5f9; cursor: pointer; font-size: 12px;
+  }
+  .case-search-item:hover { background-color: #eff6ff; }
+</style>
+
+<div class="animate-fadeIn p-2 p-md-3 cal-module-container">
+  
+  <!-- THANH ĐIỀU KHIỂN LỊCH TRÌNH -->
+  <div class="cal-main-card mb-2 p-3">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2 pb-2 border-bottom">
+      
+      <!-- Chuyển tháng & Ngày hôm nay -->
+      <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-action-outline btn-action-tool px-0 d-flex align-items-center justify-content-center" style="width: 35px;" onclick="window.calPrevMonth()" title="Tháng trước">
+          <i class="fas fa-chevron-left text-secondary"></i>
+        </button>
+        <button class="btn btn-action-outline btn-action-tool px-0 d-flex align-items-center justify-content-center" style="width: 35px;" onclick="window.calNextMonth()" title="Tháng sau">
+          <i class="fas fa-chevron-right text-secondary"></i>
+        </button>
+        <button class="btn btn-action-tonal btn-action-tool" onclick="window.calGoToToday()">
+          <i class="far fa-calendar-check"></i> Hôm nay
+        </button>
+        <h5 class="m-0 ms-2 fw-bold text-dark text-uppercase" id="cal-month-title" style="font-size: 14.5px; letter-spacing: 0.4px;">THÁNG -- NĂM ----</h5>
+      </div>
+
+      <!-- Tác vụ GCAL & Lập lịch mới -->
+      <div class="d-flex align-items-center gap-1">
+        <button class="btn btn-action-tonal btn-action-tool" onclick="window.syncGCal()" title="Đồng bộ ngay với Google Calendar trên điện thoại">
+          <i class="fab fa-google text-primary"></i> Đồng bộ GCAL
+        </button>
+        <button class="btn btn-action-primary btn-action-tool shadow-sm" onclick="window.openCaseTaskModal()">
+          <i class="fas fa-plus-circle"></i> Lập lịch mới
+        </button>
       </div>
     </div>
 
-    <div class="col-12 col-lg-4" style="height: 100%;">
-      <div class="bg-white shadow-sm d-flex flex-column" style="border-radius: 12px; border: 1px solid #eef2f7; height: 100%;">
-        <div class="p-2 border-bottom d-flex justify-content-between align-items-center bg-light" style="border-radius: 12px 12px 0 0; flex-shrink: 0;">
-          <h6 class="fw-bold m-0 text-dark text-uppercase" style="font-size: 12px;"><i class="fas fa-stream me-2 text-primary"></i>DÒNG THỜI GIAN</h6>
-          <span class="badge bg-primary rounded-pill shadow-sm" id="task-total-count" style="font-size: 10px;">0 việc</span>
+    <!-- Dải Capsule Tabs Lọc Phân Loại -->
+    <div class="cal-filter-scroll d-flex gap-2 align-items-center pt-1">
+      <span class="small fw-bold text-muted text-uppercase me-1" style="font-size:10.5px;">Phân loại:</span>
+      <button class="cal-capsule-btn active" onclick="window.setCalFilter('ALL', this)">
+        <i class="fas fa-inbox me-1"></i> Tất cả
+      </button>
+      <button class="cal-capsule-btn" onclick="window.setCalFilter('TRIAL', this)">
+        <span class="rounded-circle bg-danger me-1" style="width:6px; height:6px; display:inline-block;"></span> Xét xử & Tuyên án
+      </button>
+      <button class="cal-capsule-btn" onclick="window.setCalFilter('MEDIATE', this)">
+        <span class="rounded-circle bg-success me-1" style="width:6px; height:6px; display:inline-block;"></span> Hòa giải & Đối thoại
+      </button>
+      <button class="cal-capsule-btn" onclick="window.setCalFilter('REMIND', this)">
+        <span class="rounded-circle bg-warning me-1" style="width:6px; height:6px; display:inline-block;"></span> 🔔 Mốc 24h (Ngày 8 / 16)
+      </button>
+      <button class="cal-capsule-btn" onclick="window.setCalFilter('THAM_DINH', this)">
+        <span class="rounded-circle me-1" style="width:6px; height:6px; display:inline-block; background-color: #9333ea;"></span> Thẩm định / Định giá
+      </button>
+    </div>
+  </div>
+
+  <!-- KHÔNG GIAN LỊCH VÀ TIMELINE -->
+  <div class="row g-2">
+    <!-- CỘT TRÁI: LƯỚI LỊCH THÁNG (7 CỘT HIỂN THỊ ĐỦ MÀU SẮC CHO MỌI NGÀY) -->
+    <div class="col-lg-8">
+      <div class="cal-main-card">
+        <div class="cal-grid-header">
+          <div class="cal-grid-weekday">Thứ Hai</div>
+          <div class="cal-grid-weekday">Thứ Ba</div>
+          <div class="cal-grid-weekday">Thứ Tư</div>
+          <div class="cal-grid-weekday">Thứ Năm</div>
+          <div class="cal-grid-weekday">Thứ Sáu</div>
+          <div class="cal-grid-weekday">Thứ Bảy</div>
+          <div class="cal-grid-weekday">Chủ Nhật</div>
         </div>
-        <div id="lich-timeline" class="p-2 overflow-auto custom-scrollbar" style="flex-grow: 1; background-color: #f8fafc; scroll-behavior: smooth;">
-          <div class="text-center p-5 text-muted small"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Đang tải...</div>
+        <div class="cal-grid-body" id="cal-days-grid"></div>
+      </div>
+    </div>
+
+    <!-- CỘT PHẢI: TIMELINE AGENDA TỐ TỤNG -->
+    <div class="col-lg-4">
+      <div class="cal-main-card timeline-container">
+        <div class="p-2 p-md-3 bg-white border-bottom d-flex align-items-center justify-content-between">
+          <div class="d-flex align-items-center gap-2">
+            <i class="fas fa-calendar-day text-primary" style="font-size: 14px;"></i>
+            <h6 class="m-0 fw-bold text-dark text-uppercase" id="timeline-header-title" style="font-size: 12.5px; letter-spacing: 0.3px;">LỊCH CÔNG TÁC</h6>
+          </div>
+          <span class="badge rounded-pill bg-light text-primary border px-2 py-1 fw-bold" id="timeline-count-badge" style="font-size: 10.5px;">0 việc</span>
+        </div>
+        <div class="timeline-body" id="timeline-task-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL LẬP & SỬA LỊCH CÔNG TÁC TOÀN DIỆN -->
+<div class="modal fade" id="modalLiveSearchLich" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 14px; overflow: hidden;">
+      <div class="modal-header bg-white border-bottom py-3">
+        <h6 class="modal-title fw-bold text-dark text-uppercase" id="cal_modal_header_title" style="font-size: 13.5px; letter-spacing: 0.4px;">
+          <i class="fas fa-calendar-plus text-primary me-2" id="cal_modal_header_icon"></i><span id="cal_modal_header_text">LẬP LỊCH CÔNG TÁC MỚI</span>
+        </h6>
+        <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-3 bg-light">
+        <input type="hidden" id="cal_editing_idLich" value="">
+
+        <!-- Gắn vụ án -->
+        <div class="bg-white p-3 rounded-3 border mb-3 position-relative" style="border-color: #cbd5e1 !important; z-index: 1050;">
+          <label class="small fw-bold text-dark mb-1" style="font-size: 10.5px; text-transform: uppercase;"><i class="fas fa-search text-primary me-1"></i> Gắn với Vụ án / Hồ sơ (Không bắt buộc)</label>
+          <div class="input-group" style="z-index: 1051;">
+            <input type="text" id="cal_search_case_input" class="form-control fw-bold" placeholder="Gõ số thụ lý hoặc tên đương sự để tìm..." autocomplete="off" oninput="window.liveSearchCaseForCal(this.value)">
+            <button class="btn btn-action-outline border-start-0" type="button" onclick="window.clearSelectedCaseForCal()" title="Hủy chọn án">
+              <i class="fas fa-times text-danger"></i>
+            </button>
+          </div>
+          
+          <div id="cal_search_case_results" class="case-search-dropdown" style="z-index: 99999;"></div>
+
+          <input type="hidden" id="cal_selected_idVuAn" value="GENERAL">
+          <div id="cal_selected_case_display" class="small fw-bold text-muted mt-2">
+            <i class="fas fa-tag me-1"></i> Đối tượng: <span class="text-primary" id="cal_selected_case_text">Việc chung / Hành chính (GENERAL)</span>
+          </div>
+        </div>
+
+        <!-- Thời gian & Nội dung -->
+        <div class="bg-white p-3 rounded-3 border" style="border-color: #cbd5e1 !important;">
+          <div class="row g-2 mb-3">
+            <div class="col-7">
+              <label class="small fw-bold text-dark mb-1" style="font-size: 10.5px; text-transform: uppercase;">Ngày làm việc *</label>
+              <input type="date" id="cal_modal_ngay" class="form-control fw-bold" required>
+            </div>
+            <div class="col-5">
+              <label class="small fw-bold text-dark mb-1" style="font-size: 10.5px; text-transform: uppercase;">Giờ bắt đầu *</label>
+              <input type="time" id="cal_modal_gio" class="form-control fw-bold" value="08:00" required>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="small fw-bold text-dark mb-1" style="font-size: 10.5px; text-transform: uppercase;">Nội dung công việc *</label>
+            <input type="text" id="cal_modal_noiDung" class="form-control fw-bold text-dark" list="dl_noidung_lamviec" placeholder="Bấm đúp chọn gợi ý hoặc tự gõ..." required autocomplete="off">
+          </div>
+
+          <div>
+            <label class="small fw-bold text-dark mb-1" style="font-size: 10.5px; text-transform: uppercase;">Địa điểm / Ghi chú</label>
+            <input type="text" id="cal_modal_ghiChu" class="form-control" list="dl_diadiem_lamviec" placeholder="Phòng làm việc, trụ sở Tòa án..." autocomplete="off">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer bg-white border-top justify-content-between p-3">
+        <button type="button" class="btn btn-action-outline btn-action-tool" data-bs-dismiss="modal">Hủy</button>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-action-tonal btn-action-tool" id="cal_btn_save_simple" onclick="window.submitLiveSearchCal(false)">
+            <i class="fas fa-save me-1"></i> <span id="cal_btn_save_text">Lưu lịch</span>
+          </button>
+          <button type="button" class="btn btn-action-primary btn-action-tool shadow-sm" id="cal_btn_save_draft" onclick="window.submitLiveSearchCal(true)">
+            <i class="fas fa-file-signature me-1"></i> Lưu & Soạn văn bản
+          </button>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<style>
-  .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-  .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-  .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
- 
-  .fc-toolbar-title { font-size: 14px !important; font-weight: 700 !important; color: #334155; text-transform: uppercase; }
-  .fc-button-primary { background-color: #1a73e8 !important; border-color: #1a73e8 !important; border-radius: 6px !important; font-size: 11px !important; padding: 4px 8px !important; }
-  .fc-view-harness { flex-grow: 1; min-height: 0; }
-  .fc-event { cursor: pointer; border-radius: 6px !important; padding: 3px 6px !important; font-size: 11px !important; font-weight: 600 !important; border-width: 1px !important; margin-bottom: 3px !important; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-  .fc-daygrid-day-number { color: #475569 !important; font-size: 12px !important; text-decoration: none !important; font-weight: 600; }
- 
-  .tooltip-inner { text-align: left; max-width: 280px; font-size: 11.5px; background-color: #1e293b; border-radius: 8px; padding: 8px 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-
-  .event-card { background: #fff; border-radius: 8px; padding: 10px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-  .event-card:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
- 
-  /* ĐÃ SỬA: Hiệu ứng nháy vàng (Req 5) */
-  .event-card.highlight-focus {
-      background-color: #fef08a !important; 
-      border-color: #eab308 !important;
-      box-shadow: 0 0 0 3px rgba(234, 179, 8, 0.3), 0 4px 10px rgba(0,0,0,0.1) !important;
-      transform: scale(1.02);
-  }
- 
-  .event-card.type-lamviec { border-left: 4px solid #3b82f6; }
-  .event-card.type-hoagiai { border-left: 4px solid #f59e0b; }
-  .event-card.type-xetxu { border-left: 4px solid #e11d48; }  
-  .event-card.type-reminder { border-left: 4px solid #8b5cf6; background-color: #fcfaff; }
-  .event-card.type-system { border-left: 4px solid #10b981; }  
- 
-  .event-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-  .event-time { font-size: 13px; font-weight: 700; color: #1e293b; }
-  .event-time .date { font-weight: 500; color: #64748b; font-size: 11px; margin-left: 4px;}
-  .event-actions { display: flex; gap: 6px; }
-  .event-content { font-size: 12.5px; color: #334155; white-space: pre-wrap; margin-bottom: 8px; line-height: 1.4; }
-  .event-content.text-danger { color: #be185d !important; font-weight: 600;}
-  .event-case-info { background-color: #f8fafc; border: 1px solid #f1f5f9; border-radius: 6px; padding: 8px; margin-top: 8px; }
-  .event-party-info { font-size: 11.5px; line-height: 1.4; color: #475569; margin-top: 6px; padding-top: 6px; border-top: 1px dashed #cbd5e1; }
-</style>
-
 <script>
-  var fmtVN = ts => { if(!ts) return "---"; var d = new Date(ts); return ("0" + d.getDate()).slice(-2) + "/" + ("0" + (d.getMonth() + 1)).slice(-2) + "/" + d.getFullYear(); };
-  var fmtTimeH = ts => { if(!ts) return "--h--"; var d = new Date(ts); return ("0" + d.getHours()).slice(-2) + "h" + ("0" + d.getMinutes()).slice(-2); };
-  var isSavingTask = false;
+  var calCurrentDate = new Date();
+  var calSelectedDate = new Date();
+  
+  // KHỞI TẠO NGAY TỪ RAM ĐỂ HIỂN THỊ TỨC THÌ 0MS KHI MỞ TAB
+  var calEventsList = (window.G_LichTrinh && Array.isArray(window.G_LichTrinh)) ? window.G_LichTrinh : [];
+  var calFilterCategory = 'ALL';
 
-  function getShortNameClient(fullName) {
-      if (!fullName) return "";
-      var name = fullName.toString().split(",")[0].trim();
-      var nameLow = name.toLowerCase();
-      if (nameLow.includes("công ty") || nameLow.includes("ngân hàng") || nameLow.includes("ubnd") || nameLow.includes("tnhh")) {
-          return name.split(" ").slice(0, 4).join(" ") + "...";
-      }
-      var lastName = name.split(" ").pop().toLowerCase();
-      return lastName.charAt(0).toUpperCase() + lastName.slice(1);
+  function getShortPartyName(fullName) {
+    if (!fullName) return "";
+    var clean = String(fullName).trim()
+      .replace(/^(ông|bà|anh|chị|tổ chức|công ty|ngân hàng|ubnd)\s+/i, '')
+      .replace(/\(.*?\)/g, '')
+      .trim();
+    var words = clean.split(/\s+/);
+    return words[words.length - 1];
   }
 
-  function loadSchedule() {
-    const timeline = document.getElementById('lich-timeline');
-    if(!timeline) return;
-    timeline.innerHTML = '<div class="text-center p-5 text-muted small"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Đang tải lịch trình...</div>';
+  function getShortActionVerb(title) {
+    if (!title) return "Lịch làm việc";
+    var t = title.toLowerCase();
+    if (t.includes("hòa giải")) return "Hòa giải";
+    if (t.includes("đối thoại")) return "Đối thoại";
+    if (t.includes("đo vẽ") || t.includes("thẩm định") || t.includes("định giá")) return "Đo vẽ/Thẩm định";
+    if (t.includes("triệu tập")) return "Triệu tập";
+    if (t.includes("lấy lời khai") || t.includes("bản tự khai")) return "Lấy lời khai";
+    if (t.includes("đối chất")) return "Đối chất";
+    if (t.includes("xét xử") || t.includes("phiên tòa")) return "Xét xử";
+    if (t.includes("tuyên án")) return "Tuyên án";
+    if (t.includes("ngày thứ 8") || t.includes("ngày thứ 16") || t.includes("nhắc") || t.includes("mốc 24h")) return "Mốc 24h";
+    if (t.includes("tiếp dân") || t.includes("tiếp công dân")) return "Tiếp dân";
+    
+    var clean = title.replace(/^\[.*?\]\s*/, '').trim();
+    var w = clean.split(/\s+/);
+    return w.slice(0, 2).join(" ");
+  }
 
-    google.script.run.withSuccessHandler(function(res) {
-      if (res.error) { timeline.innerHTML = `<div class="alert alert-danger small m-3">${res.error}</div>`; return; }
-     
-      let rawEvents = res.allEvents || [];
-      let finalEvents = [];
-      let todayTime = new Date().setHours(0,0,0,0);
-     
-      rawEvents.forEach(evt => {
-          if (evt.idVuAn !== "GENERAL" && typeof G_Cases !== 'undefined') {
-              let an = G_Cases.find(c => c.id === evt.idVuAn);
-              if (an) {
-                  evt.soTL = an.soTL;
-                  let actionWords = evt.noiDung.split("\n")[0].split(" ");
-                  let action = actionWords.length > 1 ? actionWords[0] + " " + actionWords[1] : actionWords[0];
-                  if(action.length < 3) action = "Làm việc";
-                  evt.calendarTitle = action + " vụ " + getShortNameClient(an.nguyenDon) + " - " + getShortNameClient(an.biDon) + " - " + an.quanHe;
-                  evt.dsInfo = (an.nguyenDon.split(",")[0] || "") + " - " + (an.biDon.split(",")[0] || "");
-                  evt.qhInfo = an.quanHe;
-              } else {
-                  evt.soTL = "Ngoài sổ";
-                  evt.calendarTitle = evt.noiDung.split("\n")[0];
-              }
-          } else {
-              evt.calendarTitle = evt.noiDung.split("\n")[0];
-          }
-          finalEvents.push(evt);
+  function formatCompactCalendarPill(ev) {
+    var action = getShortActionVerb(ev.title || ev.noiDung || "");
+
+    var an = null;
+    if (ev.idVuAn && ev.idVuAn !== "GENERAL" && window.G_An && Array.isArray(window.G_An)) {
+      an = window.G_An.find(function(c) { return c.id === ev.idVuAn; });
+    }
+
+    if (an) {
+      var ndShort = getShortPartyName(an.nguyenDon);
+      var bdShort = getShortPartyName(an.biDon);
+
+      if (ndShort && bdShort) {
+        return `${action} vụ ${ndShort} - ${bdShort}`;
+      } else if (ndShort) {
+        return `${action} vụ ${ndShort}`;
+      }
+    }
+
+    if (ev.duongSuText) {
+      var parts = ev.duongSuText.split(/(?:v\.|và|vs|-|,)/i);
+      if (parts.length >= 2) {
+        var p1 = getShortPartyName(parts[0]);
+        var p2 = getShortPartyName(parts[1]);
+        if (p1 && p2) return `${action} vụ ${p1} - ${p2}`;
+      } else if (parts.length === 1) {
+        var pSingle = getShortPartyName(parts[0]);
+        if (pSingle) return `${action} vụ ${pSingle}`;
+      }
+    }
+
+    var cleanT = (ev.title || "").replace(/^\[.*?\]\s*/, '').trim();
+    return cleanT.length > 24 ? cleanT.substring(0, 22) + "..." : cleanT;
+  }
+
+  window.loadSchedule = function() {
+    if (window.G_LichTrinh && Array.isArray(window.G_LichTrinh) && window.G_LichTrinh.length > 0) {
+      calEventsList = window.G_LichTrinh;
+    }
+    renderCalendarGrid();
+    renderTimelineView(calSelectedDate);
+
+    google.script.run
+      .withSuccessHandler(function(events) {
+        if (events && Array.isArray(events)) {
+          calEventsList = events;
+          window.G_LichTrinh = calEventsList;
+          renderCalendarGrid();
+          renderTimelineView(calSelectedDate);
+          if (typeof window.runFilterEngine === 'function') window.runFilterEngine();
+        }
+      })
+      .withFailureHandler(function(err) {
+        console.warn("Lỗi tải lịch công tác:", err);
+      })
+      .api_LayLichTrinhCongTac();
+  };
+
+  window.setCalFilter = function(type, btnEl) {
+    calFilterCategory = type;
+    document.querySelectorAll('.cal-capsule-btn').forEach(function(b) {
+      b.classList.remove('active');
+    });
+    if (btnEl) btnEl.classList.add('active');
+    renderCalendarGrid();
+    renderTimelineView(calSelectedDate);
+  };
+
+  window.calPrevMonth = function() { 
+    calCurrentDate.setMonth(calCurrentDate.getMonth() - 1); 
+    renderCalendarGrid(); 
+  };
+  window.calNextMonth = function() { 
+    calCurrentDate.setMonth(calCurrentDate.getMonth() + 1); 
+    renderCalendarGrid(); 
+  };
+  window.calGoToToday = function() {
+    calCurrentDate = new Date();
+    calSelectedDate = new Date();
+    renderCalendarGrid();
+    renderTimelineView(calSelectedDate);
+  };
+
+  function renderCalendarGrid() {
+    var gridEl = document.getElementById('cal-days-grid');
+    var titleEl = document.getElementById('cal-month-title');
+    if (!gridEl) return;
+
+    var year = calCurrentDate.getFullYear();
+    var month = calCurrentDate.getMonth();
+    if (titleEl) titleEl.innerText = `THÁNG ${month + 1} NĂM ${year}`;
+
+    var firstDayOfMonth = new Date(year, month, 1);
+    var lastDayOfMonth = new Date(year, month + 1, 0);
+    var startDayIndex = firstDayOfMonth.getDay();
+    var offset = (startDayIndex === 0) ? 6 : (startDayIndex - 1);
+
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    var todayTs = today.getTime();
+
+    var html = "";
+
+    // HÀM RENDER SỰ KIỆN: LÀM MỜ QUÁ KHỨ VÀ HIỂN THỊ ĐẬM NÉT CHO HIỆN TẠI / TƯƠNG LAI
+    function getEventsHtmlForDate(cYear, cMonth, cDay) {
+      var cellDateObj = new Date(cYear, cMonth, cDay);
+      cellDateObj.setHours(0, 0, 0, 0);
+      var isCellInPast = cellDateObj.getTime() < todayTs;
+
+      var dayEvents = calEventsList.filter(function(ev) {
+        if (!ev.start) return false;
+        var evDate = new Date(ev.start);
+        var isMatchDate = (evDate.getFullYear() === cYear && evDate.getMonth() === cMonth && evDate.getDate() === cDay);
+        if (!isMatchDate) return false;
+
+        var tLow = (ev.title || "").toLowerCase();
+        if (calFilterCategory === 'TRIAL') return tLow.includes("xét xử") || tLow.includes("tuyên án");
+        if (calFilterCategory === 'MEDIATE') return tLow.includes("hòa giải") || tLow.includes("đối thoại") || tLow.includes("chứng cứ");
+        if (calFilterCategory === 'REMIND') return tLow.includes("nhắc") || tLow.includes("hạn") || tLow.includes("ra qđ") || tLow.includes("ngày thứ 8") || tLow.includes("ngày thứ 16");
+        if (calFilterCategory === 'THAM_DINH') return tLow.includes("thẩm định") || tLow.includes("định giá") || tLow.includes("đo vẽ");
+        return true;
       });
 
-      if (typeof G_Cases !== 'undefined') {
-          let limitPast = todayTime - (30 * 86400000);
-          let limitFuture = todayTime + (90 * 86400000);
+      var evHtml = "";
+      dayEvents.slice(0, 3).forEach(function(ev) {
+        var tLow = (ev.title || "").toLowerCase();
+        var pillClass = "cal-event-pill";
 
-          G_Cases.forEach(an => {
-              if (an.trangThai !== "Đã giải quyết" && an.trangThai !== "Tạm đình chỉ" && an.rawHanDate) {
-                  if (an.rawHanDate >= limitPast && an.rawHanDate <= limitFuture) {
-                      let dNhac = new Date(an.rawHanDate);
-                      dNhac.setDate(dNhac.getDate() - 7);
-                      dNhac.setHours(8, 0, 0, 0);
-                     
-                      if(dNhac.getTime() >= limitPast) {
-                          finalEvents.push({
-                              idLich: "AUTO_" + an.id, idVuAn: an.id, soTL: an.soTL,
-                              ngayGioTS: dNhac.getTime(),
-                              noiDung: "Đến hạn vào " + an.hanGQ + ". Cần xem xét ra Quyết định hoặc Gia hạn.",
-                              source: "AUTO_REMINDER",
-                              calendarTitle: "Nhắc hạn vụ: " + getShortNameClient(an.nguyenDon) + " - " + getShortNameClient(an.biDon),
-                              dsInfo: (an.nguyenDon.split(",")[0] || "") + " - " + (an.biDon.split(",")[0] || ""),
-                              qhInfo: an.quanHe
-                          });
-                      }
-                  }
-              }
-          });
-      }
-
-      finalEvents.sort((a,b) => a.ngayGioTS - b.ngayGioTS);
-
-      timeline.innerHTML = finalEvents.length === 0
-        ? `<div class="text-center p-5 text-muted small"><i class="fas fa-calendar-check mb-3 d-block fa-2x opacity-50"></i>Chưa có lịch trình.</div>`
-        : finalEvents.map(l => createEventCard(l)).join('');
-       
-      document.getElementById('task-total-count').innerText = `${finalEvents.length} việc`;
-      renderCalendar(finalEvents);
-    }).api_LayLichTrinhCongTac();
-  }
-
-  function renderCalendar(allEvents) {
-    document.querySelectorAll('.tooltip').forEach(t => t.remove());
-
-    var calendarEl = document.getElementById('calendar');
-    calendarEl.innerHTML = "";
-    var calendar = new FullCalendar.Calendar(calendarEl, {
-      locale: 'vi', initialView: 'dayGridMonth', height: '100%', editable: true, selectable: true,
-      headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek' },
-      displayEventTime: false,
-     
-      events: allEvents.map(l => {
-        let bgColor = "#eff6ff"; let textColor = "#1d4ed8"; let borderColor = "#bfdbfe";
-        if (l.source === "SYSTEM") { bgColor = "#f0fdf4"; textColor = "#15803d"; borderColor = "#bbf7d0"; }
-        else if (l.source === "DRAFTING_RED") { bgColor = "#fff1f2"; textColor = "#be123c"; borderColor = "#fecdd3"; }
-        else if (l.source === "DRAFTING_ORANGE") { bgColor = "#fffbeb"; textColor = "#b45309"; borderColor = "#fde68a"; }
-        else if (l.source === "AUTO_REMINDER") { bgColor = "#faf5ff"; textColor = "#7e22ce"; borderColor = "#e9d5ff"; }
-
-        let timeStr = fmtTimeH(l.ngayGioTS);
-        let shortAction = l.calendarTitle ? l.calendarTitle.split(" vụ ")[0] : "Làm việc";
-        let displayTitle = timeStr + " - " + shortAction;
-        let tooltipHtml = `<div style='font-size:12px;'><b style='color:#60a5fa;'>${timeStr}</b><br/><b>${l.calendarTitle}</b><div style='margin: 4px 0; border-top: 1px solid #475569;'></div><i style='color:#cbd5e1;'>${l.noiDung}</i></div>`;
-
-        return {
-          id: l.idLich,
-          title: displayTitle,
-          start: new Date(l.ngayGioTS),
-          extendedProps: { ...l, tooltipHtml: tooltipHtml },
-          backgroundColor: bgColor, textColor: textColor, borderColor: borderColor
-        };
-      }),
-     
-      eventMouseEnter: function(info) {
-        var t = new bootstrap.Tooltip(info.el, { title: info.event.extendedProps.tooltipHtml, html: true, placement: 'top', container: 'body', trigger: 'manual' });
-        t.show();
-      },
-      eventMouseLeave: function(info) {
-        var t = bootstrap.Tooltip.getInstance(info.el);
-        if (t) t.dispose();
-      },
-      eventDragStart: function(info) {
-        var t = bootstrap.Tooltip.getInstance(info.el);
-        if (t) t.dispose();
-      },
-      eventClick: function(info) {
-        var t = bootstrap.Tooltip.getInstance(info.el);
-        if (t) t.dispose();
-        
-        // ĐÃ SỬA: Hiệu ứng Highlight vàng rực rỡ và cuộn đến thẻ (Req 5)
-        var cardEl = document.getElementById('lich-card-' + info.event.id);
-        if (cardEl) { 
-            // Xóa highlight cũ
-            document.querySelectorAll('.event-card').forEach(el => el.classList.remove('highlight-focus'));
-            
-            // Cuộn và thêm class nháy sáng
-            cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' }); 
-            cardEl.classList.add('highlight-focus');
-            
-            // Tự tắt sau 3 giây
-            setTimeout(() => { cardEl.classList.remove('highlight-focus'); }, 3000); 
+        // GÁN MÃ MÀU CHUẨN
+        if (tLow.includes("ngày thứ 8") || tLow.includes("ngày thứ 16") || (tLow.includes("ra qđ") && (tLow.includes("hòa giải") || tLow.includes("đối thoại")))) {
+          pillClass += " pill-milestone";
+        } else if (tLow.includes("xét xử") || tLow.includes("tuyên án")) {
+          pillClass += " pill-trial";
+        } else if (tLow.includes("nhắc") || tLow.includes("hạn") || tLow.includes("ra qđ")) {
+          pillClass += " pill-remind";
+        } else if (tLow.includes("hòa giải") || tLow.includes("đối thoại") || tLow.includes("chứng cứ")) {
+          pillClass += " pill-session";
+        } else if (tLow.includes("thẩm định") || tLow.includes("định giá") || tLow.includes("đo vẽ")) {
+          pillClass += " pill-thamdinh";
+        } else {
+          pillClass += " pill-future-general";
         }
-      },
-      dateClick: function(info) { openCalendarModal(info.dateStr, 'new'); },
-      eventDrop: function(info) {
-        if(info.event.extendedProps.source === "AUTO_REMINDER") { info.revert(); return; }
-       
-        AppUI.showToast("Đang cập nhật ngày...", "");
-        google.script.run.withSuccessHandler(res => {
-          if(res.success) { AppUI.showToast("Đã dời lịch!", "success"); loadSchedule(); }
-          else { AppUI.showToast("Lỗi dời lịch!", "error"); info.revert(); }
-        }).api_CapNhatNgayLich(info.event.id, info.event.start.toISOString());
+
+        // TỰ ĐỘNG LÀM MỜ NẾU LÀ NGÀY QUÁ KHỨ HOẶC ĐÃ HOÀN THÀNH
+        if (isCellInPast) {
+          pillClass += " pill-past";
+        }
+        if (ev.trangThai === 'Hoàn thành') {
+          pillClass += " pill-done";
+        }
+
+        var compactTitle = formatCompactCalendarPill(ev);
+        var taskIdVal = ev.idLich || ev.id || "";
+        evHtml += `<div class="${pillClass}" onclick="event.stopPropagation(); window.openEditCalendarEventModal('${taskIdVal}')" title="${ev.title || ''}"><i class="fas fa-clock me-1 opacity-75"></i>${compactTitle}</div>`;
+      });
+
+      if (dayEvents.length > 3) {
+        evHtml += `<div class="text-primary fw-bold ps-1" style="font-size:9.5px;">+${dayEvents.length - 3} việc nữa</div>`;
       }
-    });
-    calendar.render();
-  }
-
-  function createEventCard(l) {
-    let typeClass = "type-lamviec"; let icon = "fa-briefcase text-primary";
-    if (l.source === "SYSTEM") { typeClass = "type-system"; icon = "fa-calendar-check text-success"; }
-    else if (l.source === "DRAFTING_RED") { typeClass = "type-xetxu"; icon = "fa-gavel text-danger"; }
-    else if (l.source === "DRAFTING_ORANGE") { typeClass = "type-hoagiai"; icon = "fa-handshake text-warning"; }
-    else if (l.source === "AUTO_REMINDER") { typeClass = "type-reminder"; icon = "fa-bell text-purple"; }
-   
-    let timeString = `<i class="fas ${icon} me-2"></i><b>${fmtTimeH(l.ngayGioTS)}</b> <span class="date">| ${fmtVN(l.ngayGioTS)}</span>`;
-   
-    let buttons = l.source !== "AUTO_REMINDER" ? `
-         <button class="btn btn-sm btn-light border shadow-sm p-0 d-flex align-items-center justify-content-center" style="width:26px; height:26px; border-radius: 6px;" title="Chỉnh sửa" onclick="openCalendarModal('${l.idLich}', 'edit')"><i class="fas fa-edit text-info" style="font-size:11px;"></i></button>
-         <button class="btn btn-sm btn-light border shadow-sm p-0 d-flex align-items-center justify-content-center" style="width:26px; height:26px; border-radius: 6px;" title="Xóa" onclick="deleteTask('${l.idLich}')"><i class="fas fa-trash-alt text-danger" style="font-size:11px;"></i></button>
-       ` : '';
-    let btnOpen = (l.idVuAn && l.idVuAn !== 'GENERAL') ? `<button class="btn btn-sm btn-light border shadow-sm p-0 d-flex align-items-center justify-content-center" style="width:26px; height:26px; border-radius: 6px;" title="Mở vụ án" onclick="moChiTiet('${l.idVuAn}')"><i class="fas fa-folder-open text-primary" style="font-size:11px;"></i></button>` : '';
-
-    let caseInfoHtml = '';
-    if((l.idVuAn && l.idVuAn !== 'GENERAL') || l.dsInfo) {
-        let badgeTL = l.idVuAn !== 'GENERAL' ? `<span class="badge bg-white text-primary border shadow-sm" style="cursor:pointer;" onclick="moChiTiet('${l.idVuAn}')">${l.soTL}</span>` : '';
-        let dsHtml = l.dsInfo ? `<div class="event-party-info"><b>${l.dsInfo}</b><br><i>${l.qhInfo}</i></div>` : '';
-        caseInfoHtml = `<div class="event-case-info">${badgeTL}${dsHtml}</div>`;
+      return evHtml;
     }
 
-    let contentClass = l.source === 'AUTO_REMINDER' ? 'text-danger' : '';
-    let contentHtml = `<div class="event-content ${contentClass}">${l.noiDung}</div>`;
-   
-    return `
-      <div id="lich-card-${l.idLich}" class="event-card animate-fadeIn ${typeClass}">
-        <div class="event-header">
-          <div class="event-time">${timeString}</div>
-          <div class="event-actions">${btnOpen}${buttons}</div>
-        </div>
-        ${contentHtml}
-        ${caseInfoHtml}
-      </div>
-    `;
-  }
- 
-  window.openCalendarModal = function(idOrDate, mode) {
-    if (isSavingTask) return;
+    // 1. Các ngày của tháng trước (Mở khóa hoàn toàn: Cho phép chọn & nhấp đúp để lập lịch)
+    var prevMonthLastDay = new Date(year, month, 0).getDate();
+    for (var i = offset - 1; i >= 0; i--) {
+      var prevDateNum = prevMonthLastDay - i;
+      var pDate = new Date(year, month - 1, prevDateNum);
+      var pDateStr = `${pDate.getFullYear()}-${("0" + (pDate.getMonth() + 1)).slice(-2)}-${("0" + prevDateNum).slice(-2)}`;
+      var pIsSelected = (calSelectedDate.getFullYear() === pDate.getFullYear() && calSelectedDate.getMonth() === pDate.getMonth() && calSelectedDate.getDate() === prevDateNum);
+      var pCellClass = "cal-day-cell other-month" + (pIsSelected ? " is-selected" : "");
+      var pEvHtml = getEventsHtmlForDate(pDate.getFullYear(), pDate.getMonth(), prevDateNum);
+      
+      html += `
+        <div class="${pCellClass}" onclick="window.calSelectDay('${pDateStr}')" ondblclick="window.openCaseTaskModal('${pDateStr}')" title="Nhấp đúp để lập lịch cho ngày ${prevDateNum}/${pDate.getMonth() + 1}">
+          <div class="cal-cell-header"><span class="cal-date-num">${prevDateNum}</span></div>
+          <div class="flex-grow-1 overflow-hidden">${pEvHtml}</div>
+        </div>`;
+    }
 
-    var modal = document.getElementById('modalLich');
-    modal.setAttribute('data-mode', mode || 'new');
-   
-    if(!mode || mode === 'new') {
-        document.getElementById('task_vuAn_search').value = "";
-        document.getElementById('task-selected-case').style.display = 'none';
-        document.getElementById('task_vuAn').setAttribute('data-id', "GENERAL");
-        document.getElementById('task_ngay').value = idOrDate ? idOrDate.split('T')[0] : new Date().toISOString().split('T')[0];
-        document.getElementById('task_gio').value = "08:00";
-        document.getElementById('task_noidung').value = "";
-        document.querySelector('#modalLich .modal-title').innerHTML = '<i class="fas fa-calendar-plus me-2"></i>THÊM LỊCH MỚI';
+    // 2. Các ngày của tháng hiện tại
+    for (var d = 1; d <= lastDayOfMonth.getDate(); d++) {
+      var isToday = (today.getFullYear() === year && today.getMonth() === month && today.getDate() === d);
+      var isSelected = (calSelectedDate.getFullYear() === year && calSelectedDate.getMonth() === month && calSelectedDate.getDate() === d);
+
+      var cellClass = "cal-day-cell";
+      if (isToday) cellClass += " is-today";
+      if (isSelected) cellClass += " is-selected";
+
+      var eventsHtml = getEventsHtmlForDate(year, month, d);
+      var dateParam = `${year}-${("0" + (month + 1)).slice(-2)}-${("0" + d).slice(-2)}`;
+      html += `
+        <div class="${cellClass}" onclick="window.calSelectDay('${dateParam}')" ondblclick="window.openCaseTaskModal('${dateParam}')" title="Nhấp đúp để lập lịch cho ngày ${d}/${month + 1}">
+          <div class="cal-cell-header"><span class="cal-date-num">${d}</span></div>
+          <div class="flex-grow-1 overflow-hidden">${eventsHtml}</div>
+        </div>`;
+    }
+
+    // 3. Các ngày của tháng sau (Mở khóa hoàn toàn: Cho phép chọn & nhấp đúp để lập lịch)
+    var totalCells = offset + lastDayOfMonth.getDate();
+    var nextMonthDays = (totalCells % 7 === 0) ? 0 : (7 - (totalCells % 7));
+    for (var n = 1; n <= nextMonthDays; n++) {
+      var nDate = new Date(year, month + 1, n);
+      var nDateStr = `${nDate.getFullYear()}-${("0" + (nDate.getMonth() + 1)).slice(-2)}-${("0" + n).slice(-2)}`;
+      var nIsSelected = (calSelectedDate.getFullYear() === nDate.getFullYear() && calSelectedDate.getMonth() === nDate.getMonth() && calSelectedDate.getDate() === n);
+      var nCellClass = "cal-day-cell other-month" + (nIsSelected ? " is-selected" : "");
+      var nEvHtml = getEventsHtmlForDate(nDate.getFullYear(), nDate.getMonth(), n);
+      
+      html += `
+        <div class="${nCellClass}" onclick="window.calSelectDay('${nDateStr}')" ondblclick="window.openCaseTaskModal('${nDateStr}')" title="Nhấp đúp để lập lịch cho ngày ${n}/${nDate.getMonth() + 1}">
+          <div class="cal-cell-header"><span class="cal-date-num">${n}</span></div>
+          <div class="flex-grow-1 overflow-hidden">${nEvHtml}</div>
+        </div>`;
+    }
+
+    gridEl.innerHTML = html;
+  }
+
+  window.calSelectDay = function(dateISO) {
+    if (!dateISO) return;
+    var p = dateISO.split("-");
+    if (p.length === 3) {
+      calSelectedDate = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
     } else {
-        modal.setAttribute('data-id', idOrDate);
-        AppUI.showToast("Đang tải dữ liệu...", ""); 
-        google.script.run.withSuccessHandler(res => {
-            AppUI.hideToast(); 
-            if(res.success) {
-                document.getElementById('task_vuAn').setAttribute('data-id', res.idVuAn);
-                if(res.idVuAn !== 'GENERAL') {
-                    let an = G_Cases ? G_Cases.find(c => c.id === res.idVuAn) : null;
-                    let soHienThi = an ? an.soTL : res.idVuAn;
-                    document.getElementById('task-selected-case').style.display = 'block';
-                    document.getElementById('task-selected-case').innerHTML = `<i class="fas fa-check-circle me-1"></i>Đã chọn: ${soHienThi}`;
-                } else {
-                    document.getElementById('task-selected-case').style.display = 'none';
-                }
-                document.getElementById('task_vuAn_search').value = "";
-                document.getElementById('task_ngay').value = res.ngay;
-                document.getElementById('task_gio').value = res.gio;
-                document.getElementById('task_noidung').value = res.noiDung;
-                document.querySelector('#modalLich .modal-title').innerHTML = '<i class="fas fa-edit me-2"></i>CẬP NHẬT LỊCH';
-            } else {
-                AppUI.showToast("Lỗi: " + (res.error || "Không thể tải chi tiết lịch."), "error");
-            }
-        }).api_LayChiTietLich(idOrDate);
+      calSelectedDate = new Date(dateISO);
     }
-   
-    var modalInst = bootstrap.Modal.getInstance(modal);
-    if (!modalInst) modalInst = new bootstrap.Modal(modal);
-    modalInst.show();
+    renderCalendarGrid();
+    renderTimelineView(calSelectedDate);
   };
 
-  window.saveTask = function() {
-    if (isSavingTask) return;
-   
-    var modalEl = document.getElementById('modalLich');
-    var mode = modalEl.getAttribute('data-mode') || 'new';
-    var data = {
-      idVuAn: document.getElementById('task_vuAn').getAttribute('data-id'),
-      ngay: document.getElementById('task_ngay').value,
-      gio: document.getElementById('task_gio').value,
-      noiDung: document.getElementById('task_noidung').value.trim(),
-      actionType: "Làm việc"
-    };
-   
-    if (!data.ngay || !data.noiDung) {
-       AppUI.alert("Thiếu thông tin", "Vui lòng nhập đủ thông tin Ngày và Nội dung công việc!"); 
-       return;
+  function renderTimelineView(targetDate) {
+    var listEl = document.getElementById('timeline-task-list');
+    var badgeEl = document.getElementById('timeline-count-badge');
+    var titleEl = document.getElementById('timeline-header-title');
+    if (!listEl) return;
+
+    var filterD = targetDate || new Date(); 
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    var isToday = (filterD.getFullYear() === today.getFullYear() && filterD.getMonth() === today.getMonth() && filterD.getDate() === today.getDate());
+
+    if (titleEl) {
+      titleEl.innerText = isToday ? "LỊCH HÔM NAY" : `LỊCH NGÀY ${("0" + filterD.getDate()).slice(-2)}/${("0" + (filterD.getMonth() + 1)).slice(-2)}/${filterD.getFullYear()}`;
     }
-   
-    isSavingTask = true;
-    var closeBtn = modalEl.querySelector('[data-bs-dismiss="modal"]');
-    if (closeBtn) closeBtn.click();
-   
-    AppUI.showToast("Đang lưu lịch...", "");
 
-    setTimeout(function() {
-        var runner = google.script.run
-          .withSuccessHandler(res => {
-            isSavingTask = false;
-            if (res.success) {
-              AppUI.showToast("Đã lưu thành công!", "success");
-              loadSchedule();
-            } else {
-              AppUI.showToast("Lỗi: " + res.error, "error");
-            }
-          })
-          .withFailureHandler(err => {
-             isSavingTask = false;
-             AppUI.showToast("Lỗi mạng: " + err.message, "error");
-          });
-       
-        if(mode === 'new') runner.api_LuuLichMoi(data);
-        else { data.idLich = modalEl.getAttribute('data-id'); runner.api_CapNhatLich(data); }
-    }, 50);
-  };
-
-  function syncWithGoogleCalendar() {
-    AppUI.showToast("Đang đồng bộ với Google Calendar...", "");
-    google.script.run.withSuccessHandler(res => {
-      if (res.success) { AppUI.showToast("Đồng bộ GCAL hoàn tất!", "success"); loadSchedule(); }
-      else AppUI.showToast("Lỗi đồng bộ!", "error");
-    }).api_DongBoLichCaNhan();
-  }
-
-  function deleteTask(idLich) {
-    AppUI.confirm("Xác nhận xóa", "Bạn có chắc chắn muốn xóa lịch trình này?", 'danger', function() { 
-      let card = document.getElementById('lich-card-' + idLich);
-      if(card) { card.style.opacity = '0.5'; card.style.pointerEvents = 'none'; }
-      AppUI.showToast("Đang xóa lịch...", "");
-
-      google.script.run.withSuccessHandler(res => {
-        if (res.success) { AppUI.showToast("Đã xóa!", "success"); loadSchedule(); }
-        else { AppUI.showToast("Lỗi xóa!", "error"); if(card) card.style.opacity = '1'; }
-      }).api_XoaLichCongTac(idLich);
+    var dayTasks = calEventsList.filter(function(ev) {
+      if (!ev.start) return false;
+      var evDate = new Date(ev.start);
+      return (evDate.getFullYear() === filterD.getFullYear() && evDate.getMonth() === filterD.getMonth() && evDate.getDate() === filterD.getDate());
     });
+
+    if (badgeEl) badgeEl.innerText = `${dayTasks.length} việc`;
+
+    if (dayTasks.length === 0) {
+      listEl.innerHTML = `
+        <div class="text-center p-4 bg-white rounded-3 border text-muted" style="border-color: #cbd5e1 !important;">
+          <i class="far fa-calendar-check fa-2x mb-2 d-block opacity-50 text-success"></i>
+          <div class="fw-bold text-dark small">${isToday ? "Hôm nay không có lịch công tác" : "Không có lịch trong ngày này"}</div>
+          <div class="small mt-1 text-muted" style="font-size: 11px;">Nhấp đúp chuột vào ô ngày trên lịch để lên lịch mới.</div>
+        </div>`;
+      return;
+    }
+
+    var html = "";
+    dayTasks.forEach(function(task) {
+      var dObj = new Date(task.start);
+      var timeStr = ("0" + dObj.getHours()).slice(-2) + ":" + ("0" + dObj.getMinutes()).slice(-2);
+      var isDone = (task.trangThai === 'Hoàn thành');
+      var isPast = dObj.getTime() < today.getTime();
+      var taskIdVal = task.idLich || task.id || "";
+
+      var cardClass = "agenda-task-card";
+      if (isToday) cardClass += " is-today-card";
+      if (isDone) cardClass += " is-completed";
+      else if (isPast) cardClass += " is-past-card";
+
+      var isMilestone = (task.title || "").includes("ngày thứ 8") || (task.title || "").includes("ngày thứ 16") || (task.title || "").includes("Mốc 24h");
+
+      var caseDetailsHtml = "";
+      if (task.idVuAn && task.idVuAn !== "GENERAL") {
+        caseDetailsHtml = `
+          <div class="mb-2 pb-2 border-bottom">
+            <div class="d-flex align-items-center gap-1 mb-1">
+              <span class="badge bg-primary text-white fw-bold">${task.soTL || 'Hồ sơ'}</span>
+              <span class="text-muted text-truncate small">${task.quanHe || ''}</span>
+            </div>
+            ${task.duongSuText ? `<div class="small text-dark fw-bold" style="font-size:12px;"><i class="fas fa-users text-secondary me-1"></i>${task.duongSuText}</div>` : ''}
+          </div>`;
+      }
+
+      html += `
+        <div class="${cardClass}">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="small fw-bold text-primary"><i class="far fa-clock me-1"></i>${timeStr}</span>
+            <div class="d-flex align-items-center gap-2">
+              ${isMilestone ? '<span class="badge bg-warning text-dark border" style="font-size:10px;"><i class="fas fa-bell me-1"></i>MỐC 24H</span>' : ''}
+              <div class="form-check m-0">
+                <input class="form-check-input" type="checkbox" ${isDone ? 'checked' : ''} onchange="window.toggleTaskDone('${taskIdVal}', this.checked)" title="Đánh dấu hoàn thành">
+              </div>
+            </div>
+          </div>
+          
+          ${caseDetailsHtml}
+          <div class="small fw-bold text-dark mb-1 ${isDone ? 'text-decoration-line-through text-muted' : ''}">${task.title}</div>
+          ${task.ghiChu ? `<div class="small text-muted mb-2 fst-italic"><i class="fas fa-map-marker-alt me-1 text-danger"></i>${task.ghiChu}</div>` : ''}
+
+          <div class="d-flex justify-content-end gap-1 pt-2 border-top mt-2">
+            ${task.idVuAn && task.idVuAn !== 'GENERAL' ? `
+              <button class="btn btn-sm btn-action-tonal py-0 px-2 fw-bold" style="font-size: 11px; height: 26px; border-radius: 6px;" onclick="window.openDraftingModal('${task.idVuAn}', { trieuTapDate: '${task.start.split('T')[0]}', trieuTapTime: '${timeStr}', noiDungThem: '${task.title.replace(/'/g, "\\'")}' })" title="Soạn văn bản tố tụng theo mốc này">
+                <i class="fas fa-file-signature me-1"></i> Soạn văn bản
+              </button>
+              <button class="btn btn-sm btn-action-outline py-0 px-2 text-primary" style="font-size: 11px; height: 26px; border-radius: 6px;" onclick="window.moChiTiet('${task.idVuAn}')" title="Mở hồ sơ vụ án">
+                <i class="fas fa-folder-open"></i>
+              </button>
+            ` : ''}
+
+            <button class="btn btn-sm btn-action-outline py-0 px-2 text-warning fw-bold" style="font-size: 11px; height: 26px; border-radius: 6px;" onclick="window.openEditCalendarEventModal('${taskIdVal}')" title="Sửa lịch này">
+              <i class="fas fa-edit me-1"></i> Sửa
+            </button>
+
+            <button class="btn btn-sm btn-action-outline py-0 px-2 text-danger" style="font-size: 11px; height: 26px; border-radius: 6px;" onclick="window.deleteCalendarEvent('${taskIdVal}')" title="Xóa lịch">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          </div>
+        </div>`;
+    });
+
+    listEl.innerHTML = html;
   }
+
+  window.openCaseTaskModal = function(targetDateStr) {
+    document.getElementById('cal_editing_idLich').value = "";
+    
+    var selDate = targetDateStr;
+    if (!selDate) {
+      var d = calSelectedDate || new Date();
+      selDate = `${d.getFullYear()}-${("0" + (d.getMonth() + 1)).slice(-2)}-${("0" + d.getDate()).slice(-2)}`;
+    }
+    
+    document.getElementById('cal_modal_ngay').value = selDate;
+    document.getElementById('cal_modal_gio').value = "08:00";
+    document.getElementById('cal_modal_noiDung').value = "";
+    document.getElementById('cal_modal_ghiChu').value = "";
+    window.clearSelectedCaseForCal();
+
+    document.getElementById('cal_modal_header_icon').className = "fas fa-calendar-plus text-primary me-2";
+    document.getElementById('cal_modal_header_text').innerText = "LẬP LỊCH CÔNG TÁC MỚI";
+    document.getElementById('cal_btn_save_text').innerText = "Lưu lịch";
+    document.getElementById('cal_btn_save_draft').style.display = "inline-flex";
+
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalLiveSearchLich')).show();
+  };
+
+  window.openEditCalendarEventModal = function(idLich) {
+    if (!idLich) return;
+
+    var ev = calEventsList.find(function(x) { 
+      return x.idLich === idLich || x.id === idLich; 
+    });
+    if (!ev) return;
+
+    document.getElementById('cal_editing_idLich').value = idLich;
+
+    if (ev.start) {
+      var dStr = ev.start.includes("T") ? ev.start.split("T")[0] : ev.start.split(" ")[0];
+      var tStr = ev.start.includes("T") ? ev.start.split("T")[1].substring(0, 5) : "08:00";
+      document.getElementById('cal_modal_ngay').value = dStr;
+      document.getElementById('cal_modal_gio').value = tStr;
+    }
+
+    document.getElementById('cal_modal_noiDung').value = ev.title || ev.noiDung || "";
+    document.getElementById('cal_modal_ghiChu').value = ev.ghiChu || "";
+
+    if (ev.idVuAn && ev.idVuAn !== "GENERAL") {
+      window.selectCaseForCal(ev.idVuAn, ev.soTL || "Hồ sơ", ev.quanHe || "");
+    } else {
+      window.clearSelectedCaseForCal();
+    }
+
+    document.getElementById('cal_modal_header_icon').className = "fas fa-edit text-warning me-2";
+    document.getElementById('cal_modal_header_text').innerText = "CẬP NHẬT LỊCH CÔNG TÁC";
+    document.getElementById('cal_btn_save_text').innerText = "Cập nhật lịch";
+    document.getElementById('cal_btn_save_draft').style.display = "none";
+
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalLiveSearchLich')).show();
+  };
+
+  window.liveSearchCaseForCal = function(query) {
+    var dropdown = document.getElementById('cal_search_case_results');
+    var q = (query || "").trim().toLowerCase();
+    if (!q) {
+      dropdown.style.display = 'none';
+      return;
+    }
+
+    var cases = window.G_An || window.G_Cases || [];
+    var matched = cases.filter(function(c) {
+      var soTL = (c.soTL || "").toLowerCase();
+      var quanHe = (c.quanHe || "").toLowerCase();
+      var parties = (c.duongSuText || c.partiesSummary || (c.nguyenDon + " " + c.biDon) || "").toLowerCase();
+      return soTL.includes(q) || quanHe.includes(q) || parties.includes(q);
+    }).slice(0, 10);
+
+    if (matched.length === 0) {
+      dropdown.innerHTML = '<div class="p-3 text-muted text-center small">Không tìm thấy vụ án phù hợp</div>';
+    } else {
+      var html = "";
+      matched.forEach(function(c) {
+        var pSummary = c.duongSuText || c.partiesSummary || (c.nguyenDon ? c.nguyenDon + " - " + c.biDon : "");
+        html += `
+          <div class="case-search-item" onclick="window.selectCaseForCal('${c.id}', '${(c.soTL || '').replace(/'/g, "\\'")}', '${(c.quanHe || '').replace(/'/g, "\\'")}')">
+            <div class="fw-bold text-primary">${c.soTL || 'Hồ sơ'} - <span class="text-dark">${c.quanHe || ''}</span></div>
+            <div class="text-muted small">${pSummary}</div>
+          </div>`;
+      });
+      dropdown.innerHTML = html;
+    }
+    dropdown.style.display = 'block';
+  };
+
+  window.selectCaseForCal = function(idVuAn, soTL, quanHe) {
+    document.getElementById('cal_selected_idVuAn').value = idVuAn;
+    document.getElementById('cal_selected_case_text').innerHTML = `<b>${soTL}</b> - ${quanHe}`;
+    document.getElementById('cal_search_case_input').value = `${soTL} - ${quanHe}`;
+    document.getElementById('cal_search_case_results').style.display = 'none';
+  };
+
+  window.clearSelectedCaseForCal = function() {
+    document.getElementById('cal_selected_idVuAn').value = "GENERAL";
+    document.getElementById('cal_selected_case_text').innerText = "Việc chung / Hành chính (GENERAL)";
+    document.getElementById('cal_search_case_input').value = "";
+    document.getElementById('cal_search_case_results').style.display = 'none';
+  };
+
+  window.submitLiveSearchCal = function(isDraftNext) {
+    var editingIdLich = document.getElementById('cal_editing_idLich').value;
+    var idVuAn = document.getElementById('cal_selected_idVuAn').value || "GENERAL";
+    var ngay = document.getElementById('cal_modal_ngay').value;
+    var gio = document.getElementById('cal_modal_gio').value;
+    var noiDung = document.getElementById('cal_modal_noiDung').value.trim();
+    var ghiChu = document.getElementById('cal_modal_ghiChu').value.trim();
+
+    if (!ngay || !noiDung) {
+      AppUI.showToast("Vui lòng điền ngày và nội dung công việc", "error");
+      return;
+    }
+
+    var payload = {
+      idLich: editingIdLich || "",
+      idVuAn: idVuAn,
+      ngay: ngay,
+      gio: gio,
+      noiDung: noiDung,
+      ghiChu: ghiChu
+    };
+
+    var modalInst = bootstrap.Modal.getInstance(document.getElementById('modalLiveSearchLich'));
+    if (modalInst) modalInst.hide();
+    
+    AppUI.showToast(editingIdLich ? "Đang cập nhật lịch..." : "Đang lưu lịch...", "");
+
+    var handleSuccess = function(res) {
+      if (res && res.success) {
+        AppUI.showToast(editingIdLich ? "Đã cập nhật lịch thành công!" : "Đã lưu lịch công tác thành công!", "success");
+        window.loadSchedule();
+
+        if (isDraftNext && idVuAn !== 'GENERAL') {
+          window.openDraftingModal(idVuAn, {
+            trieuTapDate: ngay,
+            trieuTapTime: gio,
+            noiDungThem: noiDung
+          });
+        }
+      } else {
+        AppUI.showToast("Lỗi: " + (res ? res.error : "Không thể lưu"), "error");
+      }
+    };
+
+    if (editingIdLich) {
+      google.script.run
+        .withSuccessHandler(handleSuccess)
+        .withFailureHandler(function(err) { AppUI.showToast("Lỗi: " + err.message, "error"); })
+        .api_CapNhatLich(payload);
+    } else {
+      google.script.run
+        .withSuccessHandler(handleSuccess)
+        .withFailureHandler(function(err) { AppUI.showToast("Lỗi: " + err.message, "error"); })
+        .api_LuuLichMoi(payload);
+    }
+  };
+
+  window.toggleTaskDone = function(idLich, isChecked) {
+    var newStatus = isChecked ? "Hoàn thành" : "Chưa thực hiện";
+    google.script.run
+      .withSuccessHandler(function() {
+        var item = calEventsList.find(function(x) { return (x.idLich === idLich || x.id === idLich); });
+        if (item) item.trangThai = newStatus;
+        renderCalendarGrid();
+        renderTimelineView(calSelectedDate);
+        if (typeof window.runFilterEngine === 'function') window.runFilterEngine();
+      })
+      .api_CapNhatTrangThaiLich(idLich, newStatus);
+  };
+
+  window.syncGCal = function() {
+    AppUI.showToast("Đang đồng bộ Google Calendar...", "");
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (res && res.success) {
+          AppUI.showToast(`Đã đồng bộ ${res.synced || 0} lịch sang Google Calendar!`, "success");
+          window.loadSchedule();
+        } else {
+          AppUI.showToast("Đồng bộ hoàn tất!", "success");
+        }
+      })
+      .api_DongBoLichCaNhan();
+  };
+
+  window.deleteCalendarEvent = function(idLich) {
+    if (!idLich) return;
+    AppUI.confirm("Xóa lịch công tác", "Bạn có chắc muốn xóa lịch làm việc này?", "danger", function() {
+      calEventsList = calEventsList.filter(function(x) { return x.idLich !== idLich && x.id !== idLich; });
+      window.G_LichTrinh = calEventsList;
+      renderCalendarGrid();
+      renderTimelineView(calSelectedDate);
+      AppUI.showToast("Đã xóa lịch làm việc!", "success");
+
+      google.script.run
+        .withFailureHandler(function(err) {
+          AppUI.showToast("Lỗi đồng bộ máy chủ: " + err.message, "error");
+          window.loadSchedule();
+        })
+        .api_XoaLich(idLich);
+    });
+  };
+
+  // TỰ ĐỘNG KHỞI TẠO LƯỚI LỊCH
+  renderCalendarGrid();
+  renderTimelineView(calSelectedDate);
 </script>

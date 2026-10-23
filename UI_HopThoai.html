@@ -1,441 +1,882 @@
 <!--
-  HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V7.5.8 - GROQ AI EDITION
-  FILE: UI_HopThoai.html (ĐÃ BỎ CÔNG TẮC TẢI FILE, THÊM NÚT MỞ TAKV2)
+  =========================================================================
+  HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.0 - TRUNG TÂM HỘP THOẠI & MODAL TỐ TỤNG
+  TỆP: UI_HopThoai.html - DANH MỤC 20 MASTER MODALS & 6 BỘ DATALIST TĨNH
+  - THIẾT KẾ: HAIRLINE 1PX CRISP BORDERS & MODERN EXECUTIVE WARM SLATE
+  - CHUẨN HÓA WIZARD AI TẠO MẪU VỚI DANH SÁCH CHỌN MẪU TRỰC QUAN
+  - TÍCH HỢP KHỐI BIÊN LAI ÁN PHÍ VÀO FORM THỤ LÝ VỤ ÁN MỚI
+  =========================================================================
 -->
 
 <style>
-  .modal-content { border-radius: 12px; border: none; overflow: hidden; }
-  .modal-header { padding: 15px 20px; border-bottom: 1px solid rgba(0,0,0,0.05); }
-  .modal-footer { padding: 15px 20px; border-top: 1px solid rgba(0,0,0,0.05); background: #f8fafc; }
-  
-  .btn-scan-ai-compact { background: #e8f0fe; color: #1a73e8; border: 1px dashed #1a73e8; border-radius: 8px; padding: 10px; width: 100%; font-weight: bold; transition: 0.2s; cursor: pointer; }
-  .btn-scan-ai-compact:hover { background: #d2e3fc; transform: scale(1.01); }
-  
-  .party-section { background: #fff; border-radius: 8px; border: 1px solid #dee2e6; border-top-width: 3px !important; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-  .section-nd { border-top-color: #1a73e8 !important; }
-  .section-bd { border-top-color: #d93025 !important; }
-  .party-row-v3 { margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dashed #e2e8f0; position: relative; }
-  .party-row-v3:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  :root {
+    --m-bg: #f8fafc;
+    --m-card-bg: #ffffff;
+    --m-border: #e2e8f0;
+    --m-primary: #2563eb;
+    --m-primary-hover: #1d4ed8;
+    --m-primary-light: #eff6ff;
+    --m-primary-border: #bfdbfe;
+    --m-text-title: #0f172a;
+    --m-text-body: #334155;
+    --m-text-muted: #64748b;
+    --m-shadow-card: 0 1px 3px rgba(15, 23, 42, 0.04);
+    --m-shadow-modal: 0 20px 40px -15px rgba(15, 23, 42, 0.15), 0 0 0 1px rgba(15, 23, 42, 0.05);
+  }
 
-  .draft-step-card { background: #fff; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; height: 100%; }
-  .draft-step-header { font-size: 11px; font-weight: 800; color: #1a73e8; text-transform: uppercase; margin-bottom: 12px; border-bottom: 1px solid #eef2f7; padding-bottom: 8px; }
+  .modal-content { 
+    border-radius: 14px; 
+    border: 1px solid #cbd5e1;
+    box-shadow: var(--m-shadow-modal);
+    background-color: var(--m-bg);
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
   
-  .progress-container { background: #e9ecef; border-radius: 10px; height: 10px; width: 100%; overflow: hidden; }
-  .progress-bar-fill { background: linear-gradient(90deg, #10b981, #34d399); height: 100%; width: 0%; transition: width 0.3s ease; }
+  .modal-header { 
+    padding: 13px 18px; 
+    border-bottom: 1px solid var(--m-border); 
+    background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  .modal-title { 
+    font-size: 13.5px !important; 
+    font-weight: 800; 
+    color: var(--m-text-title);
+    letter-spacing: 0.3px;
+    display: flex;
+    align-items: center;
+    margin: 0;
+    text-transform: uppercase;
+  }
+  .modal-title .modal-icon-badge {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: var(--m-primary-light);
+    color: var(--m-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 8px;
+    font-size: 12.5px;
+    border: 1px solid var(--m-primary-border);
+  }
+  
+  .modal-body { 
+    font-size: 13px; 
+    padding: 14px 18px !important; 
+    color: var(--m-text-body);
+  }
+  
+  .modal-footer { 
+    padding: 11px 18px; 
+    border-top: 1px solid var(--m-border); 
+    background: #ffffff; 
+    display: flex;
+    align-items: center;
+  }
 
-  .party-row-main { border: 1px solid #dee2e6; border-left: 4px solid #1a73e8; border-radius: 8px; padding: 15px; background: #fff; position: relative; }
-  .rep-row-item { background: #fffdf2; border: 1px solid #ffeeba; border-left: 4px solid #ffc107; border-radius: 6px; padding: 12px; margin-top: 10px; position: relative; }
+  .modal-inner-card {
+    background: var(--m-card-bg);
+    border-radius: 10px;
+    border: 1px solid var(--m-border);
+    box-shadow: var(--m-shadow-card);
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+
+  .card-header-bar {
+    background: #f8fafc;
+    border-bottom: 1px solid var(--m-border);
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .card-body-content {
+    padding: 12px;
+  }
+
+  .modal .small-label { 
+    font-size: 10.5px; 
+    font-weight: 800; 
+    color: var(--m-text-muted); 
+    text-transform: uppercase; 
+    margin-bottom: 4px; 
+    display: block; 
+    letter-spacing: 0.3px;
+  }
+
+  .modal .form-control, .modal .form-select { 
+    font-size: 12.5px; 
+    padding: 0.4rem 0.7rem; 
+    border-radius: 7px; 
+    border: 1px solid #cbd5e1; 
+    color: var(--m-text-title);
+    background-color: #ffffff;
+    font-weight: 600;
+    transition: all 0.15s ease;
+  }
+  .modal .form-control-sm, .modal .form-select-sm {
+    font-size: 12px;
+    padding: 0.32rem 0.6rem;
+    border-radius: 6px;
+  }
+  .modal .form-control:focus, .modal .form-select:focus {
+    background-color: #ffffff !important;
+    border-color: var(--m-primary) !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+    outline: none;
+  }
+
+  .search-pill {
+    border-radius: 20px !important;
+    padding-left: 34px !important;
+    background-color: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+  }
+  .search-pill:focus {
+    background-color: #ffffff !important;
+    border-color: var(--m-primary) !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+  }
+
+  .badge-step {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    background: var(--m-primary-light);
+    color: var(--m-primary);
+    font-size: 10.5px;
+    font-weight: 800;
+    margin-right: 6px;
+    border: 1px solid var(--m-primary-border);
+  }
+  .step-header {
+    font-size: 11.5px;
+    font-weight: 800;
+    color: var(--m-text-title);
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    margin: 0;
+  }
+
+  .btn-scan-ai-compact { 
+    background: #eff6ff; 
+    color: var(--m-primary); 
+    border: 1px dashed #bfdbfe; 
+    border-radius: 7px; 
+    padding: 7px 11px; 
+    width: 100%; 
+    font-weight: 700; 
+    font-size: 11.5px; 
+    transition: all 0.15s ease; 
+    cursor: pointer; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .btn-scan-ai-compact:hover { background: #dbeafe; border-color: var(--m-primary); }
+
+  .tpl-item-row {
+    border: none !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    transition: background 0.12s;
+    border-radius: 6px;
+    padding: 5px 8px !important;
+  }
+  .tpl-item-row:hover { background-color: #f1f5f9 !important; }
+
+  /* Style tùy biến cho danh sách Wizard AI Tạo mẫu */
+  .ai-tpl-select-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 8px 12px;
+    background: #ffffff;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .ai-tpl-select-card:hover {
+    background-color: #f8fafc;
+    border-color: #cbd5e1;
+  }
+  .ai-tpl-select-card.selected {
+    background-color: #eff6ff !important;
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+  }
 </style>
 
 <!-- ======================================================= -->
-<!-- 1. MODAL THỤ LÝ VỤ ÁN MỚI -->
+<!-- 1. MODAL THỤ LÝ VỤ ÁN MỚI (TÍCH HỢP BIÊN LAI ÁN PHÍ) -->
 <!-- ======================================================= -->
 <div class="modal fade" id="modalThemMoi" tabindex="-1" data-bs-backdrop="static">
   <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-    <div class="modal-content shadow-lg">
-      <div class="modal-header bg-primary text-white">
-        <h6 class="modal-title fw-bold"><i class="fas fa-folder-plus me-2"></i>THỤ LÝ VỤ ÁN MỚI</h6>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">
+          <span class="modal-icon-badge"><i class="fas fa-folder-plus"></i></span>
+          THỤ LÝ VỤ ÁN MỚI
+        </h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body p-4 bg-light">
+      <div class="modal-body">
         <form id="formNewCase">
-          <div class="mb-3">
-            <button type="button" class="btn-scan-ai-compact shadow-sm" onclick="document.getElementById('scan-doc-input').click()">
-              <i class="fas fa-brain me-2"></i>QUÉT THÔNG TIN TỪ TÀI LIỆU BẰNG GROQ AI (WORD/PDF)
-            </button>
-            <input type="file" id="scan-doc-input" class="d-none" accept=".doc,.docx,.pdf" onchange="window.scanDocumentForInfo(this)">
-          </div>
-
-          <div class="bg-white p-3 mb-4 shadow-sm" style="border-radius: 8px; border-left: 4px solid #1a73e8;">
-            <div class="row g-3">
-              <div class="col-6 col-md-2"><label class="small-label">Số thụ lý *</label><input type="text" id="in_soTL" class="form-control form-control-sm fw-bold text-primary" placeholder="Số/Năm"></div>
-              <div class="col-6 col-md-3"><label class="small-label">Ngày thụ lý *</label><input type="date" id="in_ngayTL" class="form-control form-control-sm fw-bold"></div>
-              <div class="col-12 col-md-3">
-                <label class="small-label">Loại án *</label>
-                <select id="in_loaiAn" class="form-select form-select-sm fw-bold" onchange="window.handleCaseTypeChangeV3()">
-                  <option value="1. Hình sự">1. Hình sự</option>
-                  <option value="2. Dân sự" selected>2. Dân sự</option>
-                  <option value="3. Hôn nhân">3. Hôn nhân & Gia đình</option>
-                  <option value="4. Kinh doanh">4. Kinh doanh</option>
-                  <option value="5. Lao động">5. Lao động</option>
-                  <option value="6. Hành chính">6. Hành chính</option>
-                  <option value="7. Hòa giải đối thoại">7. Hòa giải đối thoại</option>
-                </select>
-              </div>
-              <div class="col-12 col-md-4"><label class="small-label" id="lbl_tranhChap">Quan hệ tranh chấp / Tội danh *</label><input type="text" id="in_quanHe" class="form-control form-control-sm" placeholder="Nhập nội dung..."></div>
-            </div>
-          </div>
-
-          <div class="row g-3">
-            <div class="col-12 col-lg-6">
-              <div id="lbl_ND_container" class="party-section section-nd">
-                <div class="p-2 bg-light border-bottom d-flex justify-content-between align-items-center">
-                  <span class="fw-bold text-primary small" id="lbl_ND"><i class="fas fa-user-plus me-1"></i>NGUYÊN ĐƠN</span>
-                  <button type="button" class="btn btn-sm btn-primary px-2 py-0" style="font-size: 10px;" onclick="window.addPartyRowV3('ND')"><i class="fas fa-plus"></i></button>
-                </div>
-                <div id="container-ND" class="p-3">
-                  <div class="party-row-v3 position-relative">
-                    <div class="row g-2">
-                      <div class="col-4"><label class="small-label">Xưng hô</label><input class="form-control form-control-sm in-xungho" list="listXungHo" placeholder="Ông/Bà"></div>
-                      <div class="col-8"><label class="small-label">Họ và tên *</label><input class="form-control form-control-sm in-hoten fw-bold border-primary"></div>
-                      <div class="col-12"><label class="small-label">Địa chỉ</label><input class="form-control form-control-sm in-diachi"></div>
-                      <div class="col-6"><label class="small-label">Điện thoại</label><input class="form-control form-control-sm in-sdt"></div>
-                      <div class="col-6"><label class="small-label">CCCD</label><input class="form-control form-control-sm in-cccd"></div>
-                    </div>
+          <!-- Trạm rút trích từ Sổ đơn & Bóc tách tài liệu -->
+          <div class="modal-inner-card">
+            <div class="card-body-content py-2">
+              <div class="row g-3 align-items-center">
+                <div class="col-md-7 border-end pe-md-3">
+                  <label class="small-label mb-1"><i class="fas fa-inbox text-primary me-1"></i> Rút trích từ Sổ nhận đơn (Nếu có)</label>
+                  <div class="input-group input-group-sm">
+                    <input type="text" id="in_soDon_trichXuat" class="form-control fw-bold" placeholder="Nhập hoặc chọn Số đơn..." autocomplete="off">
+                    <button type="button" class="btn btn-outline-secondary px-3" onclick="window.thucHienRutTrichTuDon()">
+                      <i class="fas fa-file-import text-primary me-1"></i> Rút trích
+                    </button>
                   </div>
+                  <div class="text-muted mt-1" style="font-size: 11px;">Tự động nạp Loại án, Tranh chấp và toàn bộ Đương sự từ Sổ đơn sang Thụ lý.</div>
+                </div>
+                <div class="col-md-5 ps-md-3">
+                  <label class="small-label mb-1"><i class="fas fa-camera text-primary me-1"></i> Hoặc trích xuất từ văn bản scan / ảnh</label>
+                  <button type="button" class="btn-scan-ai-compact" onclick="document.getElementById('scan-doc-input').click()">
+                    <i class="fas fa-file-invoice me-2"></i> Tải Đơn / Thông báo (Word/PDF/Ảnh)
+                  </button>
+                  <input type="file" id="scan-doc-input" class="d-none" accept=".doc,.docx,.pdf,image/*" onchange="window.scanDocumentForInfo(this)">
                 </div>
               </div>
             </div>
-            <div class="col-12 col-lg-6">
-              <div id="lbl_BD_container" class="party-section section-bd">
-                <div class="p-2 bg-light border-bottom d-flex justify-content-between align-items-center">
-                  <span class="fw-bold text-danger small" id="lbl_BD"><i class="fas fa-user-minus me-1"></i>BỊ ĐƠN</span>
-                  <button type="button" class="btn btn-sm btn-danger px-2 py-0" style="font-size: 10px;" onclick="window.addPartyRowV3('BD')"><i class="fas fa-plus"></i></button>
+          </div>
+
+          <!-- Thông tin Hành chính Thụ lý -->
+          <div class="modal-inner-card">
+            <div class="card-body-content">
+              <div class="row g-2">
+                <div class="col-6 col-md-2">
+                  <label class="small-label">Số thụ lý *</label>
+                  <input type="text" id="in_soTL" class="form-control form-control-sm fw-bold text-primary" placeholder="VD: 45" autocomplete="off">
                 </div>
-                <div id="container-BD" class="p-3">
-                  <div class="party-row-v3 position-relative">
-                    <div class="row g-2">
-                      <div class="col-4"><label class="small-label">Xưng hô</label><input class="form-control form-control-sm in-xungho" list="listXungHo" placeholder="Ông/Bà"></div>
-                      <div class="col-8"><label class="small-label">Họ và tên *</label><input class="form-control form-control-sm in-hoten fw-bold border-danger"></div>
-                      <div class="col-12"><label class="small-label">Địa chỉ</label><input class="form-control form-control-sm in-diachi"></div>
-                      <div class="col-6"><label class="small-label">Điện thoại</label><input class="form-control form-control-sm in-sdt"></div>
-                      <div class="col-6"><label class="small-label">CCCD</label><input class="form-control form-control-sm in-cccd"></div>
-                    </div>
-                  </div>
+                <div class="col-6 col-md-3">
+                  <label class="small-label">Ngày thụ lý *</label>
+                  <input type="date" id="in_ngayTL" class="form-control form-control-sm fw-bold">
+                </div>
+                <div class="col-12 col-md-3">
+                  <label class="small-label">Loại án *</label>
+                  <select id="in_loaiAn" class="form-select form-select-sm fw-bold" onchange="window.handleCaseTypeChangeV3()">
+                    <option value="1. Hình sự">1. Hình sự</option>
+                    <option value="2. Dân sự" selected>2. Dân sự</option>
+                    <option value="3. Hôn nhân">3. Hôn nhân & Gia đình</option>
+                    <option value="4. Kinh doanh">4. Kinh doanh Thương mại</option>
+                    <option value="5. Lao động">5. Lao động</option>
+                    <option value="6. Hành chính">6. Hành chính</option>
+                    <option value="7. Việc dân sự">7. Việc dân sự</option>
+                    <option value="8. Hòa giải đối thoại">8. Hòa giải đối thoại</option>
+                  </select>
+                </div>
+                <div class="col-12 col-md-4">
+                  <label class="small-label" id="lbl_tranhChap">Quan hệ tranh chấp / Tội danh *</label>
+                  <input type="text" id="in_quanHe" class="form-control form-control-sm fw-bold" placeholder="Nhập quan hệ pháp luật..." autocomplete="off">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Đương sự 2 bên -->
+          <div class="row g-3 mb-2">
+            <div class="col-12 col-md-6">
+              <div class="modal-inner-card h-100 mb-0">
+                <div class="card-header-bar">
+                  <span class="step-header" id="lbl_ND"><i class="fas fa-user-plus text-primary me-2"></i>Nguyên đơn</span>
+                  <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size: 11px;" onclick="window.addPartyRowV3('ND', true)"><i class="fas fa-plus me-1"></i>Thêm</button>
+                </div>
+                <div class="card-body-content" id="container-ND"></div>
+              </div>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <div class="modal-inner-card h-100 mb-0">
+                <div class="card-header-bar">
+                  <span class="step-header" id="lbl_BD"><i class="fas fa-user-minus text-danger me-2"></i>Bị đơn</span>
+                  <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size: 11px;" onclick="window.addPartyRowV3('BD', true)"><i class="fas fa-plus me-1"></i>Thêm</button>
+                </div>
+                <div class="card-body-content" id="container-BD"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Khối biên lai tạm ứng án phí NQ 326 -->
+          <div class="modal-inner-card mb-0">
+            <div class="card-header-bar">
+              <span class="step-header text-dark"><i class="fas fa-receipt text-success me-2"></i>Tạm ứng án phí / Biên lai thu tiền (NQ 326)</span>
+            </div>
+            <div class="card-body-content py-2">
+              <div class="d-flex gap-4 mb-2 align-items-center flex-wrap">
+                <div class="form-check m-0">
+                  <input class="form-check-input" type="radio" name="in_fee_mode" id="fee_mode_none" value="NONE" checked onchange="document.getElementById('in_fee_receipt_box').style.display='none';">
+                  <label class="form-check-label fw-bold text-muted small" for="fee_mode_none" style="cursor:pointer;">Chưa có biên lai / Miễn nộp tạm ứng (Người >60 tuổi, hộ nghèo...)</label>
+                </div>
+                <div class="form-check m-0">
+                  <input class="form-check-input" type="radio" name="in_fee_mode" id="fee_mode_receipt" value="RECEIPT" onchange="document.getElementById('in_fee_receipt_box').style.display='flex';">
+                  <label class="form-check-label fw-bold text-primary small" for="fee_mode_receipt" style="cursor:pointer;">Đã nộp tạm ứng án phí (Nhập thông tin biên lai)</label>
+                </div>
+              </div>
+
+              <div class="row g-2 pt-2 border-top align-items-end" id="in_fee_receipt_box" style="display:none;">
+                <div class="col-md-3 col-6">
+                  <label class="small-label">Số biên lai</label>
+                  <input type="text" id="in_fee_sobl" class="form-control form-control-sm fw-bold" placeholder="VD: 0003613" autocomplete="off">
+                </div>
+                <div class="col-md-3 col-6">
+                  <label class="small-label">Ngày thu tiền</label>
+                  <input type="date" id="in_fee_ngay" class="form-control form-control-sm fw-bold">
+                </div>
+                <div class="col-md-3 col-6">
+                  <label class="small-label">Số tiền tạm ứng (VNĐ)</label>
+                  <input type="text" id="in_fee_sotien" class="form-control form-control-sm fw-bold text-primary" placeholder="VD: 300.000" oninput="if(window.formatCurrency) window.formatCurrency(this);" autocomplete="off">
+                </div>
+                <div class="col-md-3 col-6">
+                  <label class="small-label">Cơ quan thu tiền</label>
+                  <input type="text" id="in_fee_coquan" class="form-control form-control-sm" value="Thi hành án dân sự tỉnh Lâm Đồng" autocomplete="off">
                 </div>
               </div>
             </div>
           </div>
         </form>
       </div>
-      <div class="modal-footer justify-content-center">
-        <button type="button" class="btn btn-outline-secondary px-4 fw-bold me-2" data-bs-dismiss="modal">HỦY BỎ</button>
-        <button type="button" class="btn btn-primary px-5 shadow fw-bold" onclick="window.thucHienThuLyV3()"><i class="fas fa-check me-1"></i> THỤ LÝ</button>
+      <div class="modal-footer justify-content-end gap-2">
+        <button type="button" class="btn btn-outline-secondary px-3" data-bs-dismiss="modal">Hủy</button>
+        <button type="button" class="btn btn-primary px-4" onclick="window.thucHienThuLyV3()">
+          <i class="fas fa-save me-1"></i> Lưu thụ lý vụ án
+        </button>
       </div>
     </div>
   </div>
 </div>
 
 <!-- ======================================================= -->
-<!-- 2. MODAL QUẢN LÝ ĐƯƠNG SỰ THEO NHÓM -->
+<!-- 2. MODAL SỬA THÔNG TIN ÁN (CƠ BẢN) -->
 <!-- ======================================================= -->
-<div class="modal fade" id="modalManageParties" tabindex="-1" data-bs-backdrop="static">
-  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-    <div class="modal-content shadow-lg">
-      <div class="modal-header bg-primary text-white py-3 px-4">
-        <h6 class="modal-title fw-bold"><i class="fas fa-users-cog me-2"></i>QUẢN LÝ ĐƯƠNG SỰ & ĐẠI DIỆN</h6>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+<div class="modal fade" id="modalSuaAn" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">
+          <span class="modal-icon-badge"><i class="fas fa-edit"></i></span>
+          SỬA THÔNG TIN VỤ ÁN
+        </h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body p-4 bg-light">
-        <div id="parties-manager-container" class="d-flex flex-column gap-4">
-          <div class="party-group-block shadow-sm bg-white rounded border">
-            <div class="d-flex justify-content-between align-items-center p-3 border-bottom" style="background-color: #f8f9fa;">
-              <span class="fw-bold text-primary text-uppercase" style="font-size: 13px;"><i class="fas fa-user-tie me-2"></i>Nhóm N.Đơn / Khởi kiện / Yêu cầu / Bị hại</span>
-              <button class="btn btn-sm btn-primary fw-bold px-3 shadow-sm" onclick="window.addPartyRow('Nguyên đơn')"><i class="fas fa-plus me-1"></i>Thêm</button>
+      <div class="modal-body">
+        <div class="modal-inner-card mb-0">
+          <div class="card-body-content">
+            <div class="row g-3">
+              <div class="col-6">
+                <label class="small-label">Số thụ lý *</label>
+                <input type="text" id="edit_soTL" class="form-control fw-bold text-primary" autocomplete="off">
+              </div>
+              <div class="col-6">
+                <label class="small-label">Ngày thụ lý *</label>
+                <input type="date" id="edit_ngayTL" class="form-control fw-bold">
+              </div>
+              <div class="col-12">
+                <label class="small-label">Loại án *</label>
+                <select id="edit_loaiAn" class="form-select fw-bold">
+                  <option value="1. Hình sự">1. Hình sự</option>
+                  <option value="2. Dân sự">2. Dân sự</option>
+                  <option value="3. Hôn nhân">3. Hôn nhân & Gia đình</option>
+                  <option value="4. Kinh doanh">4. Kinh doanh Thương mại</option>
+                  <option value="5. Lao động">5. Lao động</option>
+                  <option value="6. Hành chính">6. Hành chính</option>
+                  <option value="7. Việc dân sự">7. Việc dân sự</option>
+                  <option value="8. Hòa giải đối thoại">8. Hòa giải đối thoại</option>
+                </select>
+              </div>
+              <div class="col-12">
+                <label class="small-label">Quan hệ tranh chấp / Tội danh *</label>
+                <input type="text" id="edit_quanHe" class="form-control fw-bold" autocomplete="off">
+              </div>
             </div>
-            <div class="group-rows-container p-3 d-flex flex-column gap-3" id="container-ND-manage"></div>
-          </div>
-
-          <div class="party-group-block shadow-sm bg-white rounded border">
-            <div class="d-flex justify-content-between align-items-center p-3 border-bottom" style="background-color: #f8f9fa;">
-              <span class="fw-bold text-danger text-uppercase" style="font-size: 13px;"><i class="fas fa-user-minus me-2"></i>Nhóm B.Đơn / Bị kiện / Bị yêu cầu / Bị cáo</span>
-              <button class="btn btn-sm btn-danger fw-bold px-3 shadow-sm" onclick="window.addPartyRow('Bị đơn')"><i class="fas fa-plus me-1"></i>Thêm</button>
-            </div>
-            <div class="group-rows-container p-3 d-flex flex-column gap-3" id="container-BD-manage"></div>
-          </div>
-
-           <div class="party-group-block shadow-sm bg-white rounded border">
-            <div class="d-flex justify-content-between align-items-center p-3 border-bottom" style="background-color: #f8f9fa;">
-              <span class="fw-bold text-secondary text-uppercase" style="font-size: 13px;"><i class="fas fa-link me-2"></i>Người QL, NV liên quan</span>
-              <button class="btn btn-sm btn-secondary fw-bold px-3 shadow-sm" onclick="window.addPartyRow('Người có quyền lợi, nghĩa vụ liên quan')"><i class="fas fa-plus me-1"></i>Thêm</button>
-            </div>
-            <div class="group-rows-container p-3 d-flex flex-column gap-3" id="container-LQ-manage"></div>
-          </div>
-
-          <div class="party-group-block shadow-sm bg-white rounded border">
-            <div class="d-flex justify-content-between align-items-center p-3 border-bottom" style="background-color: #f8f9fa;">
-              <span class="fw-bold text-success text-uppercase" style="font-size: 13px;"><i class="fas fa-eye me-2"></i>Người làm chứng</span>
-              <button class="btn btn-sm btn-success fw-bold px-3 shadow-sm" onclick="window.addPartyRow('Người làm chứng')"><i class="fas fa-plus me-1"></i>Thêm</button>
-            </div>
-            <div class="group-rows-container p-3 d-flex flex-column gap-3" id="container-LC-manage"></div>
           </div>
         </div>
       </div>
-      <div class="modal-footer justify-content-center">
-        <button type="button" class="btn btn-outline-secondary px-4 fw-bold me-2" data-bs-dismiss="modal">HỦY BỎ</button>
-        <button type="button" class="btn btn-primary px-5 shadow fw-bold" onclick="window.saveAllParties()"><i class="fas fa-save me-2"></i> LƯU TẤT CẢ THAY ĐỔI</button>
+      <div class="modal-footer justify-content-between">
+        <span id="an_autosave_indicator" class="small fw-bold text-success" style="font-size: 11.5px;"></span>
+        <div>
+          <button type="button" class="btn btn-outline-secondary px-3 me-2" data-bs-dismiss="modal">Đóng</button>
+          <button type="button" class="btn btn-primary px-4" onclick="window.submitEditCase()">
+            <i class="fas fa-save me-1"></i> Lưu thay đổi
+          </button>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
 <!-- ======================================================= -->
-<!-- 3. MODAL SỬA ĐƯƠNG SỰ LẺ (TÁCH BIỆT HOÀN TOÀN) -->
+<!-- 3. MODAL QUẢN LÝ ĐƯƠNG SỰ THEO NHÓM -->
+<!-- ======================================================= -->
+<div class="modal fade" id="modalManageParties" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">
+          <span class="modal-icon-badge"><i class="fas fa-users-cog"></i></span>
+          QUẢN LÝ ĐƯƠNG SỰ & ĐẠI DIỆN
+        </h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="parties-manager-container">
+          <div class="row g-3">
+            <div class="col-md-6 d-flex flex-column gap-3">
+              <div class="modal-inner-card mb-0">
+                <div class="card-header-bar">
+                  <span class="step-header"><i class="fas fa-user-plus text-primary me-2"></i>Nhóm N.Đơn / Khởi Kiện</span>
+                  <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size: 11px;" onclick="window.addPartyRow('Nguyên đơn')"><i class="fas fa-plus me-1"></i>Thêm</button>
+                </div>
+                <div class="card-body-content group-rows-container d-flex flex-column gap-2" id="container-ND-manage"></div>
+              </div>
+
+              <div class="modal-inner-card mb-0">
+                <div class="card-header-bar">
+                  <span class="step-header"><i class="fas fa-link text-secondary me-2"></i>Người QL, NV Liên Quan</span>
+                  <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size: 11px;" onclick="window.addPartyRow('Người có quyền lợi, nghĩa vụ liên quan')"><i class="fas fa-plus me-1"></i>Thêm</button>
+                </div>
+                <div class="card-body-content group-rows-container d-flex flex-column gap-2" id="container-LQ-manage"></div>
+              </div>
+            </div>
+
+            <div class="col-md-6 d-flex flex-column gap-3">
+              <div class="modal-inner-card mb-0">
+                <div class="card-header-bar">
+                  <span class="step-header"><i class="fas fa-user-minus text-danger me-2"></i>Nhóm Bị Đơn / Bị Kiện</span>
+                  <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size: 11px;" onclick="window.addPartyRow('Bị đơn')"><i class="fas fa-plus me-1"></i>Thêm</button>
+                </div>
+                <div class="card-body-content group-rows-container d-flex flex-column gap-2" id="container-BD-manage"></div>
+              </div>
+
+              <div class="modal-inner-card mb-0">
+                <div class="card-header-bar">
+                  <span class="step-header"><i class="fas fa-eye text-success me-2"></i>Người Làm Chứng</span>
+                  <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size: 11px;" onclick="window.addPartyRow('Người làm chứng')"><i class="fas fa-plus me-1"></i>Thêm</button>
+                </div>
+                <div class="card-body-content group-rows-container d-flex flex-column gap-2" id="container-LC-manage"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <span id="party_autosave_indicator" class="small fw-bold text-success" style="font-size: 11.5px;"></span>
+        <div>
+          <button type="button" class="btn btn-outline-secondary px-3 me-2" data-bs-dismiss="modal">Đóng</button>
+          <button type="button" class="btn btn-primary px-4" onclick="window.saveAllParties()">
+            <i class="fas fa-save me-1"></i> Lưu tất cả
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================= -->
+<!-- 4. MODAL SỬA ĐƯƠNG SỰ LẺ -->
 <!-- ======================================================= -->
 <div class="modal fade" id="modalSuaDuongSuLe" tabindex="-1" data-bs-backdrop="static">
   <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-    <div class="modal-content shadow-lg">
-      <div class="modal-header bg-info text-white py-3 px-4">
-        <h6 class="modal-title fw-bold"><i class="fas fa-user-edit me-2"></i>SỬA THÔNG TIN ĐƯƠNG SỰ</h6>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">
+          <span class="modal-icon-badge"><i class="fas fa-user-edit"></i></span>
+          SỬA THÔNG TIN ĐƯƠNG SỰ
+        </h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body p-4 bg-light">
+      <div class="modal-body">
         <input type="hidden" id="editParty_oldName">
-        <div class="party-row-main p-3 border-0 shadow-sm">
-          <div class="row g-3">
-            <div class="col-6"><label class="small-label">Tư cách</label><input type="text" id="editParty_tuCach" class="form-control fw-bold text-primary" list="listTuCach"></div>
-            <div class="col-6"><label class="small-label">Xưng hô</label><input type="text" id="editParty_xungHo" class="form-control" list="listXungHo"></div>
-            <div class="col-12"><label class="small-label">Họ tên chính *</label><input type="text" id="editParty_hoTen" class="form-control fw-bold border-primary"></div>
-            <div class="col-12"><label class="small-label">Địa chỉ</label><input type="text" id="editParty_diaChi" class="form-control"></div>
-            <div class="col-4"><label class="small-label">Năm sinh</label><input type="text" id="editParty_namSinh" class="form-control"></div>
-            <div class="col-4"><label class="small-label">Số điện thoại</label><input type="text" id="editParty_sdt" class="form-control"></div>
-            <div class="col-4"><label class="small-label">CCCD</label><input type="text" id="editParty_cccd" class="form-control"></div>
-          </div>
-          <div class="mt-4 pt-3 border-top">
-             <label class="small-label mb-2 text-warning" style="font-size: 12px;"><i class="fas fa-user-shield me-1"></i> THÔNG TIN NGƯỜI ĐẠI DIỆN</label>
-             <textarea id="editParty_daiDien" class="form-control" rows="4" placeholder='Có thể dán chuỗi JSON... VD:[{"tuCach":"Người đại diện","hoTen":"Ông A"}]'></textarea>
+        <div class="modal-inner-card mb-0">
+          <div class="card-body-content">
+            <div class="row g-3">
+              <div class="col-4"><label class="small-label">Tư cách tố tụng</label><input type="text" id="editParty_tuCach" class="form-control fw-bold" list="listTuCach"></div>
+              <div class="col-3"><label class="small-label">Xưng hô</label><input type="text" id="editParty_xungHo" class="form-control" list="listXungHo"></div>
+              <div class="col-5"><label class="small-label">Họ và tên *</label><input type="text" id="editParty_hoTen" class="form-control fw-bold text-primary"></div>
+              <div class="col-12"><label class="small-label">Địa chỉ</label><input type="text" id="editParty_diaChi" class="form-control"></div>
+              <div class="col-4"><label class="small-label">Năm sinh</label><input type="text" id="editParty_namSinh" class="form-control"></div>
+              <div class="col-4"><label class="small-label">Số điện thoại</label><input type="text" id="editParty_sdt" class="form-control"></div>
+              <div class="col-4"><label class="small-label">CCCD</label><input type="text" id="editParty_cccd" class="form-control"></div>
+            </div>
+            <div class="mt-3 pt-3 border-top">
+              <label class="small-label mb-1"><i class="fas fa-user-shield text-primary me-1"></i> Thông tin người đại diện (JSON)</label>
+              <textarea id="editParty_daiDien" class="form-control font-monospace" rows="3" style="font-size: 12px;"></textarea>
+            </div>
           </div>
         </div>
       </div>
-      <div class="modal-footer justify-content-center">
-        <button type="button" class="btn btn-outline-secondary px-4 fw-bold me-2" data-bs-dismiss="modal">HỦY BỎ</button>
-        <button type="button" class="btn btn-info text-white px-5 shadow fw-bold" onclick="window.submitEditSingleParty()"><i class="fas fa-save me-2"></i> LƯU THAY ĐỔI</button>
+      <div class="modal-footer justify-content-between">
+        <span id="single_party_autosave_indicator" class="small fw-bold text-success" style="font-size: 11.5px;"></span>
+        <div>
+          <button type="button" class="btn btn-outline-secondary px-3 me-2" data-bs-dismiss="modal">Đóng</button>
+          <button type="button" class="btn btn-primary px-4" onclick="window.submitEditSingleParty()">
+            <i class="fas fa-save me-1"></i> Lưu thay đổi
+          </button>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
 <!-- ======================================================= -->
-<!-- 4. MODAL SOẠN THẢO VĂN BẢN (MAIL MERGE) -->
+<!-- 5. MODAL TRUNG TÂM XUẤT VĂN BẢN (MAIL MERGE V3) -->
 <!-- ======================================================= -->
 <div class="modal fade" id="modalSoanThao" tabindex="-1" data-bs-backdrop="static">
   <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-    <div class="modal-content shadow-lg">
-      <div class="modal-header bg-primary text-white">
-        <h6 class="modal-title fw-bold"><i class="fas fa-file-signature me-2"></i>TRÌNH SOẠN THẢO VĂN BẢN</h6>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">
+          <span class="modal-icon-badge"><i class="fas fa-file-signature"></i></span>
+          TRUNG TÂM XUẤT VĂN BẢN TỐ TỤNG
+        </h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body p-3 p-md-4 bg-light">
-        <div class="row g-3">
-          <!-- Cột 1: Chọn án & Mẫu -->
-          <div class="col-12 col-lg-4 d-flex flex-column gap-3">
-            <div class="draft-step-card shadow-sm">
-              <div class="draft-step-header"><i class="fas fa-search"></i> 1. CHỌN HỒ SƠ VỤ ÁN</div>
-              <div class="position-relative">
-                <input type="text" id="draft-search-case" class="form-control form-control-sm border-primary fw-bold" placeholder="Gõ tên hoặc Số TL..." oninput="window.handleDraftSearchCase(this.value)">
-                <div id="draft-search-results" class="list-group position-absolute w-100 shadow-lg" style="z-index: 9999; display: none; max-height: 200px; overflow-y: auto;"></div>
+      <div class="modal-body">
+        
+        <!-- 1. KHỐI TÌM & CHỌN HỒ SƠ -->
+        <div class="modal-inner-card mb-3" style="overflow: visible !important; position: relative; z-index: 1050;">
+          <div class="card-body-content py-2">
+            <div class="row align-items-center">
+              <div class="col-md-5 border-end pe-md-3">
+                <label class="small-label mb-1"><i class="fas fa-search text-primary me-1"></i> Tìm & chọn vụ án</label>
+                <div class="position-relative" style="z-index: 1051;">
+                  <i class="fas fa-search position-absolute text-muted" style="top:50%; left:12px; transform: translateY(-50%); font-size:12px;"></i>
+                  <input type="text" id="draft-search-case" class="form-control search-pill" placeholder="Gõ Số thụ lý hoặc Tên đương sự..." autocomplete="off" oninput="window.handleDraftSearchCase(this.value)">
+                  <div id="draft-search-results" class="list-group position-absolute w-100 shadow-lg" style="z-index: 99999; display: none; max-height: 250px; overflow-y: auto; top: calc(100% + 5px); left: 0; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; box-shadow: 0 14px 30px rgba(15, 23, 42, 0.22);"></div>
+                </div>
               </div>
-              <div id="draft-selected-case" class="mt-2 small fw-bold text-success" style="display:none;"></div>
-              <input type="hidden" id="draft-selected-case-id">
+              <div class="col-md-7 ps-md-3">
+                <input type="hidden" id="draft-selected-case-id">
+                <div id="draft-selected-case" class="d-flex align-items-center" style="display:none; font-size: 13.5px;">
+                  <i class="fas fa-check-circle fa-2x text-success me-3"></i> 
+                  <span><span class="text-muted fw-bold">Đã chọn hồ sơ:</span><br><b id="draft-selected-case-title" class="text-dark" style="font-size: 14px;">---</b></span>
+                </div>
+              </div>
             </div>
-            <div class="draft-step-card shadow-sm d-flex flex-column flex-grow-1">
-              <div class="draft-step-header"><i class="fas fa-file-word"></i> 2. CHỌN BIỂU MẪU</div>
-              <div id="list-templates" class="list-group list-group-flush overflow-auto flex-grow-1" style="max-height: 250px;"></div>
+          </div>
+        </div>
+
+        <!-- 2. HỆ THỐNG 3 TRẠM XỬ LÝ -->
+        <div class="row g-3">
+          <!-- CỘT 1: KHO BIỂU MẪU (HIỂN THỊ ĐẦY ĐỦ 64 MẪU GẮN NHÃN) -->
+          <div class="col-lg-4">
+            <div class="modal-inner-card h-100 d-flex flex-column mb-0">
+              <div class="card-header-bar">
+                <div class="step-header"><span class="badge-step">1</span> Kho biểu mẫu</div>
+                <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none" style="font-size: 11px; color: var(--m-primary, #2563eb); font-weight: 700;" onclick="window.filterAndRenderTemplates(document.getElementById('draft-selected-case-id').value, [])">
+                  Bỏ lọc
+                </button>
+              </div>
               
-              <div class="mt-3 pt-3 border-top d-flex flex-column gap-2">
-                <button class="btn btn-sm btn-outline-primary fw-bold w-100" onclick="window.openTemplateFolder()"><i class="fas fa-folder-open me-1"></i> MỞ KHO MẪU TRÊN DRIVE</button>
-                <button type="button" class="btn btn-sm btn-outline-info fw-bold w-100" onclick="document.getElementById('ai-tpl-input').click()"><i class="fas fa-wand-magic-sparkles me-1"></i> AI TẠO MẪU TỪ FILE WORD</button>
+              <div class="p-2 border-bottom bg-white">
+                <div class="position-relative">
+                  <i class="fas fa-search position-absolute text-muted" style="top:50%; left:12px; transform: translateY(-50%); font-size:11px;"></i>
+                  <input type="text" id="search_tpl_an" class="form-control form-control-sm search-pill" placeholder="Gõ tên hoặc STT mẫu (VD: 25, thuận tình...)" autocomplete="off" onkeyup="window.filterTemplates('search_tpl_an', 'list-templates')">
+                </div>
+              </div>
+              
+              <div id="list-templates" class="flex-grow-1 p-2 overflow-auto bg-white" style="height: 250px;">
+                <div class="p-4 text-center small text-muted"><div class="spinner-border spinner-border-sm me-2 text-primary"></div>Đang nạp biểu mẫu...</div>
+              </div>
+              
+              <div class="p-2 border-top bg-white d-flex gap-2">
+                <button class="btn btn-sm btn-outline-secondary w-50" onclick="window.openTemplateFolder()"><i class="fas fa-folder-open me-1 text-warning"></i> Mở Drive</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary w-50" onclick="document.getElementById('ai-tpl-input').click()"><i class="fas fa-file-word me-1 text-primary"></i> Tạo từ Word</button>
                 <input type="file" id="ai-tpl-input" class="d-none" accept=".doc,.docx" onchange="window.createSmartTemplate(this)">
               </div>
             </div>
           </div>
-          
-          <!-- Cột 2: Đương sự -->
-          <div class="col-12 col-lg-4">
-            <div class="draft-step-card shadow-sm h-100">
-              <div class="draft-step-header"><i class="fas fa-users"></i> 3. ĐƯƠNG SỰ NHẬN VĂN BẢN</div>
-              <div id="list-parties-merge" class="p-2 border rounded bg-white overflow-auto" style="height: calc(100% - 30px);">
-                <div class="p-3 text-center small text-muted"><i class="fas fa-search me-2 d-block fa-2x mb-2 opacity-50"></i>Chờ chọn hồ sơ...</div>
+
+          <!-- CỘT 2: ĐƯƠNG SỰ NHẬN -->
+          <div class="col-lg-4">
+            <div class="modal-inner-card h-100 d-flex flex-column mb-0">
+              <div class="card-header-bar">
+                <div class="step-header"><span class="badge-step">2</span> Đương sự nhận</div>
+                <span class="text-muted" style="font-size: 11px;"><i class="fas fa-check-square text-primary me-1"></i>Tùy chỉnh</span>
+              </div>
+              <div class="p-2 bg-light border-bottom text-muted" style="font-size: 11px;">
+                Bỏ chọn những đương sự không cần tống đạt giấy lần này.
+              </div>
+              <div id="list-parties-merge" class="flex-grow-1 p-2 overflow-auto bg-white" style="height: 290px;">
+                <div class="p-4 text-center text-muted"><i class="fas fa-user-slash fa-2x mb-2 opacity-25 d-block"></i>Chờ chọn hồ sơ...</div>
               </div>
             </div>
           </div>
-          
-          <!-- Cột 3: Khung thời gian / địa điểm -->
-          <div class="col-12 col-lg-4">
-            <div class="draft-step-card shadow-sm h-100">
-              <div class="draft-step-header"><i class="fas fa-cog"></i> 4. THÔNG SỐ CHI TIẾT</div>
-              <div class="row g-3">
-                <div class="col-6"><label class="small-label">Số phát hành</label><input type="text" id="ext_soPhatHanh" class="form-control form-control-sm" placeholder="VD: 37/2026/QĐST-DS"></div>
-                <div class="col-6"><label class="small-label text-primary">Ngày ban hành *</label><input type="date" id="ext_ngayBanHanh" class="form-control form-control-sm border-primary fw-bold"></div>
+
+          <!-- CỘT 3: THÔNG SỐ VĂN BẢN & TRÍCH XUẤT TÀI LIỆU TRỰC TIẾP -->
+          <div class="col-lg-4">
+            <div class="modal-inner-card h-100 d-flex flex-column mb-0">
+              <div class="card-header-bar">
+                <span class="step-header"><span class="badge-step">3</span> Thông số văn bản</span>
+              </div>
+              <div class="card-body-content flex-grow-1 overflow-auto bg-white" style="height: 290px;">
                 
-                <div class="col-12">
-                  <div class="p-2 rounded" style="background: #fffdf2; border: 1px solid #ffeeba;">
-                    <label class="fw-bold text-warning-emphasis small mb-2" style="font-size: 10px;"><i class="fas fa-clock me-1"></i> LỊCH LÀM VIỆC / XÉT XỬ</label>
-                    <div class="row g-2 mb-2">
-                      <div class="col-5"><input type="time" id="ext_gioTrieuTap" class="form-control form-control-sm border-warning" title="Giờ" value="08:00"></div>
-                      <div class="col-7"><input type="date" id="ext_ngayTrieuTap" class="form-control form-control-sm border-warning" title="Ngày"></div>
-                    </div>
-                    <input type="text" id="ext_diaDiem" class="form-control form-control-sm border-warning" placeholder="Địa điểm (Bỏ trống = Trụ sở Tòa án)">
+                <!-- Số phát hành & Ngày ký -->
+                <div class="row g-2 mb-2">
+                  <div class="col-6">
+                    <span class="small-label">Số phát hành</span>
+                    <input type="text" id="ext_soPhatHanh" class="form-control form-control-sm fw-bold" placeholder="Tự điền nếu khớp QĐ" autocomplete="off">
+                  </div>
+                  <div class="col-6">
+                    <span class="small-label">Ngày ban hành *</span>
+                    <input type="date" id="ext_ngayBanHanh" class="form-control form-control-sm fw-bold">
                   </div>
                 </div>
-                
-                <!-- NÚT MỞ TAKV2 THAY THẾ CÔNG TẮC TẢI FILE -->
-                <div class="col-12">
-                  <button class="btn btn-sm btn-outline-primary fw-bold w-100 shadow-sm mt-1 py-2" onclick="window.open('https://takv2.ldo.toaanso.vn/assign/assignment?isGet=1', '_blank')" style="font-size: 11px;">
-                    <i class="fas fa-external-link-alt me-2"></i> MỞ TRANG ĐIỆN TỬ TAKV2
-                  </button>
+
+                <!-- Chọn Thư ký phân công -->
+                <div class="mb-2">
+                  <span class="small-label">Thư ký phân công</span>
+                  <select id="ext_select_thuky" class="form-select form-select-sm fw-bold" onchange="window.handleClerkDropdownChange(this)"></select>
+                  <input type="hidden" id="ext_xhThuKy">
+                  <input type="hidden" id="ext_tenThuKy">
                 </div>
-                
-                <div class="col-12"><label class="small-label">Nội dung thêm (Nếu có)</label><textarea id="ext_noiDung" class="form-control form-control-sm" rows="3" placeholder="Làm rõ nội dung tranh chấp..."></textarea></div>
+
+                <!-- Lịch làm việc / Triệu tập -->
+                <div class="sub-panel-box mb-2 p-2 bg-light rounded border">
+                  <label class="small-label mb-1 text-primary"><i class="fas fa-calendar-alt me-1"></i> Lịch làm việc / Triệu tập</label>
+                  <div class="row g-2 mb-2">
+                    <div class="col-5"><input type="time" id="ext_gioTrieuTap" class="form-control form-control-sm fw-bold" value="08:00"></div>
+                    <div class="col-7"><input type="date" id="ext_ngayTrieuTap" class="form-control form-control-sm fw-bold"></div>
+                  </div>
+                  <input type="text" id="ext_diaDiem" class="form-control form-control-sm" list="dl_diadiem_lamviec" autocomplete="off" placeholder="Địa điểm (Bỏ trống = Trụ sở Tòa án)...">
+                </div>
+
+                <!-- Nội dung làm việc -->
+                <div class="mb-2">
+                  <span class="small-label">Nội dung làm việc</span>
+                  <textarea id="ext_noiDung" class="form-control form-control-sm" rows="2" list="dl_draft_noidung_goiy" placeholder="Làm rõ một số vấn đề liên quan đến vụ án..." autocomplete="off"></textarea>
+                </div>
+
+                <!-- Khối trích xuất tài liệu trực tiếp -->
+                <div class="pt-2 border-top">
+                  <span class="small-label mb-1 text-primary"><i class="fas fa-file-import text-primary me-1"></i> Trích xuất bổ sung từ tài liệu (Ưu tiên Drive)</span>
+                  <div class="p-2 bg-light rounded border">
+                    <div class="d-flex gap-1 mb-1">
+                      <button type="button" class="btn btn-sm btn-action-tonal w-100 py-1" style="font-size: 11px; height: 28px;" onclick="window.scanDriveFileDirectForDraft()" title="Quét tài liệu mới nhất từ Drive của vụ án đang chọn">
+                        <i class="fab fa-google-drive text-warning me-1"></i> Quét Drive vụ án
+                      </button>
+                      <button type="button" class="btn btn-sm btn-action-outline w-100 py-1" style="font-size: 11px; height: 28px;" onclick="document.getElementById('draft_ai_upload_file').click()" title="Tải file từ máy tính hoặc chụp ảnh từ điện thoại">
+                        <i class="fas fa-upload text-primary me-1"></i> Chọn tệp / Ảnh
+                      </button>
+                    </div>
+                    <input type="file" id="draft_ai_upload_file" class="d-none" accept=".doc,.docx,.pdf,image/*" onchange="window.handleDraftDirectUpload(this)">
+                    <div class="form-text m-0 text-muted" style="font-size: 10.5px;">Tự động điền các thông số còn thiếu vào biểu mẫu đang soạn.</div>
+                  </div>
+                </div>
+
               </div>
             </div>
           </div>
         </div>
       </div>
-      <div class="modal-footer justify-content-center">
-        <button type="button" class="btn btn-outline-secondary px-4 fw-bold me-2" data-bs-dismiss="modal">HỦY BỎ</button>
-        <button type="button" class="btn btn-primary px-5 shadow fw-bold" onclick="window.executeMailMergeV3()"><i class="fas fa-print me-1"></i> XUẤT VĂN BẢN</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ======================================================= -->
-<!-- 5. MODAL LÊN LỊCH NHẮC VIỆC -->
-<!-- ======================================================= -->
-<div class="modal fade" id="modalLich" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content shadow-lg">
-      <div class="modal-header bg-warning">
-        <h6 class="modal-title fw-bold text-dark"><i class="fas fa-calendar-plus me-2"></i>LÊN KẾ HOẠCH LÀM VIỆC</h6>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body p-4 bg-light">
-        <div class="row g-3">
-          <div class="col-12 position-relative">
-            <label class="small-label">Vụ án liên quan</label>
-            <input type="text" id="task_vuAn_search" class="form-control border-warning" placeholder="Tìm kiếm án..." oninput="window.handleTaskSearchCase(this.value)">
-            <div id="task-search-results" class="list-group position-absolute w-100 shadow" style="z-index: 9999; display: none;"></div>
-            <div id="task-selected-case" class="mt-1 small fw-bold text-success" style="display:none;"></div>
-            <input type="hidden" id="task_vuAn" data-id="GENERAL">
-          </div>
-          <div class="col-6"><label class="small-label text-danger">Ngày thực hiện *</label><input type="date" id="task_ngay" class="form-control border-warning fw-bold"></div>
-          <div class="col-6"><label class="small-label text-danger">Giờ *</label><input type="time" id="task_gio" class="form-control border-warning fw-bold" value="08:00"></div>
-          <div class="col-12"><label class="small-label">Nội dung *</label><textarea id="task_noidung" class="form-control border-warning" rows="3"></textarea></div>
+      
+      <!-- THANH TÓM TẮT & NÚT XUẤT VĂN BẢN -->
+      <div class="modal-footer justify-content-between align-items-center">
+        <div id="draft-batch-summary-text" class="small text-muted" style="font-size: 12.5px;">
+          <span class="text-muted fst-italic">Vui lòng chọn ít nhất 1 biểu mẫu và 1 đương sự nhận.</span>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-outline-secondary px-3" data-bs-dismiss="modal">Hủy</button>
+          <button type="button" class="btn btn-primary px-4" onclick="window.executeMailMergeV3()">
+            <i class="fas fa-print me-2"></i> Xuất văn bản
+          </button>
         </div>
       </div>
-      <div class="modal-footer justify-content-center">
-        <button class="btn btn-outline-secondary px-4 fw-bold me-2" data-bs-dismiss="modal">HỦY</button>
-        <button class="btn btn-warning px-5 shadow fw-bold text-dark" onclick="window.saveTask()">LƯU LỊCH</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================= -->
+<!-- 6. MODAL TÍNH ÁN PHÍ & TẠM ỨNG (NQ 326/2016) -->
+<!-- ======================================================= -->
+<div class="modal fade" id="modalTinhAnPhi" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">
+          <span class="modal-icon-badge"><i class="fas fa-calculator"></i></span>
+          CÔNG CỤ TÍNH ÁN PHÍ & TẠM ỨNG (NQ 326)
+        </h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-inner-card mb-3">
+          <div class="card-body-content">
+            <div class="row g-3">
+              <div class="col-md-5">
+                <label class="small-label">Loại án / Lĩnh vực</label>
+                <select id="calc_loaiAn" class="form-select fw-bold" onchange="window.runCalculator()">
+                  <option value="danSu">Dân sự / Hôn nhân / Lao động</option>
+                  <option value="kinhDoanh">Kinh doanh Thương mại</option>
+                  <option value="hinhSu">Hình sự</option>
+                  <option value="hanhChinh">Hành chính</option>
+                </select>
+              </div>
+              <div class="col-md-7">
+                <label class="small-label">Giá trị tranh chấp (VNĐ)</label>
+                <input type="text" id="calc_giaTri" class="form-control fw-bold" placeholder="Nhập số tiền..." oninput="window.formatCurrency(this); window.runCalculator()" autocomplete="off">
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="modal-inner-card text-center mb-0 h-100">
+              <div class="card-body-content p-3">
+                <div class="small-label mb-1">Án phí sơ thẩm</div>
+                <h4 class="fw-bolder text-dark mb-1"><span id="res_anPhi">0</span> ₫</h4>
+                <div class="text-muted small fst-italic mb-3" id="res_anPhiChu">(Không đồng)</div>
+                <button class="btn btn-sm btn-outline-secondary w-100" onclick="window.copyFee('anphi')"><i class="fas fa-copy me-1"></i> Copy Án phí</button>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="modal-inner-card text-center mb-0 h-100">
+              <div class="card-body-content p-3">
+                <div class="small-label mb-1">Tạm ứng án phí (50%)</div>
+                <h4 class="fw-bolder text-primary mb-1"><span id="res_tamUng">0</span> ₫</h4>
+                <div class="text-muted small fst-italic mb-3" id="res_tamUngChu">(Không đồng)</div>
+                <button class="btn btn-sm btn-outline-secondary w-100" onclick="window.copyFee('tamung')"><i class="fas fa-copy me-1"></i> Copy Tạm ứng</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer justify-content-end">
+        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Đóng</button>
       </div>
     </div>
   </div>
 </div>
 
 <!-- ======================================================= -->
-<!-- 6. MODAL CẬP NHẬT KẾT QUẢ -->
+<!-- 7. MODAL CẬP NHẬT KẾT QUẢ GIẢI QUYẾT -->
 <!-- ======================================================= -->
 <div class="modal fade" id="modalKetQua" tabindex="-1" data-bs-backdrop="static">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content shadow-lg">
-      <div class="modal-header bg-success text-white">
-        <h6 class="modal-title fw-bold"><i class="fas fa-gavel me-2"></i>CẬP NHẬT KẾT QUẢ GIẢI QUYẾT</h6>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body p-4 bg-light">
-        <div class="row g-3">
-          <div class="col-12">
-            <label class="small-label">Loại kết quả *</label>
-            <select id="res_loai" class="form-select border-success fw-bold">
-              <option value="Bản án">Bản án</option>
-              <option value="QĐCNTT">Quyết định công nhận thỏa thuận</option>
-              <option value="QĐCN-TTLH">Quyết định công nhận thuận tình ly hôn</option>
-              <option value="Đình chỉ">Quyết định Đình chỉ</option>
-              <option value="Tạm đình chỉ">Quyết định Tạm đình chỉ</option>
-              <option value="Gia hạn">QĐ Gia hạn xét xử</option>
-              <option value="Tiếp tục giải quyết">QĐ Tiếp tục giải quyết</option>
-            </select>
-          </div>
-          <div class="col-6"><label class="small-label">Số phát hành *</label><input type="text" id="res_so" class="form-control border-success"></div>
-          <div class="col-6"><label class="small-label">Ngày ban hành *</label><input type="date" id="res_ngay" class="form-control border-success fw-bold"></div>
-        </div>
-      </div>
-      <div class="modal-footer d-flex justify-content-between">
-        <button type="button" class="btn btn-outline-danger fw-bold shadow-sm" onclick="window.xoaKetQuaGiaiQuyet()"><i class="fas fa-eraser"></i></button>
-        <div class="d-flex gap-2">
-           <button type="button" class="btn btn-outline-secondary px-3 fw-bold" data-bs-dismiss="modal">HỦY</button>
-           <button type="button" class="btn btn-success px-4 shadow fw-bold" onclick="window.submitResolution()"><i class="fas fa-check"></i> LƯU</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ======================================================= -->
-<!-- 7. MODAL SỬA THÔNG TIN ÁN -->
-<!-- ======================================================= -->
-<div class="modal fade" id="modalSuaAn" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content shadow-lg">
-      <div class="modal-header bg-warning">
-        <h6 class="modal-title fw-bold text-dark"><i class="fas fa-edit me-2"></i>SỬA THÔNG TIN HÀNH CHÍNH</h6>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">
+          <span class="modal-icon-badge"><i class="fas fa-gavel"></i></span>
+          CẬP NHẬT KẾT QUẢ GIẢI QUYẾT
+        </h6>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body p-4 bg-light">
-        <div class="row g-3">
-          <div class="col-4"><label class="small-label">Số thụ lý</label><input type="text" id="edit_soTL" class="form-control border-warning fw-bold"></div>
-          <div class="col-8"><label class="small-label">Ngày thụ lý</label><input type="date" id="edit_ngayTL" class="form-control border-warning fw-bold"></div>
-          <div class="col-12">
-            <label class="small-label">Loại án</label>
-            <select id="edit_loaiAn" class="form-select border-warning">
-              <option value="1. Hình sự">1. Hình sự</option><option value="2. Dân sự">2. Dân sự</option>
-              <option value="3. Hôn nhân">3. Hôn nhân và Gia đình</option><option value="4. Kinh doanh">4. Kinh doanh Thương mại</option>
-              <option value="5. Lao động">5. Lao động</option><option value="6. Hành chính">6. Hành chính</option>
-              <option value="7. Hòa giải đối thoại">7. Hòa giải đối thoại</option>
-            </select>
+      <div class="modal-body">
+        <div class="modal-inner-card mb-3 bg-light border-0">
+          <div class="card-body-content py-2 small text-muted">
+            <i class="fas fa-info-circle text-primary me-1"></i> Chuyển án sang trạng thái <b>Đã giải quyết</b> hoặc <b>Tạm đình chỉ</b> và đồng bộ mốc Dòng thời gian.
           </div>
-          <div class="col-12"><label class="small-label">Quan hệ tranh chấp</label><input type="text" id="edit_quanHe" class="form-control border-warning"></div>
+        </div>
+        <div class="modal-inner-card mb-0">
+          <div class="card-body-content">
+            <div class="mb-3">
+              <label class="small-label">Loại kết quả / Quyết định *</label>
+              <input type="text" id="res_loai" class="form-control fw-bold" list="listKetQua" placeholder="VD: Bản án sơ thẩm..." autocomplete="off">
+            </div>
+            <div class="row g-3">
+              <div class="col-6">
+                <label class="small-label">Số hiệu *</label>
+                <input type="text" id="res_so" class="form-control fw-bold" placeholder="VD: 12/2026/QĐST-DS" autocomplete="off">
+              </div>
+              <div class="col-6">
+                <label class="small-label">Ngày ban hành *</label>
+                <input type="date" id="res_ngay" class="form-control fw-bold">
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="modal-footer justify-content-center">
-        <button class="btn btn-outline-secondary px-4 fw-bold me-2" data-bs-dismiss="modal">HỦY</button>
-        <button class="btn btn-warning px-5 shadow fw-bold text-dark" onclick="window.submitEditCase()">LƯU THAY ĐỔI</button>
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-outline-secondary" onclick="window.xoaKetQuaGiaiQuyet()">
+          <i class="fas fa-undo me-1"></i> Khôi phục án
+        </button>
+        <div>
+          <button type="button" class="btn btn-outline-secondary px-3 me-2" data-bs-dismiss="modal">Hủy</button>
+          <button type="button" class="btn btn-primary px-4" onclick="window.submitResolution()">
+            <i class="fas fa-save me-1"></i> Lưu kết quả
+          </button>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
 <!-- ======================================================= -->
-<!-- 8. MODAL TÍNH ÁN PHÍ (BẢN RỘNG RÃI) -->
+<!-- 8. MODAL LẬP LỊCH CÔNG TÁC (TÒA ÁN / TIẾP DÂN / PHIÊN HỌP) -->
 <!-- ======================================================= -->
-<div class="modal fade" id="modalTinhAnPhi" tabindex="-1">
+<div class="modal fade" id="modalLich" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content shadow-lg">
-      <div class="modal-header bg-danger text-white">
-        <h6 class="modal-title fw-bold"><i class="fas fa-calculator me-2"></i>CÔNG CỤ TÍNH ÁN PHÍ</h6>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">
+          <span class="modal-icon-badge" style="background: #eff6ff; color: #2563eb; border-color: #bfdbfe;">
+            <i class="fas fa-calendar-plus"></i>
+          </span>
+          LẬP LỊCH CÔNG TÁC
+        </h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body p-4 bg-light">
-        <div class="row g-3 mb-3">
-          <div class="col-12">
-            <label class="small-label">Loại án</label>
-            <select id="calc_loaiAn" class="form-select fw-bold border-danger">
-              <option value="danSu">Dân sự / Hôn nhân / Lao động</option>
-              <option value="kinhDoanh">Kinh doanh thương mại</option>
-              <option value="hinhSu">Hình sự sơ thẩm (Cố định 200.000đ)</option>
-              <option value="hanhChinh">Hành chính sơ thẩm (Cố định 300.000đ)</option>
-            </select>
-          </div>
-          <div class="col-12">
-            <label class="small-label">Giá trị tranh chấp (VNĐ)</label>
-            <input type="text" id="calc_giaTri" class="form-control fw-bold border-danger" placeholder="Để trống nếu không có giá ngạch" oninput="window.formatCurrency(this)">
+      <div class="modal-body">
+        <div class="modal-inner-card mb-0" style="overflow: visible !important; position: relative; z-index: 1050;">
+          <div class="card-body-content">
+            
+            <div class="mb-3">
+              <label class="small-label">Gắn với Hồ sơ vụ án (Không bắt buộc)</label>
+              <div class="position-relative" style="z-index: 1051;">
+                <i class="fas fa-search position-absolute text-muted" style="top:50%; left:12px; transform: translateY(-50%); font-size:12px;"></i>
+                <input type="text" id="task_vuAn_search" class="form-control search-pill" placeholder="Gõ Số thụ lý hoặc Tên đương sự để gắn án..." autocomplete="off" oninput="window.handleTaskSearchCase(this.value)">
+                <div id="task-search-results" class="list-group position-absolute w-100 shadow-lg" style="z-index: 99999; display: none; max-height: 220px; overflow-y: auto; top: calc(100% + 5px); left: 0; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; box-shadow: 0 14px 30px rgba(15, 23, 42, 0.22);"></div>
+              </div>
+              <input type="hidden" id="task_vuAn" data-id="GENERAL">
+              <div id="task-selected-case" class="text-success small fw-bold mt-2" style="display:none;">
+                <i class="fas fa-check-circle me-1"></i>Đã chọn: ---
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-6">
+                <label class="small-label">Ngày hẹn làm việc *</label>
+                <input type="date" id="task_ngay" class="form-control fw-bold">
+              </div>
+              <div class="col-6">
+                <label class="small-label">Giờ bắt đầu *</label>
+                <input type="time" id="task_gio" class="form-control fw-bold" value="08:00">
+              </div>
+            </div>
+
+            <div class="mb-1">
+              <label class="small-label">Nội dung công việc (Tòa án) *</label>
+              <input type="text" id="task_noidung" class="form-control fw-bold text-dark" list="dl_noidung_lamviec" placeholder="Bấm đúp chọn gợi ý hoặc tự gõ..." autocomplete="off">
+            </div>
+
           </div>
         </div>
-        <button class="btn btn-danger w-100 fw-bold shadow-sm mb-4" onclick="window.runCalculator()"><i class="fas fa-equals me-2"></i> TÍNH TOÁN</button>
-        
-        <div class="row g-3 text-center border-top pt-3">
-          <div class="col-6">
-             <div class="small-label text-primary">ÁN PHÍ</div>
-             <div class="h5 fw-bold text-primary mb-1" id="res_anPhi">0</div>
-             <div class="small text-muted mb-2 fst-italic" id="res_anPhiChu" style="font-size: 11px;">(Không đồng)</div>
-             <button class="btn btn-sm btn-outline-primary w-100" onclick="window.copyFee('anphi')"><i class="far fa-copy me-1"></i> Copy Án phí</button>
-          </div>
-          <div class="col-6">
-             <div class="small-label text-warning-emphasis">TẠM ỨNG</div>
-             <div class="h5 fw-bold text-warning-emphasis mb-1" id="res_tamUng">0</div>
-             <div class="small text-muted mb-2 fst-italic" id="res_tamUngChu" style="font-size: 11px;">(Không đồng)</div>
-             <button class="btn btn-sm btn-outline-warning text-dark w-100" onclick="window.copyFee('tamung')"><i class="far fa-copy me-1"></i> Copy Tạm ứng</button>
-          </div>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-outline-secondary px-3" data-bs-dismiss="modal">Hủy</button>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-outline-secondary px-3" onclick="window.saveTask()" title="Chỉ lưu mốc thời gian vào Lịch công tác">
+            <i class="fas fa-save me-1 text-primary"></i> Chỉ lưu lịch
+          </button>
+          <button type="button" class="btn btn-primary px-3 shadow-sm" onclick="window.saveTaskAndDraft()" title="Lưu lịch và tự động mở ngay trình Soạn thảo">
+            <i class="fas fa-file-signature me-1"></i> Lưu & Soạn văn bản
+          </button>
         </div>
       </div>
     </div>
@@ -443,49 +884,774 @@
 </div>
 
 <!-- ======================================================= -->
-<!-- 9. MODAL ĐỒNG BỘ EXCEL TAKV2 -->
+<!-- 9. MODAL ĐỒNG BỘ EXCEL GỐC -->
 <!-- ======================================================= -->
 <div class="modal fade" id="modalImportExcel" tabindex="-1" data-bs-backdrop="static">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content shadow-lg">
-      <div class="modal-header bg-success text-white">
-        <h6 class="modal-title fw-bold"><i class="fas fa-file-excel me-2"></i>ĐỒNG BỘ DỮ LIỆU TỪ TAKV2</h6>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">
+          <span class="modal-icon-badge"><i class="fas fa-file-excel text-success"></i></span>
+          ĐỒNG BỘ DỮ LIỆU TỪ FILE EXCEL
+        </h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body p-4 bg-light">
-        <div class="alert alert-success border-0 shadow-sm mb-3" style="font-size: 12px; border-left: 4px solid #198754 !important;">
-          1. Xuất file Excel từ hệ thống TAKV2.<br>2. Chọn file ở bên dưới để hệ thống đối chiếu và tự động nạp.
+      <div class="modal-body">
+        <div class="modal-inner-card mb-3 bg-light border-0">
+          <div class="card-body-content py-2 small text-muted" style="line-height: 1.6;">
+            1. Chọn file Excel Sổ thụ lý / Sổ đơn gốc.<br>2. Chọn file bên dưới để hệ thống đối chiếu, nạp hồ sơ mới và cập nhật kết quả.
+          </div>
         </div>
-        <input type="file" id="excel-file-input" class="form-control border-success fw-bold mb-3" accept=".xlsx, .xls">
+        <input type="file" id="excel-file-input" class="form-control fw-bold mb-3" accept=".xlsx, .xls">
         
         <div id="import-progress-wrapper" class="mb-3" style="display:none;">
-            <div class="d-flex justify-content-between align-items-center mb-1">
-                <span class="small fw-bold text-success" id="import-percent-text">Đang đồng bộ...</span>
-                <button id="btn-stop-import" class="btn btn-sm btn-danger py-0 px-2" style="font-size: 10px;" onclick="window.stopImportProcess()">DỪNG</button>
-            </div>
-            <div class="progress-container"><div id="import-progress-bar" class="progress-bar-fill"></div></div>
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="small fw-bold text-muted" id="import-percent-text">Đang đồng bộ...</span>
+            <button id="btn-stop-import" class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size: 10px;" onclick="window.stopImportProcess()">DỪNG</button>
+          </div>
+          <div class="progress" style="height: 8px; border-radius: 4px; background: #e2e8f0;">
+            <div id="import-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" style="width: 0%;"></div>
+          </div>
         </div>
-        <div id="import-log" class="p-2 bg-white border rounded small text-muted" style="min-height: 80px; max-height: 120px; overflow-y: auto;">Chờ file...</div>
+        <div id="import-log" class="p-2 bg-white border rounded small text-muted" style="min-height: 80px; max-height: 120px; overflow-y: auto; font-family: monospace;">Chờ chọn file Excel...</div>
       </div>
-      <div class="modal-footer justify-content-center">
-        <button type="button" class="btn btn-outline-secondary px-4 fw-bold me-2" data-bs-dismiss="modal">ĐÓNG</button>
-        <button type="button" class="btn btn-success px-4 shadow fw-bold" onclick="window.processExcelFile()"><i class="fas fa-play me-1"></i> BẮT ĐẦU</button>
+      <div class="modal-footer justify-content-end gap-2">
+        <button type="button" class="btn btn-outline-secondary px-3" data-bs-dismiss="modal">Đóng</button>
+        <button type="button" class="btn btn-primary px-4" onclick="window.processExcelFile()"><i class="fas fa-play me-1"></i> Bắt đầu</button>
       </div>
     </div>
   </div>
 </div>
 
 <!-- ======================================================= -->
-<!-- DATALISTS (GỢI Ý TỪ KHÓA ĐỂ GÕ NHANH) -->
+<!-- 10. MODAL WIZARD: CẬP NHẬT THÔNG TIN ĐƯƠNG SỰ -->
 <!-- ======================================================= -->
+<div class="modal fade" id="modalWizardCapNhatDuongSu" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">
+          <span class="modal-icon-badge"><i class="fas fa-magic"></i></span>
+          HOÀN THIỆN THÔNG TIN ĐƯƠNG SỰ
+        </h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-inner-card d-flex justify-content-between align-items-center mb-3">
+          <div class="card-body-content py-2 d-flex justify-content-between align-items-center w-100">
+            <div>
+              <span class="small-label mb-1">Mức độ hoàn thiện hồ sơ</span>
+              <div class="d-flex align-items-center gap-3">
+                <div class="progress" style="width: 200px; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden;">
+                  <div id="wizard_progress_bar" class="progress-bar bg-primary" style="width: 0%; transition: width 0.3s ease;"></div>
+                </div>
+                <span id="wizard_completion_text" class="fw-bold text-dark" style="font-size: 13.5px;">0%</span>
+              </div>
+            </div>
+            <div class="small text-muted fst-italic">
+              <i class="fas fa-info-circle text-primary me-1"></i> Các trường viền vàng nổi bật là thông tin còn thiếu.
+            </div>
+          </div>
+        </div>
+
+        <div id="wizard_parties_container" class="d-flex flex-column gap-3">
+          <div class="text-center p-4 text-muted"><div class="spinner-border spinner-border-sm me-2 text-primary"></div>Đang quét dữ liệu hồ sơ...</div>
+        </div>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Đóng</button>
+        <button type="button" class="btn btn-primary px-4" onclick="window.submitWizardBoSung()">
+          <i class="fas fa-save me-1"></i> Lưu bổ sung
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================= -->
+<!-- 11. MODAL CẬP NHẬT NHANH ĐƠN KHỞI KIỆN -->
+<!-- ======================================================= -->
+<div class="modal fade" id="modalQuickEditDon" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">
+          <span class="modal-icon-badge"><i class="fas fa-pencil-alt"></i></span>
+          CẬP NHẬT NHANH ĐƠN KHỞI KIỆN
+        </h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="quick_don_id">
+        <div class="modal-inner-card mb-3">
+          <div class="card-body-content">
+            <div class="row g-3">
+              <div class="col-md-3"><label class="small-label">Số đơn</label><input type="text" id="quick_don_so" class="form-control fw-bold text-primary"></div>
+              <div class="col-md-3"><label class="small-label">Ngày nhận</label><input type="date" id="quick_don_ngay" class="form-control"></div>
+              <div class="col-md-3">
+                <label class="small-label">Trạng thái</label>
+                <select id="quick_don_trangThai" class="form-select fw-bold">
+                  <option value="Chưa xử lý">Chưa xử lý</option>
+                  <option value="Đang xem xét">Đang xem xét</option>
+                  <option value="Báo xử lý đơn">Báo xử lý đơn</option>
+                  <option value="Thông báo lựa chọn hòa giải">Thông báo lựa chọn hòa giải</option>
+                  <option value="Chuyển hòa giải đối thoại">Chuyển hòa giải đối thoại</option>
+                  <option value="Yêu cầu sửa đổi, bổ sung">Yêu cầu sửa đổi, bổ sung</option>
+                  <option value="Đã hẹn làm việc">Đã hẹn làm việc</option>
+                  <option value="SMS - Hướng dẫn">SMS - Hướng dẫn</option>
+                  <option value="Trả lại đơn">Trả lại đơn</option>
+                  <option value="Chuyển đơn">Chuyển đơn</option>
+                  <option value="Đã thụ lý">Đã thụ lý thành án</option>
+                  <option value="Đã xử lý xong">Đã xử lý xong</option>
+                  <option value="Đã xử lý xong + SMS">Đã xử lý xong + SMS</option>
+                </select>
+              </div>
+              <div class="col-md-3"><label class="small-label">Thẩm phán phân công</label><input type="text" id="quick_don_thamPhan" class="form-control"></div>
+              <div class="col-md-4">
+                <label class="small-label">Loại án</label>
+                <select id="quick_don_loaiAn" class="form-select fw-bold" onchange="window.updateQuickQuanHeDatalist()">
+                  <option value="1. Hình sự">1. Hình sự</option><option value="2. Dân sự">2. Dân sự</option>
+                  <option value="3. Hôn nhân">3. Hôn nhân & Gia đình</option><option value="4. Kinh doanh">4. Kinh doanh Thương mại</option>
+                  <option value="5. Lao động">5. Lao động</option><option value="6. Hành chính">6. Hành chính</option>
+                  <option value="7. Việc dân sự">7. Việc dân sự</option><option value="8. Hòa giải đối thoại">8. Hòa giải đối thoại</option>
+                </select>
+              </div>
+              <div class="col-md-8"><label class="small-label">Quan hệ tranh chấp</label><input type="text" id="quick_don_quanHe" class="form-control" list="dl_quanhe_tranhchap"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-lg-6">
+            <div class="modal-inner-card h-100 mb-0">
+              <div class="card-header-bar">
+                <span class="step-header"><i class="fas fa-user-plus text-primary me-2"></i>Người khởi kiện</span>
+                <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size: 11px;" onclick="window.addQuickPartyRow('NKK')"><i class="fas fa-plus"></i></button>
+              </div>
+              <div class="card-body-content d-flex flex-column gap-2" id="quick-party-nkk"></div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="modal-inner-card h-100 mb-0">
+              <div class="card-header-bar">
+                <span class="step-header"><i class="fas fa-user-minus text-danger me-2"></i>Người bị kiện</span>
+                <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size: 11px;" onclick="window.addQuickPartyRow('NBK')"><i class="fas fa-plus"></i></button>
+              </div>
+              <div class="card-body-content d-flex flex-column gap-2" id="quick-party-nbk"></div>
+            </div>
+          </div>
+          <div class="col-lg-12">
+            <div class="modal-inner-card mb-0">
+              <div class="card-header-bar">
+                <span class="step-header"><i class="fas fa-users text-secondary me-2"></i>Người có quyền lợi, nghĩa vụ liên quan</span>
+                <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size: 11px;" onclick="window.addQuickPartyRow('NLQ')"><i class="fas fa-plus"></i></button>
+              </div>
+              <div class="card-body-content row g-2" id="quick-party-nlq"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Hủy</button>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-outline-secondary px-3" onclick="window.saveQuickEditDon(false)"><i class="fas fa-save me-1"></i> Lưu đơn</button>
+          <button type="button" class="btn btn-primary px-4" onclick="window.saveQuickEditDon(true)"><i class="fas fa-magic me-1"></i> Lưu & Soạn thảo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================= -->
+<!-- 12. MODAL SOẠN THẢO VĂN BẢN ĐƠN KHỞI KIỆN -->
+<!-- ======================================================= -->
+<div class="modal fade" id="modalQuickDraftDon" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">
+          <span class="modal-icon-badge"><i class="fas fa-file-word"></i></span>
+          SOẠN THẢO VĂN BẢN ĐƠN KHỞI KIỆN
+        </h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="draft_don_id">
+        <div class="modal-inner-card mb-3">
+          <div class="card-body-content">
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
+              <span class="text-dark fw-bold" id="draft_top_title" style="font-size: 14px;"></span>
+              <button class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="window.backToQuickEdit()"><i class="fas fa-edit me-1"></i> Quay lại cập nhật</button>
+            </div>
+            <div class="text-muted fw-bold mb-2" id="draft_top_quanHe" style="font-size: 13px;"></div>
+            <div class="row g-3">
+              <div class="col-md-4 border-end pe-md-3">
+                <div class="small-label mb-1">Bên khởi kiện</div>
+                <div id="draft_top_nkk" class="text-muted small" style="line-height: 1.5;"></div>
+              </div>
+              <div class="col-md-4 border-end px-md-3">
+                <div class="small-label mb-1">Bên bị kiện</div>
+                <div id="draft_top_nbk" class="text-muted small" style="line-height: 1.5;"></div>
+              </div>
+              <div class="col-md-4 ps-md-3">
+                <div class="small-label mb-1">Người liên quan</div>
+                <div id="draft_top_nlq" class="text-muted small" style="line-height: 1.5;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-12">
+            <div class="row g-2">
+              <div class="col-md-3"><select id="draft_don_loaiAn" class="form-select fw-bold" onchange="window.recalcDraftFee()"></select></div>
+              <div class="col-md-9"><input type="text" id="draft_don_quanHe" class="form-control fw-bold"></div>
+            </div>
+          </div>
+          
+          <div class="col-md-4">
+            <div class="modal-inner-card h-100 mb-0">
+              <div class="card-header-bar">
+                <span class="step-header"><span class="badge-step">1</span> Án phí & Tạm ứng</span>
+              </div>
+              <div class="card-body-content p-3">
+                <input type="text" id="draft_don_giaTri" class="form-control form-control-sm fw-bold mb-2" oninput="window.formatCurrency(this); window.recalcDraftFee()" autocomplete="off">
+                <div class="row g-2 text-center">
+                  <div class="col-6 bg-light rounded p-2 border">
+                    <span class="d-block" style="font-size:10px; color:#64748b;">ÁN PHÍ</span>
+                    <b class="text-dark" id="draft_lbl_anPhi" style="font-size:13px;">0</b>
+                  </div>
+                  <div class="col-6 bg-light rounded p-2 border">
+                    <span class="d-block" style="font-size:10px; color:#64748b;">TẠM ỨNG</span>
+                    <b class="text-primary" id="draft_lbl_tamUng" style="font-size:13px;">0</b>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-md-4">
+            <div class="modal-inner-card h-100 mb-0 d-flex flex-column">
+              <div class="card-header-bar">
+                <span class="step-header"><span class="badge-step">2</span> Chọn mẫu</span>
+              </div>
+              <div class="card-body-content p-3 flex-grow-1 d-flex flex-column">
+                <div class="position-relative mb-2">
+                  <i class="fas fa-search position-absolute text-muted" style="top:50%; left:12px; transform: translateY(-50%); font-size:11px;"></i>
+                  <input type="text" id="search_tpl_quickdon" class="form-control form-control-sm search-pill" placeholder="Tìm mẫu..." onkeyup="window.filterTemplates('search_tpl_quickdon', 'quick_draft_templates')">
+                </div>
+                <div id="quick_draft_templates" class="overflow-auto flex-grow-1" style="height: 110px;"></div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-md-4">
+            <div class="modal-inner-card h-100 mb-0">
+              <div class="card-header-bar">
+                <span class="step-header"><span class="badge-step">3</span> Thông số văn bản</span>
+              </div>
+              <div class="card-body-content p-3">
+                <div class="mb-2">
+                  <span style="font-size:11px;" class="text-muted fw-bold">Ngày ký văn bản</span>
+                  <input type="date" id="draft_don_ngayBanHanh" class="form-control form-control-sm fw-bold">
+                </div>
+                <div class="row g-2">
+                  <div class="col-5">
+                    <span style="font-size:11px;" class="text-muted fw-bold">Giờ làm việc</span>
+                    <input type="time" id="draft_don_time" class="form-control form-control-sm fw-bold" value="08:30">
+                  </div>
+                  <div class="col-7">
+                    <span style="font-size:11px;" class="text-muted fw-bold">Ngày làm việc</span>
+                    <input type="date" id="draft_don_date" class="form-control form-control-sm fw-bold">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-footer justify-content-end gap-2">
+        <button type="button" class="btn btn-outline-secondary px-3" data-bs-dismiss="modal">Hủy</button>
+        <button type="button" class="btn btn-primary px-4" onclick="window.executeQuickDraftDon()">
+          <i class="fas fa-magic me-1"></i> Trộn thư
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================= -->
+<!-- 13. MODAL GỬI TIN NHẮN & LÊN LỊCH NHANH (FAST SMS) -->
+<!-- ======================================================= -->
+<div class="modal fade" id="modalFastSMS" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">
+          <span class="modal-icon-badge"><i class="fas fa-paper-plane"></i></span>
+          GỬI TIN NHẮN & LÊN LỊCH HẸN
+        </h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="sms_target_id">
+        <input type="hidden" id="sms_target_phone">
+        <input type="hidden" id="sms_target_name">
+        <input type="hidden" id="sms_target_sodon">
+        
+        <div class="modal-inner-card mb-3 bg-light border-0">
+          <div class="card-body-content py-2 text-dark small">
+            Chuẩn bị nhắn tin cho: <b id="sms_display_name" class="text-primary"></b> | Số điện thoại: <b id="sms_display_phone" class="text-dark"></b>
+          </div>
+        </div>
+
+        <div class="modal-inner-card mb-0">
+          <div class="card-body-content">
+            <div class="row g-3">
+              <div class="col-6">
+                <label class="small-label">Ngày hẹn làm việc *</label>
+                <input type="date" id="sms_date" class="form-control fw-bold">
+              </div>
+              <div class="col-6">
+                <label class="small-label">Giờ hẹn *</label>
+                <input type="time" id="sms_time" class="form-control fw-bold">
+              </div>
+              <div class="col-12">
+                <label class="small-label">Phòng ban / Địa điểm</label>
+                <input type="text" id="sms_location" class="form-control fw-bold" list="dl_diadiem_lamviec" value="Tổ Hành chính tư pháp – Văn phòng Tòa án">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer justify-content-end gap-2">
+        <button type="button" class="btn btn-outline-secondary px-3" data-bs-dismiss="modal">Hủy</button>
+        <button type="button" class="btn btn-primary px-4" onclick="window.executeFastSMS()">
+          <i class="fas fa-bolt me-1"></i> Lưu lịch & Mở tin nhắn
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================= -->
+<!-- 14. MODAL XỬ LÝ HÀNG LOẠT HỒ SƠ ĐƠN -->
+<!-- ======================================================= -->
+<div class="modal fade" id="modalBulkActionDon" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">
+          <span class="modal-icon-badge"><i class="fas fa-tasks"></i></span>
+          XỬ LÝ HÀNG LOẠT HỒ SƠ ĐƠN
+        </h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-5 border-end pe-md-3">
+            <label class="small-label mb-2">Danh sách đã chọn (<span id="bulk_don_list_count">0</span>)</label>
+            <div id="bulk_don_list_preview" class="border bg-white rounded p-2 overflow-auto" style="height: 230px;"></div>
+          </div>
+          <div class="col-md-7 ps-md-3">
+            <label class="small-label mb-2">Thiết lập lịch hẹn & SMS</label>
+            <div class="row g-2 mb-2">
+              <div class="col-6">
+                <span class="small-label">Ngày hẹn *</span>
+                <input type="date" id="bulk_don_date" class="form-control form-control-sm fw-bold">
+              </div>
+              <div class="col-6">
+                <span class="small-label">Giờ hẹn *</span>
+                <input type="time" id="bulk_don_time" class="form-control form-control-sm fw-bold" value="08:30">
+              </div>
+              <div class="col-12">
+                <span class="small-label">Địa điểm</span>
+                <input type="text" id="bulk_don_location" class="form-control form-control-sm fw-bold" list="dl_diadiem_lamviec" value="Tổ Hành chính tư pháp - Văn phòng Tòa án">
+              </div>
+            </div>
+            <label class="small-label mb-1">Nội dung SMS tự động</label>
+            <textarea id="bulk_don_sms_template" class="form-control form-control-sm" rows="3" style="font-size: 12px;">TAND Khu vuc 2 - Lam Dong thong bao: Da nhan don cua [TenDuongSu] (So don: [SoDon] - [NgayNhan]). Vui long lien he [DiaDiem] vao luc [GioHen] ngay [NgayHen] de duoc huong dan. Luu y: He thong khong nhan cuoc goi hoac tin nhan phan hoi.</textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer justify-content-end gap-2">
+        <button type="button" class="btn btn-outline-secondary px-3" data-bs-dismiss="modal">Hủy</button>
+        <button type="button" class="btn btn-primary px-4" onclick="window.executeBulkDonAction()">
+          <i class="fas fa-paper-plane me-1"></i> Xử lý hàng loạt
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================= -->
+<!-- 15. MODAL GHI CHÚ ĐƠN -->
+<!-- ======================================================= -->
+<div class="modal fade" id="modalDonGhiChu" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header border-bottom-0 pb-0">
+        <h6 class="modal-title">
+          <span class="modal-icon-badge"><i class="fas fa-sticky-note text-warning"></i></span>
+          GHI CHÚ HỒ SƠ
+        </h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body pt-2 pb-2 px-3">
+        <input type="hidden" id="modal_note_don_id">
+        <textarea id="modal_note_content" class="form-control bg-transparent border-0 shadow-none px-0 text-dark fw-bold" style="resize: none; min-height: 100px; font-size: 13.5px;" placeholder="Nhập nội dung ghi chú..."></textarea>
+      </div>
+      <div class="modal-footer border-top-0 pt-0 justify-content-end">
+        <button type="button" class="btn btn-sm btn-primary px-3" onclick="window.saveQuickNoteFromModal()">Lưu lại</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================= -->
+<!-- 16. MODAL NỘI DUNG SỬA ĐỔI, BỔ SUNG ĐƠN -->
+<!-- ======================================================= -->
+<div class="modal fade" id="modalSuaDoiBoSungDon" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">
+          <span class="modal-icon-badge"><i class="fas fa-edit"></i></span>
+          YÊU CẦU SỬA ĐỔI, BỔ SUNG ĐƠN
+        </h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="window.cancelSbsForm()"></button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-inner-card mb-2">
+          <div class="card-body-content">
+            <label class="small-label mb-1">1. Về hình thức đơn khởi kiện</label>
+            <select id="sbs_hinhThuc_status" class="form-select fw-bold mb-2" onchange="window.toggleSbsFields()">
+              <option value="Đã đúng hình thức đơn">Đã đúng hình thức đơn (Không cần sửa)</option>
+              <option value="Chưa đúng hình thức đơn">Chưa đúng hình thức đơn (Cần sửa đổi)</option>
+            </select>
+            <div id="sbs_hinhThuc_yeuCau_container" style="display:none;">
+              <label id="lbl_sbs_hinhThuc" class="small-label mt-2">Yêu cầu sửa đổi hình thức:</label>
+              <textarea id="sbs_hinhThuc_yeuCau" class="form-control" rows="2" placeholder="Ví dụ: Làm lại đơn theo đúng Mẫu số 23-DS..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-inner-card mb-2">
+          <div class="card-body-content">
+            <label class="small-label mb-1">2. Về nội dung đơn khởi kiện</label>
+            <label class="small-label">Nhận xét nội dung hiện tại:</label>
+            <textarea id="sbs_noiDung_nhanXet" class="form-control mb-2" rows="2" placeholder="Ví dụ: Đơn chưa ghi rõ giá trị tài sản tranh chấp..."></textarea>
+            
+            <div id="sbs_noiDung_yeuCau_container">
+              <label id="lbl_sbs_noiDung" class="small-label mt-2">Yêu cầu bổ sung nội dung:</label>
+              <textarea id="sbs_noiDung_yeuCau" class="form-control" rows="2" placeholder="Ví dụ: Cần ghi rõ giá trị tài sản tranh chấp là bao nhiêu..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-inner-card mb-0">
+          <div class="card-body-content">
+            <label class="small-label mb-1">3. Về tài liệu chứng cứ kèm theo</label>
+            <select id="sbs_taiLieu_status" class="form-select fw-bold mb-2" onchange="window.toggleSbsFields()">
+              <option value="Đã đủ tài liệu chứng cứ">Đã nộp đủ tài liệu (Không cần bổ sung)</option>
+              <option value="Chưa đủ tài liệu chứng cứ">Chưa đủ tài liệu (Cần bổ sung)</option>
+            </select>
+            <div id="sbs_taiLieu_yeuCau_container" style="display:none;">
+              <label id="lbl_sbs_taiLieu" class="small-label mt-2">Yêu cầu bổ sung tài liệu:</label>
+              <textarea id="sbs_taiLieu_yeuCau" class="form-control" rows="2" placeholder="Ví dụ: Nộp bản sao y công chứng Giấy chứng nhận QSDĐ..."></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer justify-content-end gap-2">
+        <button type="button" class="btn btn-outline-secondary px-3" onclick="window.cancelSbsForm()">Hủy</button>
+        <button type="button" class="btn btn-primary px-4" onclick="window.submitSbsForm()"><i class="fas fa-magic me-1"></i> Trộn thư</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================= -->
+<!-- 17. MODAL CẤU HÌNH AI TẠO BIỂU MẪU (CHUẨN HÓA WIZARD) -->
+<!-- ======================================================= -->
+<div class="modal fade" id="modalAITemplateConfig" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">
+          <span class="modal-icon-badge"><i class="fas fa-file-word text-primary"></i></span>
+          WIZARD AI CẤU HÌNH & TẠO PHÔI MẪU
+        </h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        
+        <!-- Khung tệp đã tải -->
+        <div class="modal-inner-card mb-3 bg-light border-0">
+          <div class="card-body-content py-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+              <span class="small-label mb-0 text-secondary">Tệp Word nguồn đã nạp:</span>
+              <b id="ai_tpl_filename" class="text-primary" style="font-size: 13.5px;">Chưa chọn tệp</b>
+            </div>
+            <span class="badge bg-primary-subtle text-primary border px-2 py-1" style="font-size: 11px;">
+              <i class="fas fa-robot me-1"></i> Gemini Flash Engine
+            </span>
+          </div>
+        </div>
+
+        <!-- Chế độ 1: Bơm đè vào mẫu có sẵn -->
+        <div class="modal-inner-card mb-3">
+          <div class="card-body-content">
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="radio" name="aiTplMode" id="aiTplMode_Overwrite" value="OVERWRITE" checked onchange="window.toggleAiTplMode()">
+              <label class="form-check-label fw-bold text-dark" for="aiTplMode_Overwrite" style="cursor: pointer; font-size: 13px;">
+                Chế độ 1: Bơm nội dung & cấy Placeholder vào Biểu mẫu có sẵn trong hệ thống
+              </label>
+            </div>
+            
+            <div class="ps-4 mt-2" id="ai_tpl_overwrite_section">
+              <!-- Thanh tìm kiếm mẫu -->
+              <div class="position-relative mb-2">
+                <i class="fas fa-search position-absolute text-muted" style="top:50%; left:12px; transform: translateY(-50%); font-size:11px;"></i>
+                <input type="text" id="ai_tpl_search_modal" class="form-control form-control-sm search-pill" placeholder="Tìm nhanh mẫu theo số hoặc tên (VD: 25, 45, thuận tình, đình chỉ...)" autocomplete="off" oninput="window.filterAiOverrideTemplates(this.value)">
+              </div>
+              
+              <!-- Danh sách mẫu có sẵn -->
+              <div id="ai_tpl_list_modal" class="border rounded-3 bg-light overflow-auto p-2" style="max-height: 220px; min-height: 140px;">
+                <div class="p-3 text-center text-muted small"><div class="spinner-border spinner-border-sm me-2 text-primary"></div> Đang nạp danh mục biểu mẫu...</div>
+              </div>
+              <input type="hidden" id="ai_selected_target_tpl_id" value="">
+              <div id="ai_selected_tpl_alert" class="small fw-bold text-success mt-2" style="display:none;">
+                <i class="fas fa-check-circle me-1"></i> Đã chọn mẫu đích: <span id="ai_selected_tpl_name"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chế độ 2: Tạo mẫu mới hoàn toàn -->
+        <div class="modal-inner-card mb-0">
+          <div class="card-body-content">
+            <div class="form-check mb-2">
+              <input class="form-check-input" type="radio" name="aiTplMode" id="aiTplMode_New" value="NEW" onchange="window.toggleAiTplMode()">
+              <label class="form-check-label fw-bold text-dark" for="aiTplMode_New" style="cursor: pointer; font-size: 13px;">
+                Chế độ 2: Tạo thành Biểu mẫu hoàn toàn mới trên Google Drive
+              </label>
+            </div>
+            <div class="ps-4 mt-2" id="ai_tpl_new_section" style="opacity: 0.4; pointer-events: none; transition: opacity 0.2s;">
+              <label class="small-label mb-1">Đặt tên tệp biểu mẫu mới:</label>
+              <input type="text" id="ai_tpl_new_name" class="form-control fw-bold" placeholder="Ví dụ: 15a. Quyết định định giá tài sản bổ sung..." autocomplete="off">
+              <div class="form-text mt-1 text-muted" style="font-size: 11px;">Biểu mẫu sẽ được lưu trực tiếp vào thư mục Biểu mẫu trên Google Drive của bạn.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer justify-content-end gap-2">
+        <button type="button" class="btn btn-outline-secondary px-3" data-bs-dismiss="modal">Hủy</button>
+        <button type="button" class="btn btn-primary px-4 shadow-sm" onclick="window.executeAITemplateCreation()">
+          <i class="fas fa-wand-magic-sparkles me-1"></i> Tiến hành tạo phôi mẫu
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================= -->
+<!-- 18. BẢNG TỪ ĐIỂN PLACEHOLDER (TRỰC TUYẾN) -->
+<!-- ======================================================= -->
+<div class="modal fade" id="modalTuDienPlaceholder" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title">
+          <span class="modal-icon-badge"><i class="fas fa-book-open"></i></span>
+          TỪ ĐIỂN PLACEHOLDER HỆ THỐNG
+        </h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0">
+        <div class="p-3 border-bottom bg-light small text-muted">
+          <i class="fas fa-lightbulb text-primary me-1"></i> Bôi đen cột <b>TỪ KHÓA MẪU</b> (Bao gồm dấu <code>{}</code>) rồi Copy dán vào file Word/Google Docs. Hệ thống không phân biệt chữ Hoa/Thường.
+        </div>
+        <div class="table-responsive px-3 py-2">
+          <table class="table table-bordered table-hover bg-white mb-0" style="font-size: 12.5px; border-radius: 8px; overflow: hidden;">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 25%">TỪ KHÓA MẪU (COPY)</th>
+                <th style="width: 45%">MÔ TẢ KẾT QUẢ ĐẦU RA</th>
+                <th style="width: 30%">PHÂN NHÓM</th>
+              </tr>
+            </thead>
+            <tbody id="dict_placeholder_body">
+              <tr><td colspan="3" class="text-center p-4"><i class="fas fa-spinner fa-spin me-2 text-primary"></i>Đang tải từ điển...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer justify-content-end">
+        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Đóng</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================= -->
+<!-- 19. MODAL CẢNH BÁO TIỀN KIỂM (CẢNH BÁO MỘC MẠC, 2 NÚT TINH GỌN) -->
+<!-- ======================================================= -->
+<div class="modal fade" id="modalPreflightWarning" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title text-warning-emphasis">
+          <span class="modal-icon-badge" style="background:#fffbeb; border-color:#fde68a;"><i class="fas fa-triangle-exclamation text-warning"></i></span>
+          RÀ SOÁT THÔNG TIN TRƯỚC KHI XUẤT VĂN BẢN
+        </h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-inner-card mb-3 bg-light border-0">
+          <div class="card-body-content py-2 small text-muted" style="line-height: 1.6;">
+            Hệ thống phát hiện biểu mẫu bạn chọn có <b><span id="preflight_missing_count" class="text-danger fw-bold">0 trường</span></b> chưa có dữ liệu trong hồ sơ.<br>
+            <i>* Bạn có thể chọn Bỏ qua để xuất văn bản với các vị trí trống (dấu ......), hoặc Hủy để bổ sung thông tin vào hồ sơ.</i>
+          </div>
+        </div>
+
+        <div class="small-label mb-2">Danh sách các trường chưa có thông tin:</div>
+        <div id="preflight_missing_list_container" class="d-flex flex-column gap-1" style="max-height: 280px; overflow-y: auto;"></div>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Hủy xuất văn bản</button>
+        <button type="button" class="btn btn-primary px-4 shadow-sm" onclick="window.proceedDraftingIgnoreWarning()">
+          <i class="fas fa-arrow-right me-1"></i> Bỏ qua & Tiếp tục xuất văn bản
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================= -->
+<!-- 20. MODAL QUẢN LÝ VIỆC TỒN ĐỌNG & QUÁ HẠN (BACKLOG DRAWER) -->
+<!-- ======================================================= -->
+<div class="modal fade" id="modalViecTonDong" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title text-danger fw-bold">
+          <span class="modal-icon-badge text-danger" style="background:#fef2f2; border-color:#fecaca;"><i class="fas fa-history text-danger"></i></span>
+          DANH SÁCH VIỆC TỒN ĐỌNG & QUÁ HẠN (<span id="backlog_modal_count">0</span>)
+        </h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-inner-card mb-3 bg-light border-0">
+          <div class="card-body-content py-2 small text-muted">
+            <i class="fas fa-info-circle text-danger me-1"></i> Đây là các lịch làm việc hoặc mốc tố tụng trong quá khứ <b>chưa được đánh dấu hoàn thành</b> hoặc các vụ án <b>đã quá hạn</b>.
+          </div>
+        </div>
+
+        <div id="backlog_items_container" class="d-flex flex-column gap-2" style="min-height: 120px; max-height: 420px; overflow-y: auto;">
+          <div class="text-center p-4 text-muted small">
+            <div class="spinner-border spinner-border-sm text-danger me-2"></div> Đang kiểm tra công việc tồn đọng...
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-outline-secondary px-3" onclick="bootstrap.Modal.getInstance(document.getElementById('modalViecTonDong')).hide(); window.appNavigate('view-schedule');">
+          <i class="fas fa-calendar-alt me-1 text-primary"></i> Mở Lịch công tác
+        </button>
+        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Đóng</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================= -->
+<!-- DATALISTS TĨNH TOÀN DIỆN CHO TOÀN HỆ THỐNG -->
+<!-- ======================================================= -->
+
+<!-- 1. ĐỊA ĐIỂM CHUẨN CỦA TÒA ÁN -->
+<datalist id="dl_diadiem_lamviec">
+  <option value="Trụ sở Tòa án nhân dân tỉnh Lâm Đồng">
+  <option value="Tổ Hành chính tư pháp – Văn phòng Tòa án nhân dân tỉnh Lâm Đồng">
+  <option value="Phòng xét xử số 1 – Tòa án nhân dân tỉnh Lâm Đồng">
+  <option value="Phòng xét xử số 2 – Tòa án nhân dân tỉnh Lâm Đồng">
+  <option value="Phòng xét xử số 3 – Tòa án nhân dân tỉnh Lâm Đồng">
+  <option value="Phòng hòa giải đối thoại – Tòa án nhân dân tỉnh Lâm Đồng">
+  <option value="Tại vị trí thửa đất và các tài sản khác đang có tranh chấp trong vụ án">
+</datalist>
+
+<!-- 2. GỢI Ý CÔNG VIỆC TRÊN LỊCH -->
+<datalist id="dl_noidung_lamviec">
+  <option value="Lấy lời khai đương sự">
+  <option value="Lấy lời khai người làm chứng">
+  <option value="Lấy lời khai con chung">
+  <option value="Đối chất">
+  <option value="Giao nhận tài liệu, chứng cứ">
+  <option value="Xem xét, thẩm định tại chỗ">
+  <option value="Định giá tài sản">
+  <option value="Thẩm định tại chỗ và định giá tài sản">
+  <option value="Công khai chứng cứ và hòa giải">
+  <option value="Công khai chứng cứ và đối thoại">
+  <option value="Phiên họp giải quyết việc dân sự">
+  <option value="Hòa giải / Đối thoại (Luật HGĐT)">
+  <option value="Xét xử sơ thẩm">
+  <option value="Hoãn phiên tòa / Mở lại phiên tòa">
+  <option value="Tuyên án">
+  <option value="Tống đạt văn bản tố tụng">
+</datalist>
+
+<!-- 3. GỢI Ý NỘI DUNG LÀM VIỆC TRÊN GIẤY TRIỆU TẬP -->
+<datalist id="dl_draft_noidung_goiy">
+  <option value="Làm rõ một số vấn đề liên quan đến vụ án">
+  <option value="Cung cấp lời khai và giao nộp tài liệu, chứng cứ liên quan đến vụ án.">
+  <option value="Nhận Thông báo thụ lý vụ án và nộp Bản tự khai.">
+  <option value="Nhận Thông báo thụ lý việc dân sự và trình bày ý kiến.">
+  <option value="Trình bày nguyện vọng về việc sống với cha hoặc mẹ sau khi cha mẹ ly hôn.">
+  <option value="Tham gia buổi đối chất để làm rõ các tình tiết mâu thuẫn trong vụ án.">
+  <option value="Giao nộp bổ sung tài liệu, chứng cứ và ký Biên bản giao nhận tài liệu, chứng cứ.">
+  <option value="Tham gia buổi xem xét, thẩm định tại chỗ đối với tài sản đang tranh chấp.">
+  <option value="Tham gia buổi đo vẽ hiện trạng diện tích đất tranh chấp.">
+  <option value="Tham gia buổi định giá đối với tài sản đang tranh chấp trong vụ án.">
+  <option value="Tham gia buổi xem xét, thẩm định tại chỗ và định giá đối với tài sản đang tranh chấp.">
+  <option value="Tham gia phiên họp kiểm tra việc giao nộp, tiếp cận, công khai chứng cứ và hòa giải.">
+  <option value="Tham gia phiên họp kiểm tra việc giao nộp, tiếp cận, công khai chứng cứ và đối thoại.">
+  <option value="Tham gia phiên hòa giải / đối thoại tại Tòa án.">
+  <option value="Ký Biên bản ghi nhận sự tự nguyện ly hôn và hòa giải thành.">
+  <option value="Tham gia phiên họp giải quyết việc dân sự.">
+  <option value="Tham gia phiên tòa xét xử sơ thẩm vụ án.">
+  <option value="Tham gia phiên tòa xét xử sơ thẩm được mở lại.">
+  <option value="Nghe Tòa án tuyên đọc Bản án sơ thẩm.">
+  <option value="Nhận các văn bản tố tụng của Tòa án nhân dân.">
+</datalist>
+
+<!-- 4. DANH XƯNG & TƯ CÁCH TỐ TỤNG -->
 <datalist id="listXungHo">
-  <option value="Ông"><option value="Bà"><option value="Anh"><option value="Chị"><option value="Công ty"><option value="Doanh nghiệp">
+  <option value="Ông/Bà"><option value="Ông"><option value="Bà"><option value="Anh"><option value="Chị"><option value="Tổ chức"><option value="Công ty"><option value="Doanh nghiệp">
 </datalist>
+
 <datalist id="listTuCach">
-  <option value="Nguyên đơn"><option value="Bị đơn"><option value="Người bị hại"><option value="Bị cáo">
-  <option value="Người có quyền lợi, nghĩa vụ liên quan"><option value="Người làm chứng">
-  <option value="Người khởi kiện"><option value="Người bị kiện"><option value="Người yêu cầu"><option value="Người bị yêu cầu">
+  <option value="Nguyên đơn"><option value="Bị đơn"><option value="Người có quyền lợi, nghĩa vụ liên quan"><option value="Người làm chứng"><option value="Người khởi kiện"><option value="Người bị kiện"><option value="Người yêu cầu"><option value="Người bị yêu cầu"><option value="Người bị hại"><option value="Bị cáo">
 </datalist>
+
+<datalist id="listTuCachDon">
+  <option value="Người khởi kiện"><option value="Người bị kiện"><option value="Người có quyền lợi, nghĩa vụ liên quan"><option value="Người yêu cầu"><option value="Người bị yêu cầu">
+</datalist>
+
 <datalist id="listRepType">
-  <option value="Người đại diện theo pháp luật"><option value="Người đại diện theo ủy quyền">
+  <option value="Người đại diện theo ủy quyền"><option value="Người đại diện theo pháp luật"><option value="Luật sư bảo vệ quyền và lợi ích hợp pháp">
+</datalist>
+
+<!-- 5. KẾT QUẢ GIẢI QUYẾT CHUẨN TANDTC -->
+<datalist id="listKetQua">
+  <option value="Bản án sơ thẩm">
+  <option value="Quyết định công nhận sự thỏa thuận của các đương sự">
+  <option value="Quyết định công nhận thuận tình ly hôn và sự thỏa thuận của các đương sự">
+  <option value="Quyết định đình chỉ giải quyết vụ án dân sự">
+  <option value="Quyết định tạm đình chỉ giải quyết vụ án dân sự">
+  <option value="Quyết định tiếp tục giải quyết vụ án dân sự">
+  <option value="Quyết định gia hạn thời hạn chuẩn bị xét xử">
+  <option value="Quyết định chuyển hồ sơ vụ án">
+  <option value="Quyết định giải quyết việc dân sự">
+  <option value="Quyết định công nhận kết quả hòa giải thành tại Tòa án">
 </datalist>

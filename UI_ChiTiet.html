@@ -1,286 +1,559 @@
 <!--
-  HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V7.5.4 - GROQ AI EDITION
-  FILE: UI_ChiTiet.html (ĐÃ BỎ 2 NÚT TAKV2 VÀ LỊCH XX)
+  =========================================================================
+  HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.0 - HỒ SƠ VỤ ÁN CHUYÊN SÂU
+  TỆP: UI_ChiTiet.html - GIAO DIỆN TỐI GIẢN, SOẠN THẢO A4, CANVAS & TRÍCH XUẤT 1-CLICK
+  - TUÂN THỦ 100% QUY CHUẨN V8.0 PRODUCTION MASTER
+  - BỘ SOẠN THẢO ĐƯƠNG SỰ A4 IN-PLACE TRỰC QUAN KHÔNG ĐƯỜNG VIỀN
+  - VÙNG DỮ LIỆU CANVAS MỞ TỰ ĐỘNG LƯU VÀO _case_memory.json
+  - WIDGET HỒ SƠ DRIVE & DÒNG THỜI GIAN TIMELINE THỜI GIAN THỰC
+  =========================================================================
 -->
 
-<div class="animate-fadeIn p-2 p-md-3">
- 
-  <!-- 1. THANH ĐIỀU HƯỚNG -->
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <button class="btn btn-outline-secondary shadow-sm fw-bold" style="border-radius: 20px; font-size: 12px; height: 38px;" onclick="appNavigate('view-list')">
-      <i class="fas fa-chevron-left me-2"></i>QUAY LẠI SỔ THỤ LÝ
-    </button>
-    <div class="d-flex gap-2">
-      <button class="btn btn-light border shadow-sm fw-bold px-3 py-2" onclick="openEditCaseModal()" style="border-radius: 8px; font-size: 12px; color: #f97316;"><i class="fas fa-edit me-1"></i> SỬA ÁN</button>
-      <button class="btn btn-light border shadow-sm fw-bold px-3 py-2 text-danger" onclick="confirmDeleteCase()" style="border-radius: 8px; font-size: 12px;"><i class="fas fa-trash-alt me-1"></i> XÓA ÁN</button>
+<style>
+  .det-main-container {
+    color: #0f172a;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .det-panel-card {
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+    overflow: hidden;
+  }
+
+  /* Nút bấm thanh công cụ thanh mảnh */
+  .btn-action-tool {
+    border-radius: 8px !important;
+    font-weight: 700 !important;
+    font-size: 12px !important;
+    height: 35px !important;
+    padding: 0 0.85rem !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+  .btn-action-primary {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+    border-color: #2563eb !important;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+  }
+  .btn-action-primary:hover { 
+    background-color: #1d4ed8 !important; 
+  }
+  .btn-action-tonal {
+    background-color: #eff6ff !important;
+    color: #1d4ed8 !important;
+    border-color: #bfdbfe !important;
+  }
+  .btn-action-tonal:hover { 
+    background-color: #dbeafe !important; 
+  }
+  .btn-action-success {
+    background-color: #f0fdf4 !important;
+    color: #15803d !important;
+    border-color: #bbf7d0 !important;
+  }
+  .btn-action-outline {
+    background-color: #ffffff !important;
+    color: #475569 !important;
+    border-color: #cbd5e1 !important;
+  }
+  .btn-action-outline:hover { 
+    background-color: #f8fafc !important; 
+    color: #0f172a !important; 
+  }
+  .btn-action-danger {
+    background-color: #ffffff !important;
+    color: #dc2626 !important;
+    border-color: #fecaca !important;
+  }
+  .btn-action-danger:hover {
+    background-color: #fef2f2 !important;
+  }
+
+  /* Hero Banner tóm tắt */
+  .hero-case-banner {
+    background: #ffffff;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #2563eb !important;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+    padding: 10px 14px;
+  }
+  .hero-meta-label {
+    font-size: 10px;
+    font-weight: 800;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 2px;
+  }
+  .hero-meta-val {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  /* BỘ SOẠN THẢO A4 ĐƯƠNG SỰ */
+  .a4-paper-sheet {
+    padding: 14px 16px;
+    background-color: #ffffff;
+    min-height: 200px;
+    font-size: 13px;
+    color: #1e293b;
+  }
+
+  .party-block {
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #ffffff;
+    position: relative;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
+  }
+
+  .role-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px dashed #cbd5e1;
+  }
+  .role-title {
+    font-size: 11.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .role-nd { color: #1d4ed8; }
+  .role-bd { color: #dc2626; }
+  .role-lq { color: #d97706; }
+  .role-lc { color: #15803d; }
+
+  .kebab-btn {
+    color: #64748b;
+    cursor: pointer;
+    font-size: 15px;
+    border-radius: 6px;
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent; 
+    background: transparent;
+  }
+  .kebab-btn:hover { background: #f1f5f9; color: #0f172a; }
+
+  .kebab-dropdown {
+    display: none; 
+    position: absolute; 
+    right: 12px; 
+    top: 32px; 
+    background: #ffffff; 
+    border: 1px solid #e2e8f0; 
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15); 
+    border-radius: 10px; 
+    z-index: 1050; 
+    min-width: 230px; 
+    padding: 4px 0;
+  }
+  .kebab-dropdown.show { display: block !important; }
+  .kebab-item { 
+    padding: 7px 14px; 
+    font-size: 12px; 
+    cursor: pointer; 
+    color: #1e293b; 
+    font-weight: 600; 
+    display: flex !important; 
+    align-items: center; 
+    gap: 8px; 
+  }
+  .kebab-item:hover { background-color: #f1f5f9; color: #2563eb; }
+  .kebab-item.text-red { color: #dc2626 !important; border-top: 1px solid #f1f5f9; }
+
+  .party-member-block { padding: 4px 0 8px 0; border-bottom: 1px solid #f8fafc; }
+  .party-member-block:last-child { border-bottom: none; padding-bottom: 0; }
+  .party-line { margin-bottom: 3px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; line-height: 1.65; }
+
+  .word-input, .word-select, .select-title {
+    border: none !important; background: transparent !important; box-shadow: none !important;
+    border-radius: 4px !important; padding: 1px 4px !important; font-size: 13px !important;
+    color: #0f172a !important; outline: none !important; display: inline-block; vertical-align: baseline; field-sizing: content; min-width: 35px;
+  }
+  .word-input:focus, .word-select:focus, .select-title:focus { 
+    background-color: #eff6ff !important; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15) !important; 
+  }
+  .name-highlight { font-weight: 700 !important; font-size: 13.5px !important; color: #0f172a !important; min-width: 120px; }
+  .word-select, select.word-select, .select-title {
+    font-weight: 700 !important; color: #1e293b !important; cursor: pointer; appearance: none !important; padding-right: 12px !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath fill='%2364748b' d='M0 0l4 4 4-4z'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important; background-position: right 2px center !important; background-size: 7px 4px !important;
+  }
+
+  .party-line input[placeholder*="địa chỉ"], .party-line input[placeholder*="Địa chỉ"] {
+    flex: 1 1 200px !important; width: auto !important; min-width: 180px !important;
+  }
+
+  .btn-add-rep {
+    color: #64748b !important; background: #f8fafc !important; border: 1px dashed #cbd5e1 !important;
+    font-size: 11px !important; font-weight: 600 !important; padding: 1px 7px !important; border-radius: 6px !important;
+    cursor: pointer !important; display: inline-flex !important; align-items: center; gap: 3px; text-decoration: none !important;
+  }
+  .btn-add-rep:hover { color: #2563eb !important; border-color: #2563eb !important; background-color: #eff6ff !important; }
+
+  .rep-box {
+    border-left: 3px solid #f59e0b; margin-left: 4px; padding: 4px 10px; margin-top: 3px;
+    background: #fffdf7; border-radius: 0 6px 6px 0; border-top: 1px solid #fef3c7; border-bottom: 1px solid #fef3c7; border-right: 1px solid #fef3c7;
+  }
+
+  .btn-del { color: #94a3b8; font-size: 12px; cursor: pointer; padding: 2px 5px; border-radius: 4px; margin-left: auto; }
+  .btn-del:hover { color: #dc2626; background: #fee2e2; }
+
+  .party-block.empty-block {
+    opacity: 0.85; cursor: pointer; border: 1.5px dashed #cbd5e1; padding: 10px;
+    border-radius: 10px; background: #f8fafc; text-align: center; color: #64748b; font-weight: 600;
+  }
+
+  /* VÙNG DỮ LIỆU VỤ ÁN MỞ */
+  .open-canvas-card {
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    padding: 14px 18px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  }
+
+  .canvas-free-textarea {
+    width: 100%;
+    min-height: 260px;
+    background-color: transparent;
+    border: none;
+    outline: none;
+    font-size: 13.5px;
+    font-family: inherit;
+    font-weight: 500;
+    color: #0f172a;
+    line-height: 1.7;
+    resize: vertical;
+    padding: 0;
+  }
+  .canvas-free-textarea::placeholder {
+    color: #cbd5e1;
+    font-style: italic;
+    font-weight: 400;
+  }
+
+  /* Cột Widget bên phải */
+  .sidebar-widget-card {
+    background: #ffffff; 
+    border-radius: 10px; 
+    border: 1px solid #e2e8f0; 
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03); 
+    padding: 12px 14px;
+  }
+  .widget-header-title { 
+    font-size: 11px; 
+    font-weight: 800; 
+    color: #334155; 
+    text-transform: uppercase; 
+    letter-spacing: 0.3px; 
+    margin: 0; 
+  }
+
+  /* Dòng thời gian tố tụng */
+  .timeline-container { position: relative; padding-left: 10px; }
+  .timeline-item { position: relative; padding-bottom: 12px; border-left: 2px solid #e2e8f0; padding-left: 14px; }
+  .timeline-item:last-child { border-left: 2px solid transparent; padding-bottom: 0; }
+  .timeline-dot { position: absolute; left: -5px; top: 4px; width: 8px; height: 8px; border-radius: 50%; background: #94a3b8; }
+  .timeline-dot.root { background: #2563eb; }
+  .timeline-dot.result { background: #16a34a; }
+  .timeline-dot.tdc { background: #64748b; }
+  .timeline-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; }
+  
+  /* Hàng tệp Drive */
+  .file-item-row {
+    transition: all 0.15s ease;
+    border-radius: 7px;
+    padding: 5px 8px !important;
+  }
+  .file-item-row:hover {
+    background-color: #f1f5f9;
+  }
+  .btn-file-action-mini {
+    width: 22px !important;
+    height: 22px !important;
+    min-width: 22px !important;
+    padding: 0 !important;
+    border-radius: 4px !important;
+    font-size: 10px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: none !important;
+  }
+</style>
+
+<div class="det-main-container animate-fadeIn p-2 p-md-3">
+  
+  <!-- 1. THANH ĐIỀU HƯỚNG TRÊN CÙNG -->
+  <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-action-outline btn-action-tool" onclick="window.appNavigate('view-list')">
+        <i class="fas fa-arrow-left text-primary"></i> Sổ Thụ Lý
+      </button>
+      <span id="party_editor_autosave_indicator" class="small fw-bold text-success ms-1" style="font-size: 11px;"></span>
+    </div>
+    
+    <div class="d-flex gap-1 align-items-center flex-wrap">
+      <button class="btn btn-action-tonal btn-action-tool" onclick="window.copyDataForQLTA()" title="Sao chép cấu trúc chuẩn nhập liệu QLTA - TANDTC">
+        <i class="fas fa-copy"></i> QLTA
+      </button>
+      <button class="btn btn-action-outline btn-action-tool" onclick="window.openEditCaseModal(window.currentCaseId)" title="Sửa thông tin cơ bản vụ án">
+        <i class="fas fa-edit text-primary"></i> Sửa án
+      </button>
+      <button class="btn btn-action-success btn-action-tool" onclick="window.openResolutionModal()" title="Cập nhật kết quả Bản án / Quyết định">
+        <i class="fas fa-gavel"></i> Kết quả
+      </button>
+      <button class="btn btn-action-danger btn-action-tool" onclick="window.confirmDeleteCase()" title="Xóa hồ sơ vụ án">
+        <i class="fas fa-trash-alt"></i> Xóa
+      </button>
     </div>
   </div>
 
-  <!-- 2. BANNER TÓM TẮT (Đã xóa 2 nút TAKV2 và Lịch XX) -->
-  <div class="shadow-sm border-0 position-relative animate-fadeIn bg-white mb-3 p-3 p-md-0" id="banner-status-border" style="border-radius: 12px; border-left: 5px solid #1a73e8;">
-    <div class="row g-0 align-items-center">
-      <div class="col-12 col-md-3 banner-block has-border ps-md-4 py-md-3">
-        <span class="label-slim">Số thụ lý sơ thẩm</span>
-        <div class="val-bold text-primary text-truncate" id="det-so" data-id="" style="font-size: 18px;">---</div>
+  <!-- 2. BANNER TÓM TẮT HỒ SƠ -->
+  <div class="hero-case-banner mb-3" id="banner-status-border">
+    <div class="row g-2 align-items-center">
+      <div class="col-12 col-md-3 border-end">
+        <div class="hero-meta-label">Số thụ lý sơ thẩm</div>
+        <div class="fw-bold text-primary text-truncate" id="det-so" data-id="" style="font-size: 14.5px;">---</div>
       </div>
-      <div class="col-6 col-md-2 banner-block has-border py-md-3 px-md-3"><span class="label-slim">Ngày thụ lý</span><div class="val-bold" id="det-ngay" style="font-size: 14px;">--/--/----</div></div>
-      <div class="col-12 col-md-3 banner-block has-border py-md-3 px-md-3"><span class="label-slim">Quan hệ / Tội danh</span><div class="val-bold text-truncate" id="det-quanhe" style="font-size: 14px;">---</div></div>
-      <div class="col-6 col-md-2 banner-block has-border text-md-center py-md-3 px-md-3"><span class="label-slim">Trạng thái</span><div class="val-bold text-success text-truncate" id="det-trangthai" style="font-size: 14px;">---</div></div>
-      <div class="col-6 col-md-2 banner-block text-md-center py-md-3 px-md-3"><span class="label-slim">Hạn cuối</span><div class="val-bold text-danger" id="det-thoihan" style="font-size: 14px;">--/--/----</div></div>
+      <div class="col-4 col-md-2 border-end">
+        <div class="hero-meta-label">Ngày thụ lý</div>
+        <div class="hero-meta-val" id="det-ngay">--/--/----</div>
+      </div>
+      <div class="col-8 col-md-3 border-end">
+        <div class="hero-meta-label">Quan hệ / Tội danh</div>
+        <div class="hero-meta-val text-truncate" id="det-quanhe">---</div>
+      </div>
+      <div class="col-6 col-md-2 border-end text-md-center">
+        <div class="hero-meta-label">Trạng thái</div>
+        <div class="hero-meta-val text-success text-truncate" id="det-trangthai">---</div>
+      </div>
+      <div class="col-6 col-md-2 text-md-center">
+        <div class="hero-meta-label">Hạn giải quyết</div>
+        <div class="hero-meta-val text-danger" id="det-thoihan">--/--/----</div>
+      </div>
     </div>
   </div>
 
-  <!-- 3. NÚT NGHIỆP VỤ NHANH -->
-  <div class="d-flex justify-content-end gap-2 mb-4 animate-fadeIn">
-    <button class="btn btn-primary shadow-sm fw-bold px-3 py-2" onclick="openDraftingModal('CURRENT_CASE')" style="border-radius: 8px; font-size: 12px;"><i class="fas fa-file-signature me-2"></i> SOẠN THẢO VĂN BẢN</button>
-    <button class="btn btn-success shadow-sm fw-bold px-3 py-2" onclick="openResolutionModal()" style="border-radius: 8px; font-size: 12px;"><i class="fas fa-gavel me-2"></i> CẬP NHẬT KẾT QUẢ</button>
-  </div>
-
-  <!-- 4. KHÔNG GIAN TÁC NGHIỆP CHÍNH -->
-  <div class="row g-4">
-    <div class="col-lg-8 col-xl-9">
-      <div class="bg-white shadow-sm h-100" style="border-radius: 12px; border: 1px solid #e0e0e0;">
-        <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
-            <h6 class="fw-bold m-0 text-primary" style="font-size: 14px;"><i class="fas fa-users-cog me-2"></i>THÀNH PHẦN ĐƯƠNG SỰ</h6>
-            <div class="d-flex gap-2">
-                <button class="btn btn-sm btn-outline-info px-3 fw-bold shadow-sm" style="font-size: 11px;" onclick="triggerUpdateScan()"><i class="fas fa-brain me-1"></i> AI QUÉT & CẬP NHẬT</button>
-                <button class="btn btn-sm btn-outline-primary px-3 fw-bold shadow-sm" style="font-size: 11px;" onclick="moModalQuanLyDuongSu()"><i class="fas fa-edit me-1"></i> QUẢN LÝ ĐƯƠNG SỰ</button>
-                <input type="file" id="case-update-scan-input" class="d-none" accept=".doc,.docx,.pdf" onchange="handleCaseUpdateScan(this)">
-            </div>
-        </div>
-        <div class="table-responsive">
-          <table class="gs-table w-100 mb-0" style="min-width: 700px;">
-            <thead>
-              <tr>
-                <th style="width: 20%;">TƯ CÁCH</th>
-                <th style="width: 30%;">HỌ TÊN / NHÂN THÂN</th>
-                <th style="width: 35%;">ĐỊA CHỈ & LIÊN HỆ</th>
-                <th style="width: 15%;" class="text-center">THAO TÁC</th>
-              </tr>
-            </thead>
-            <tbody id="det-party-list">
-              <tr><td colspan="4" class="text-center p-5 text-muted small italic">Đang tải danh sách đương sự...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-lg-4 col-xl-3 d-flex flex-column gap-4">
-      <!-- HỒ SƠ DRIVE -->
-      <div class="bg-white shadow-sm p-3" style="border-radius: 12px; border: 1px solid #e0e0e0;">
-        <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-          <h6 class="fw-bold m-0 text-dark" style="font-size: 13px;"><i class="fas fa-folder-open me-2 text-warning"></i>HỒ SƠ DRIVE</h6>
-          <button class="btn btn-sm p-1 text-muted border-0 bg-light rounded-circle" style="width: 28px; height: 28px;" onclick="refreshDetailFiles()" title="Làm mới"><i class="fas fa-sync-alt"></i></button>
-        </div>
-        <div id="det-files" class="d-flex flex-column gap-1" style="max-height: 250px; overflow-y: auto; padding-right: 5px;"></div>
-        <div class="mt-3 pt-3 border-top">
-          <button id="btn-open-drive" class="btn btn-sm btn-outline-success w-100 fw-bold mb-2 py-2" style="font-size: 11px;" onclick="openDetailDrive()"><i class="fab fa-google-drive me-2"></i> MỞ DRIVE VỤ ÁN</button>
-          <input type="file" id="local-file-uploader" multiple style="display:none;" onchange="handleLocalFileUpload(this)">
-          <button class="btn btn-sm btn-primary w-100 fw-bold shadow-sm py-2" style="font-size: 11px;" onclick="document.getElementById('local-file-uploader').click()"><i class="fas fa-cloud-upload-alt me-2"></i> TẢI FILE LÊN DRIVE</button>
-        </div>
-      </div>
-
-      <!-- GHI CHÚ NGHIỆP VỤ -->
-      <div class="shadow-sm h-100 flex-grow-1" style="border-radius: 12px; background: #fffdf2; border: 1px solid #ffeeba;">
-        <div class="p-3 h-100 d-flex flex-column">
-          <div class="fw-bold border-bottom pb-2" style="font-size: 12px; color: #856404; margin-bottom: 12px; border-color: #f6e297 !important;">
-            <i class="far fa-sticky-note me-2"></i>GHI CHÚ NGHIỆP VỤ
+  <!-- 3. KHÔNG GIAN TÁC NGHIỆP PHẲNG A4 & DÒNG THỜI GIAN -->
+  <div class="row g-3">
+    
+    <!-- CỘT TRÁI: BỘ SOẠN THẢO A4 & VÙNG DỮ LIỆU VỤ ÁN -->
+    <div class="col-lg-8 col-xl-9 d-flex flex-column gap-3">
+      
+      <!-- KHỐI 1: BẢNG A4 ĐƯƠNG SỰ -->
+      <div class="det-panel-card d-flex flex-column mb-0">
+        <div class="p-2 p-md-3 bg-light border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <span class="fw-bold text-dark text-uppercase d-flex align-items-center" style="font-size: 12px; letter-spacing: 0.3px;">
+            <i class="fas fa-file-pen text-primary me-2"></i>THÀNH PHẦN ĐƯƠNG SỰ
+          </span>
+          
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <button class="btn btn-sm btn-action-primary btn-action-tool shadow-sm" onclick="window.openDraftingModal('CURRENT_CASE')" title="Mở trung tâm xuất văn bản tố tụng">
+              <i class="fas fa-file-signature"></i> Soạn văn bản
+            </button>
+            
+            <button class="btn btn-sm btn-action-outline btn-action-tool" onclick="window.openWizardCapNhatDuongSu()" title="Rà soát các trường thông tin còn thiếu">
+              <i class="fas fa-wand-magic-sparkles text-success"></i> Bổ sung thông tin
+            </button>
           </div>
-          <textarea id="det-quick-note" class="form-control border-0 bg-transparent shadow-none flex-grow-1 px-0" style="font-size: 13px; color: #333; resize: none; line-height: 1.6; min-height: 150px;" placeholder="Nhập ghi chú nhanh (Tự động lưu)..." onblur="saveQuickNote()"></textarea>
+        </div>
+
+        <div class="a4-paper-sheet flex-grow-1" id="parties-editor-root">
+          <div class="text-center p-4 text-muted"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Đang nạp danh sách đương sự...</div>
         </div>
       </div>
+
+      <!-- KHỐI 2: DỮ LIỆU VỤ ÁN (MỞ & PHẲNG) -->
+      <div class="open-canvas-card">
+        
+        <!-- THANH CÔNG CỤ DỮ LIỆU VỤ ÁN -->
+        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom flex-wrap gap-2">
+          <div class="d-flex align-items-center gap-2">
+            <i class="fas fa-database text-primary"></i>
+            <span class="fw-bold text-dark text-uppercase" style="font-size: 12px; letter-spacing: 0.4px;">
+              DỮ LIỆU VỤ ÁN (LỜI KHAI & THÔNG SỐ)
+            </span>
+          </div>
+          
+          <div class="d-flex align-items-center gap-1 flex-wrap">
+            <span id="open_canvas_autosave_indicator" class="small fw-bold text-success me-1" style="font-size: 11px;"></span>
+            
+            <!-- Nút Copy toàn bộ nội dung -->
+            <button type="button" class="btn btn-sm btn-action-outline btn-action-tool" onclick="copyCanvasContent()" title="Sao chép toàn bộ lời khai và thông số vụ án">
+              <i class="fas fa-copy text-primary"></i> Chép nội dung
+            </button>
+
+            <!-- Nút Xóa sạch dữ liệu có cảnh báo -->
+            <button type="button" class="btn btn-sm btn-action-danger btn-action-tool" onclick="window.clearCanvasDataWithConfirm()" title="Xóa trắng dữ liệu lời khai và thông số">
+              <i class="fas fa-trash-alt"></i> Xóa dữ liệu
+            </button>
+
+            <!-- Nút 1: Duyệt file từ máy tính -->
+            <button type="button" class="btn btn-sm btn-action-tonal btn-action-tool" onclick="document.getElementById('input_upload_ondemand').click()" title="Duyệt file từ máy tính để AI bóc tách dữ liệu vào hồ sơ">
+              <i class="fas fa-folder-open text-primary"></i> Nạp file
+            </button>
+            <input type="file" id="input_upload_ondemand" class="d-none" accept=".pdf,.doc,.docx,image/*" multiple onchange="window.handleUploadDetailFile(this)">
+
+            <!-- Nút 2: OCR máy ảnh (Chụp nhiều ảnh liên tiếp) -->
+            <button type="button" class="btn btn-sm btn-action-outline btn-action-tool" onclick="document.getElementById('input_camera_multi').click()" title="Chụp ảnh một hoặc nhiều trang tài liệu">
+              <i class="fas fa-camera text-success"></i> Chụp ảnh OCR
+            </button>
+            <input type="file" id="input_camera_multi" class="d-none" accept="image/*" capture="environment" multiple onchange="window.handleMultiPhotoSelect(this)">
+
+            <!-- Dropdown Chèn Thẻ giữ chỗ -->
+            <select id="select_insert_placeholder" class="form-select form-select-sm fw-bold text-secondary" style="max-width: 170px; height: 35px; font-size: 11.5px;" onchange="window.insertPlaceholderToCanvas(this)">
+              <option value="">+ Thẻ giữ chỗ...</option>
+              <optgroup label="1. Lời khai đương sự">
+                <option value="{Lời khai Nguyên đơn}">{Lời khai Nguyên đơn}</option>
+                <option value="{Lời khai Bị đơn}">{Lời khai Bị đơn}</option>
+                <option value="{Lời khai Người yêu cầu}">{Lời khai Người yêu cầu}</option>
+                <option value="{Lời khai Người bị yêu cầu}">{Lời khai Người bị yêu cầu}</option>
+                <option value="{Lời khai Người có quyền lợi, nghĩa vụ liên quan}">{Lời khai Người liên quan}</option>
+                <option value="{Lời khai người làm chứng}">{Lời khai Người làm chứng}</option>
+              </optgroup>
+              <optgroup label="2. Thỏa thuận Hôn nhân & Gia đình">
+                <option value="{Quan hệ hôn nhân}">{Quan hệ hôn nhân}</option>
+                <option value="{Con chung}">{Con chung}</option>
+                <option value="{Thỏa thuận con chung}">{Thỏa thuận con chung}</option>
+                <option value="{Cấp dưỡng nuôi con}">{Cấp dưỡng nuôi con}</option>
+                <option value="{Tài sản chung}">{Tài sản chung}</option>
+                <option value="{Nợ chung}">{Nợ chung}</option>
+                <option value="{Thỏa thuận án phí}">{Thỏa thuận án phí}</option>
+              </optgroup>
+              <optgroup label="3. Đất đai, Tín dụng & Dân sự">
+                <option value="{Thỏa thuận nghĩa vụ chính}">{Thỏa thuận nghĩa vụ chính}</option>
+                <option value="{Thời hạn và phương thức thực hiện}">{Thời hạn & Phương thức}</option>
+                <option value="{Thỏa thuận chi phí tố tụng}">{Chi phí tố tụng}</option>
+                <option value="{Tài sản tranh chấp}">{Tài sản tranh chấp}</option>
+                <option value="{Vị trí tài sản tranh chấp}">{Vị trí tài sản tranh chấp}</option>
+                <option value="{Hợp đồng tín dụng}">{Hợp đồng tín dụng}</option>
+                <option value="{Dư nợ tín dụng}">{Dư nợ tín dụng}</option>
+                <option value="{Di sản thừa kế}">{Di sản thừa kế}</option>
+                <option value="{Biên lai tạm ứng án phí}">{Biên lai tạm ứng án phí}</option>
+                <option value="{Tài liệu kèm theo đơn khởi kiện}">{Danh mục chứng cứ kèm đơn}</option>
+              </optgroup>
+            </select>
+          </div>
+        </div>
+
+        <!-- VÙNG VĂN BẢN MỞ -->
+        <div id="case_open_canvas_wrapper">
+          <textarea id="case_free_narrative_text" class="canvas-free-textarea" placeholder="Khu vực này hoàn toàn trống. Khi bấm trích xuất từ file hoặc chụp ảnh, thông tin bóc tách sẽ tự động ghi vào đây, hoặc bạn có thể gõ/dán trực tiếp nội dung tóm tắt vụ án..." oninput="window.saveOpenCanvasText()"></textarea>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- CỘT PHẢI: DRIVE & TIMELINE (VÔ HẠN CHIỀU DỌC) -->
+    <div class="col-lg-4 col-xl-3 d-flex flex-column gap-3">
+      
+      <!-- WIDGET HỒ SƠ DRIVE -->
+      <div class="sidebar-widget-card">
+        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+          <h6 class="widget-header-title d-flex align-items-center">
+            <i class="fab fa-google-drive me-2 text-warning" style="font-size: 13px;"></i>HỒ SƠ DRIVE
+          </h6>
+          <button class="btn btn-sm btn-outline-secondary border rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 22px; height: 22px;" onclick="window.refreshDetailFiles()" title="Làm mới danh sách tệp">
+            <i class="fas fa-sync-alt" style="font-size: 9.5px;"></i>
+          </button>
+        </div>
+        
+        <div id="det-files" class="overflow-auto mb-2" style="max-height: 220px;">
+          <div class="text-center p-2 text-muted small">Chưa mở hồ sơ.</div>
+        </div>
+        
+        <input type="file" id="local-file-uploader" class="d-none" multiple onchange="window.handleLocalFileUpload(this)">
+        
+        <div class="d-flex flex-column gap-1 mt-2">
+          <button class="btn btn-sm btn-action-outline w-100 justify-content-center" id="btn-open-drive" onclick="window.openDetailDrive()" style="font-size: 11px; height: 30px;">
+            <i class="fas fa-folder-open text-warning me-1"></i> Mở Drive vụ án
+          </button>
+          <button class="btn btn-sm btn-action-tonal w-100 justify-content-center" style="font-size: 11px; height: 30px;" onclick="document.getElementById('local-file-uploader').click()">
+            <i class="fas fa-cloud-arrow-up text-primary me-1"></i> Tải file lên Drive
+          </button>
+        </div>
+      </div>
+
+      <!-- WIDGET DÒNG THỜI GIAN -->
+      <div class="sidebar-widget-card flex-grow-1 d-flex flex-column">
+        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+          <h6 class="widget-header-title d-flex align-items-center">
+            <i class="fas fa-stream me-2 text-primary" style="font-size: 12px;"></i>DÒNG THỜI GIAN
+          </h6>
+          <button class="btn btn-sm btn-action-tonal py-0 px-2 fw-bold" style="font-size: 10px; border-radius: 6px; height: 22px;" onclick="window.openTaskModal(window.currentCaseId, document.getElementById('det-so').innerText)">
+            <i class="fas fa-plus me-1"></i> Lên lịch
+          </button>
+        </div>
+        
+        <div id="det-timeline-list" class="overflow-auto flex-grow-1" style="min-height: 260px;">
+          <div class="text-center p-3 text-muted small"><div class="spinner-border spinner-border-sm me-1 text-primary"></div> Đang nạp timeline...</div>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
 
-<style>
-  .banner-block { padding: 10px 0; }
-  .label-slim { font-size: 10px; font-weight: 800; color: #5f6368; text-transform: uppercase; display: block; margin-bottom: 3px; }
-  @media (min-width: 768px) { .banner-block.has-border { border-right: 1px solid #e0e0e0; } }
-</style>
-
 <script>
-  var currentCaseId = null;
-  var currentCaseData = null;
-
-  function confirmDeleteCase() {
-    if (!currentCaseId) return;
-    const msg = "⚠️ <b>CẢNH BÁO XÓA VĨNH VIỄN!</b>\nBạn sắp xóa hồ sơ này.\nMọi dữ liệu và thư mục Drive sẽ bị xóa sạch.\n\nBạn có chắc chắn muốn thực hiện không?";
-    AppUI.confirm("Xác nhận Xóa Hồ sơ", msg, 'danger', function() {
-        AppUI.showToast("Đang xóa hồ sơ...", "");
-        google.script.run.withSuccessHandler(res => {
-            if (res.success) { AppUI.showToast("Đã xóa hồ sơ thành công.", "success"); appNavigate('view-list'); loadCaseList(true); } 
-            else { AppUI.showToast("Lỗi: " + res.error, "error"); }
-        }).withFailureHandler(err => { AppUI.showToast("Lỗi kết nối: " + err.message, "error"); }).api_DeleteCase(currentCaseId);
-    });
-  }
-
-  function saveQuickNote() {
-    var elSo = document.getElementById('det-so');
-    var elNote = document.getElementById('det-quick-note');
-    if (elSo && elNote) {
-      var idAn = elSo.getAttribute('data-id');
-      var note = elNote.value;
-      if (idAn) {
-        google.script.run.withSuccessHandler(() => {
-          if (currentCaseData) currentCaseData.info.ghiChu = note;
-          let an = G_Cases.find(c => c.id === idAn);
-          if(an) an.ghiChu = note;
-        }).api_UpdateQuickNote(idAn, note);
-      }
+  // Hàm sao chép toàn văn Vùng Dữ liệu vụ án
+  function copyCanvasContent() {
+    var ta = document.getElementById('case_free_narrative_text');
+    if (!ta || !ta.value.trim()) {
+      AppUI.showToast("Vùng dữ liệu hiện đang trống!", "info");
+      return;
     }
-  }
-
-  function refreshDetailFiles() {
-    const folderUrl = document.getElementById('btn-open-drive').getAttribute('data-url');
-    if (!folderUrl) return;
-    document.getElementById('det-files').innerHTML = '<div class="text-center p-3 text-primary small"><div class="spinner-border spinner-border-sm me-2"></div>Đang quét file...</div>';
-    google.script.run.withSuccessHandler(files => {
-      document.getElementById('det-files').innerHTML = files.map(f => `<a href="${f.url}" target="_blank" class="file-item d-flex align-items-center p-2 mb-1 border rounded bg-light text-decoration-none"><i class="${f.icon} fa-lg" style="width:30px"></i><div class="ms-2"><div class="fw-bold text-dark small text-truncate" style="max-width:180px;">${f.name}</div><div class="text-muted" style="font-size:9px;">${f.size} • ${f.date}</div></a>`).join('');
-    }).api_GetDriveFiles(folderUrl);
-  }
-
-  function handleLocalFileUpload(input) {
-    const files = input.files; if (!files.length) return;
-    const folderUrl = document.getElementById('btn-open-drive').getAttribute('data-url');
-    if (!folderUrl) return AppUI.alert("Thiếu thư mục", "Hồ sơ này chưa có thư mục Drive!");
-    AppUI.showToast(`Đang tải lên ${files.length} file...`, "");
-    Array.from(files).forEach((file, index) => {
-      const r = new FileReader();
-      r.onload = (e) => {
-        google.script.run.withSuccessHandler(() => {
-          if(index === files.length - 1) { AppUI.showToast("Tải lên hoàn tất!", "success"); refreshDetailFiles(); }
-        }).api_UploadFileToDrive(file.name, file.type, e.target.result.split(',')[1], folderUrl);
-      };
-      r.readAsDataURL(file);
+    navigator.clipboard.writeText(ta.value.trim()).then(function() {
+      AppUI.showToast("Đã sao chép toàn bộ dữ liệu vụ án vào bộ nhớ tạm!", "success");
+    }).catch(function() {
+      AppUI.showToast("Trình duyệt chặn sao chép tự động", "info");
     });
-    input.value = ''; 
   }
 
-  function xoaPartyLe(idAn, hoTen, tuCach) {
-     AppUI.confirm("Xóa đương sự", `Bạn có chắc chắn muốn xóa đương sự [${hoTen}]?`, "danger", function() {
-         AppUI.showToast("Đang xóa đương sự...", "");
-         google.script.run.withSuccessHandler(res => {
-               if(res.success) { AppUI.showToast("Đã xóa đương sự", "success"); loadCaseList(true); setTimeout(() => moChiTiet(idAn), 1000); } 
-               else { AppUI.showToast("Lỗi: " + res.error, "error"); }
-           }).withFailureHandler(err => { AppUI.showToast("Lỗi mạng", "error"); }).api_DeleteParty(idAn, hoTen, tuCach);
-     });
-  }
+  // Hàm chèn Thẻ Placeholder vào ô văn bản mở
+  window.insertPlaceholderToCanvas = function(selectEl) {
+    var val = selectEl.value;
+    if (!val) return;
 
-  function moChiTiet(idAn) {
-    if (!idAn) return;
-    currentCaseId = idAn;
-    let caseFromRAM = G_Cases ? G_Cases.find(c => c.id === idAn) : null;
-   
-    if (caseFromRAM) {
-        if(document.getElementById('det-so')) {
-          document.getElementById('det-so').innerText = caseFromRAM.soTL;
-          document.getElementById('det-so').setAttribute('data-id', caseFromRAM.id);
-        }
-        if(document.getElementById('det-ngay')) document.getElementById('det-ngay').innerText = caseFromRAM.ngayTL;
-        if(document.getElementById('det-quanhe')) document.getElementById('det-quanhe').innerText = caseFromRAM.quanHe;
-       
-        var isDone = caseFromRAM.liveStatus === "Đã giải quyết";
-        var isTDC = caseFromRAM.liveStatus === "Tạm đình chỉ";
-        var elTrangThai = document.getElementById('det-trangthai');
-        var elThoiHan = document.getElementById('det-thoihan');
-       
-        if (isDone) {
-          if(elTrangThai) { elTrangThai.innerText = "Đã giải quyết"; elTrangThai.className = "val-bold text-success text-truncate"; }
-          if(elThoiHan) { elThoiHan.innerText = "Hoàn tất"; elThoiHan.className = "val-bold text-muted"; }
-        } else if (isTDC) {
-          if(elTrangThai) { elTrangThai.innerText = "Tạm đình chỉ"; elTrangThai.className = "val-bold text-secondary text-truncate"; }
-          if(elThoiHan) { elThoiHan.innerText = "Đã dừng đếm"; elThoiHan.className = "val-bold text-secondary"; }
-        } else {
-          if(elTrangThai) { elTrangThai.innerText = "Đang giải quyết"; elTrangThai.className = "val-bold text-primary text-truncate"; }
-          if(elThoiHan) { elThoiHan.innerText = caseFromRAM.hanGQ; elThoiHan.className = "val-bold text-danger"; }
-        }
+    var textarea = document.getElementById('case_free_narrative_text');
+    if (!textarea) return;
 
-        var elDrive = document.getElementById('btn-open-drive');
-        if (elDrive) {
-          if (caseFromRAM.folderUrl && caseFromRAM.folderUrl.includes("http")) {
-            elDrive.setAttribute('data-url', caseFromRAM.folderUrl); elDrive.classList.remove('disabled');
-          } else {
-            elDrive.setAttribute('data-url', ''); elDrive.classList.add('disabled');
-          }
-        }
-       
-        var dsBody = document.getElementById('det-party-list');
-        if(dsBody) dsBody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-primary small"><div class="spinner-border spinner-border-sm me-2"></div>Đang tải dữ liệu đương sự...</td></tr>';
-       
-        var fileArea = document.getElementById('det-files');
-        if(fileArea) fileArea.innerHTML = '<div class="text-center p-4 text-primary small"><div class="spinner-border spinner-border-sm me-2"></div>Đang quét file...</div>';
-        appNavigate('view-detail');
-    } else { AppUI.showToast("Đang mở hồ sơ...", ""); }
+    var curText = textarea.value;
+    var insertion = "\n" + val + ": ";
+    if (!curText.trim()) insertion = val + ": ";
 
-    google.script.run
-      .withSuccessHandler(function(res) {
-        if (!caseFromRAM) AppUI.hideToast();
-        if (!res || res.error) { if (!caseFromRAM) AppUI.alert("Lỗi", "Không thể tải chi tiết hồ sơ"); return; }
-       
-        currentCaseData = res;
-        var info = res.info;
-        if(document.getElementById('det-quick-note')) document.getElementById('det-quick-note').value = info.ghiChu || "";
-
-        var dsBody = document.getElementById('det-party-list');
-        if (dsBody) {
-          if (res.ds.length === 0) {
-            dsBody.innerHTML = '<tr><td colspan="4" class="text-center p-4 text-muted small">Chưa có thông tin đương sự.</td></tr>';
-          } else {
-            var htmlDs = res.ds.map(d => {
-              let repDisplay = '';
-              if (d.daiDien) {
-                try {
-                  let reps = JSON.parse(d.daiDien);
-                  if (Array.isArray(reps) && reps.length > 0) { repDisplay = reps.map(r => `<i class="fas fa-user-shield me-1 mt-1 text-secondary"></i>ĐD: <b>${r.hoTen}</b> (${r.tuCach})`).join('<br>'); } 
-                  else { repDisplay = `<i class="fas fa-user-shield me-1 mt-1 text-secondary"></i>ĐD: ${d.daiDien}`; }
-                } catch(e) { repDisplay = `<i class="fas fa-user-shield me-1 mt-1 text-secondary"></i>ĐD: ${d.daiDien}`; }
-                repDisplay = `<br>${repDisplay}`;
-              }
-
-              return `
-              <tr>
-                <td><span class="badge bg-light text-primary border border-primary shadow-sm" style="font-size:9px">${d.tuCach}</span></td>
-                <td>
-                  <div class="fw-bold text-dark" style="font-size: 13px;">${d.hoTen}</div>
-                  <div class="small text-muted mt-1">${d.xungHo} - ${d.namSinh || '---'}</div>
-                </td>
-                <td class="text-muted" style="font-size: 11.5px; line-height: 1.4;">
-                  ${d.diaChi}<br><i class="fas fa-phone-alt me-1 mt-1 text-secondary"></i>${d.sdt || '---'}
-                  ${d.cccd ? '<br><i class="fas fa-id-card me-1 mt-1 text-secondary"></i>' + d.cccd : ''}
-                  ${repDisplay}
-                </td>
-                <td class="text-center">
-                  <button class="btn btn-sm btn-light border shadow-sm text-primary me-1" style="border-radius: 6px;" onclick="moModalQuanLyDuongSu()" title="Sửa (Quản lý chung)"><i class="far fa-edit"></i></button>
-                  <button class="btn btn-sm btn-light border shadow-sm text-danger" style="border-radius: 6px;" onclick="xoaPartyLe('${info.id}', '${d.hoTen}', '${d.tuCach}')" title="Xóa"><i class="fas fa-trash-alt"></i></button>
-                </td>
-              </tr>
-            `}).join('');
-            dsBody.innerHTML = htmlDs;
-          }
-        }
-       
-        var fileArea = document.getElementById('det-files');
-        if (fileArea) {
-          if (info.folderUrl && info.folderUrl.includes("http")) {
-            google.script.run.withSuccessHandler(function(filesDrive) {
-                if (filesDrive.length === 0) { fileArea.innerHTML = '<div class="text-center p-3 text-muted small">Thư mục này hiện đang trống.</div>'; } 
-                else {
-                  fileArea.innerHTML = filesDrive.map(f => `
-                    <a href="${f.url}" target="_blank" class="file-item animate-fadeIn d-flex align-items-center p-2 mb-1 border rounded bg-light text-decoration-none">
-                      <i class="${f.icon} fa-lg" style="width: 30px; text-align: center;"></i>
-                      <div class="ms-2">
-                        <div class="fw-bold text-dark text-truncate" style="font-size: 11.5px; max-width: 180px;">${f.name}</div>
-                        <div class="text-muted mt-1" style="font-size: 9px;">${f.size} • ${f.date}</div>
-                      </div>
-                    </a>
-                  `).join('');
-                }
-              }).api_GetDriveFiles(info.folderUrl);
-          } else { fileArea.innerHTML = '<div class="text-center p-3 text-danger small">Hồ sơ chưa liên kết Drive.</div>'; }
-        }
-      })
-      .withFailureHandler(function(err) { if (!caseFromRAM) AppUI.hideToast(); AppUI.alert("Lỗi Mạng", "Lỗi tải chi tiết: " + err.message); }).api_LayDuLieuChiTietAn(idAn);
-  }
+    textarea.value = curText + insertion;
+    textarea.focus();
+    selectEl.value = "";
+    if (typeof window.saveOpenCanvasText === 'function') {
+      window.saveOpenCanvasText();
+    }
+  };
 </script>

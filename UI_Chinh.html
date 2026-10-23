@@ -2,213 +2,379 @@
 <html lang="vi">
 <head>
   <base target="_top">
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>HỆ THỐNG TRỢ LÝ THẨM PHÁN V7.6</title>
+  <meta charset="UTF-8">
+  <!-- Viewport chuẩn chống co giãn sai tỉ lệ trên mọi thiết bị & iframe -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>TRỢ LÝ THẨM PHÁN V8.0</title>
+
+  <!-- Google Fonts: Inter (Tối ưu hóa độ sắc nét cho văn bản Tòa án & Màn hình DPI cao) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- FontAwesome 6 CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   
-  <!-- Thư viện CSS & Fonts -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Bootstrap 5.3.2 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   
-  <!-- Nạp file định dạng CSS riêng -->
+  <!-- SheetJS (XLSX) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <!-- Nạp Style Master của Hệ thống -->
   <?!= include('CSS_DinhDang'); ?>
-  
+
   <style>
-    .spa-view { display: none; }
-    .spa-view.active { display: block; }
-   
-    .sidebar-brand {
-      padding: 25px 15px;
-      text-align: center;
-      border-bottom: 1px solid #f1f3f4;
-      background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
+    /* =========================================================================
+       HỆ QUY CHUẨN ĐỒ HỌA MASTER: EXECUTIVE TACTILE
+       ========================================================================= */
+    :root {
+      --sidebar-width: 260px;
+      --header-height: 62px;
+      --font-stack: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --primary-navy: #1e3a8a;
+      --accent-blue: #2563eb;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --sidebar-bg: #ffffff;
+      --app-canvas: #f8fafc;
+      --border-subtle: #e2e8f0;
+      --shadow-header: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.03);
+      --shadow-sidebar: 2px 0 8px -2px rgba(15, 23, 42, 0.04);
     }
-    .brand-logo-container { position: relative; display: inline-block; margin-bottom: 10px; }
-    .brand-slogan {
+
+    /* SIDEBAR ĐẲNG CẤP & GỌN GÀNG */
+    #main-sidebar {
+      width: var(--sidebar-width);
+      height: 100vh;
+      position: fixed;
+      top: 0; left: 0; z-index: 1040;
+      background-color: var(--sidebar-bg);
+      border-right: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-sidebar);
+      overflow-y: auto;
+      overflow-x: hidden;
+      transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    #main-sidebar::-webkit-scrollbar { width: 4px; }
+    #main-sidebar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+    #main-content-wrapper {
+      margin-left: var(--sidebar-width);
+      min-height: 100vh;
+      display: flex; 
+      flex-direction: column;
+      background-color: var(--app-canvas);
+      transition: margin-left 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* HEADER SẮC NÉT & TINH TẾ */
+    #main-header {
+      height: var(--header-height);
+      background-color: #ffffff;
+      padding: 0 24px;
+      border-bottom: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-header);
+      position: sticky;
+      top: 0;
+      z-index: 1020;
+    }
+
+    /* KHU VỰC LOGO THƯƠNG HIỆU */
+    .sidebar-brand-box {
+      padding: 18px 18px 14px;
+      text-align: center;
+      border-bottom: 1px solid var(--border-subtle);
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    }
+
+    .sidebar-section-title {
       font-size: 10px;
-      color: #70757a;
-      font-style: italic;
-      line-height: 1.3;
-      margin-top: 5px;
-      font-weight: 500;
-    }
-    .nav-section-title {
-      font-size: 11px;
       font-weight: 800;
-      color: #bdc1c6;
+      color: #94a3b8;
       text-transform: uppercase;
-      padding: 20px 24px 10px;
-      letter-spacing: 1px;
+      letter-spacing: 0.6px;
+      padding: 14px 20px 4px;
     }
-    .nav-system-section {
-      margin-top: auto;
-      border-top: 1px solid #f1f3f4;
-      padding-bottom: 10px;
+
+    /* MỤC MENU ĐIỀU HƯỚNG */
+    .nav-menu-item {
+      display: flex;
+      align-items: center;
+      padding: 9px 18px;
+      color: #475569;
+      font-weight: 600;
+      font-size: 13px;
+      border-radius: 0 10px 10px 0;
+      margin-right: 12px;
+      margin-bottom: 2px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border-left: 3px solid transparent;
     }
-    .footer-copyright {
-      font-size: 11px;
-      color: #9aa0a6;
+    .nav-menu-item:hover {
+      background-color: #f1f5f9;
+      color: var(--text-main);
+    }
+    .nav-menu-item.active {
+      background-color: #eff6ff;
+      color: var(--accent-blue);
+      font-weight: 700;
+      border-left-color: var(--accent-blue);
+    }
+    .nav-menu-item i {
+      width: 24px; 
+      font-size: 15px; 
+      margin-right: 10px; 
       text-align: center;
-      padding: 15px;
-      border-top: 1px solid #dadce0;
-      background: #fff;
+      transition: transform 0.15s ease;
+    }
+    .nav-menu-item:hover i {
+      transform: scale(1.1);
+    }
+
+    .app-footer-brand {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 16px;
+      margin-top: auto;
+      border-top: 1px solid var(--border-subtle);
+      background: #ffffff;
+    }
+
+    /* NÚT COPILOT AI NỔI (FAB) */
+    #ai-floating-btn {
+      position: fixed; 
+      bottom: 24px; 
+      right: 24px; 
+      width: 50px; 
+      height: 50px; 
+      border-radius: 14px;
+      background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+      color: #ffffff;
+      display: flex; 
+      align-items: center; 
+      justify-content: center;
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+      cursor: pointer; 
+      z-index: 9999; 
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    #ai-floating-btn:hover { 
+      transform: translateY(-3px) scale(1.05); 
+      box-shadow: 0 10px 22px rgba(37, 99, 235, 0.45); 
+    }
+    #ai-floating-btn i {
+      font-size: 20px;
+    }
+
+    /* SPA VIEWS */
+    .spa-view { display: none; }
+    .spa-view.active { display: block; animation: fadeIn 0.18s ease-in-out; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(3px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Nút thu gọn Sidebar Desktop */
+    .btn-sidebar-toggle {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #f8fafc;
+      border: 1px solid var(--border-subtle);
+      color: #475569;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-sidebar-toggle:hover {
+      background: #eff6ff;
+      color: var(--accent-blue);
+      border-color: #bfdbfe;
+    }
+
+    /* RESPONSIVE DI ĐỘNG */
+    @media (max-width: 991.98px) {
+      #main-sidebar { transform: translateX(-100%); width: 280px !important; }
+      #main-sidebar.show { transform: translateX(0); box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
+      #main-content-wrapper { margin-left: 0 !important; }
     }
   </style>
 </head>
 <body>
 
-  <!-- MÀN HÌNH KHỞI ĐỘNG -->
-  <div id="splash-screen">
-      <div class="splash-logo">
-          <i class="fas fa-scale-balanced"></i>
-          <i class="fas fa-brain"></i>
-      </div>
-      <div class="splash-title">TRỢ LÝ THẨM PHÁN V7.6</div>
-      <div class="splash-dots"><span></span><span></span><span></span></div>
-      <div class="splash-text" id="splash-message">Đang khởi tạo...</div>
-      <div class="splash-creator">Kiến tạo bởi Võ Thành Luân</div>
+  <!-- MÀN HÌNH CHỜ (SPLASH SCREEN) -->
+  <div id="splash-screen" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #ffffff; z-index: 999999; display: flex; align-items: center; justify-content: center; flex-direction: column; transition: opacity 0.4s ease;">
+    <div class="p-3 bg-light rounded-circle shadow-sm mb-3 border">
+      <i class="fas fa-scale-balanced fa-2x text-primary"></i>
+    </div>
+    <h6 class="fw-bold text-dark m-0" style="letter-spacing: 0.5px;">TRỢ LÝ THẨM PHÁN V8.0</h6>
+    <p id="splash-message" class="text-muted small mt-2">Đang kết nối hệ thống dữ liệu nghiệp vụ...</p>
+    <div class="spinner-border spinner-border-sm text-primary mt-1" role="status"></div>
   </div>
 
-  <!-- HEADER CHO MOBILE -->
-  <div class="mobile-header d-lg-none">
-    <button class="btn btn-light shadow-sm" onclick="toggleMobileMenu()">
-      <i class="fas fa-bars text-primary"></i>
-    </button>
-    <span class="fw-bold text-primary">TRỢ LÝ V7.6</span>
-    <div class="judge-profile-circle shadow-sm" style="width: 35px; height: 35px;">
-      <i class="fas fa-user-tie"></i>
-    </div>
-  </div>
+  <!-- LỚP PHỦ MỜ KHI MỞ MENU MOBILE -->
+  <div class="sidebar-overlay d-lg-none" id="mobile-overlay" style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index:1030; display:none;" onclick="toggleMobileMenu()"></div>
 
-  <!-- Lớp phủ mờ khi mở menu mobile -->
-  <div id="mobile-overlay" class="sidebar-overlay d-lg-none" onclick="toggleMobileMenu()"></div>
-
-  <!-- THANH MENU TRÁI (SIDEBAR) -->
-  <aside class="sidebar" id="main-sidebar">
-    <!-- Logo & Định danh -->
-    <div class="sidebar-brand">
-      <div class="brand-logo-container">
-        <i class="fas fa-scale-balanced text-primary" style="font-size: 40px; filter: drop-shadow(0 3px 4px rgba(0,0,0,0.1));"></i>
-        <i class="fas fa-brain text-warning position-absolute" style="font-size: 18px; bottom: 0; right: -5px;"></i>
-      </div>
-      <div class="fw-bold text-primary m-0" style="font-size: 16px; letter-spacing: 0.5px;">TRỢ LÝ THẨM PHÁN</div>
-      <div class="brand-slogan">"Phiên bản V7.6 - Tích hợp Xử lý Đơn"</div>
-    </div>
-
-    <nav class="flex-grow-1 overflow-auto pb-4">
-      <!-- KHU VỰC NGHIỆP VỤ CHÍNH -->
-      <div class="nav-section-title">Nghiệp vụ chính</div>
-      
-      <!-- MENU MỚI: XỬ LÝ ĐƠN -->
-      <div class="nav-menu-item" id="menu-view-danh-sach-don" onclick="appNavigate('view-danh-sach-don')">
-        <i class="fas fa-inbox text-info"></i> XỬ LÝ ĐƠN
-      </div>
-      
-      <!-- MENU CŨ: SỔ THỤ LÝ (Mặc định được chọn) -->
-      <div class="nav-menu-item active" id="menu-view-list" onclick="appNavigate('view-list')">
-        <i class="fas fa-list-ul"></i> SỔ THỤ LÝ
-      </div>
-      
-      <!-- MENU ẨN MỚI: CHI TIẾT ĐƠN -->
-      <div class="nav-menu-item" id="menu-view-chi-tiet-don" onclick="appNavigate('view-chi-tiet-don')" style="display:none;">
-        <i class="fas fa-file-signature text-warning"></i> CHI TIẾT ĐƠN
-      </div>
-
-      <!-- MENU ẨN CŨ: CHI TIẾT ÁN -->
-      <div class="nav-menu-item" id="menu-view-detail" onclick="appNavigate('view-detail')" style="display:none;">
-        <i class="fas fa-folder-open text-warning"></i> HỒ SƠ ĐANG MỞ
-      </div>
-
-      <div class="nav-menu-item" id="menu-view-schedule" onclick="appNavigate('view-schedule')">
-        <i class="fas fa-calendar-check"></i> LỊCH CÔNG TÁC
-      </div>
-      
-      <div class="nav-menu-item" id="menu-view-stats" onclick="appNavigate('view-stats')">
-        <i class="fas fa-chart-pie text-success"></i> THỐNG KÊ
-      </div>
-      
-      <!-- KHU VỰC CÔNG CỤ HỖ TRỢ -->
-      <div class="nav-section-title">Công cụ hỗ trợ</div>
-      <div class="nav-menu-item" onclick="openDraftingModal()">
-        <i class="fas fa-file-signature text-primary"></i> SOẠN THẢO VĂN BẢN
-      </div>
-      <div class="nav-menu-item" onclick="openAnPhiModal()">
-        <i class="fas fa-calculator text-danger"></i> TÍNH ÁN PHÍ
-      </div>
-      <div class="nav-menu-item" onclick="window.open('https://trolyao.toaan.gov.vn/?module=editor', '_blank')">
-        <i class="fas fa-spell-check text-info"></i> MÃ HÓA & CHÍNH TẢ
-      </div>
-      
-      <!-- Các liên kết ngành -->
-      <div class="nav-menu-item" onclick="window.open('https://takv2.ldo.toaanso.vn/chart/index', '_blank')">
-        <i class="fas fa-building-columns" style="color: #007bff;"></i>
-        <span style="color: #007bff; font-weight: 700;">TÒA ÁN SỐ KV2</span>
-      </div>
-      
-      <div class="nav-menu-item" onclick="window.open('https://qlta.toaan.gov.vn/Launcher.aspx', '_blank')">
-        <i class="fas fa-shield-halved" style="color: #d93025;"></i>
-        <span style="color: #d93025; font-weight: 700;">QLTA</span>
-      </div>
-      
-      <div class="nav-menu-item" onclick="window.open('https://drive.google.com/drive/u/0/folders/101eSB-Qmp3MfJBSWbeX-o_UqW1iqR8lB', '_blank')">
-        <i class="fab fa-google-drive text-success"></i> KHO HỒ SƠ
-      </div>
-    </nav>
-
-    <!-- KHU VỰC HỆ THỐNG -->
-    <div class="nav-system-section">
-      <div class="nav-menu-item" id="menu-view-settings" onclick="appNavigate('view-settings')">
-        <i class="fas fa-user-cog"></i> Cài đặt & Trợ giúp
-      </div>
-    </div>
-  </aside>
-
-  <!-- VÙNG NỘI DUNG CHÍNH -->
-  <div class="main-wrapper" id="main-content">
-    <header class="top-bar d-none d-lg-flex">
-      <div class="fw-bold text-secondary text-uppercase" id="current-page-title" style="letter-spacing: 1px;">SỔ THỤ LÝ ĐIỆN TỬ</div>
-      <div class="d-flex align-items-center gap-3">
-        <div class="text-end">
-          <div class="fw-bold text-primary" id="header-ten-tp" style="font-size: 15px;">Đang nạp...</div>
-          <div class="text-muted" id="header-ten-toa" style="font-size: 11px;">Xác định cơ quan...</div>
+  <!-- THANH ĐIỀU HƯỚNG BÊN TRÁI (SIDEBAR) -->
+  <nav id="main-sidebar" class="d-flex flex-column justify-content-between">
+    <div>
+      <div class="sidebar-brand-box">
+        <div class="position-relative d-inline-block mb-1">
+          <i class="fas fa-scale-balanced text-primary" style="font-size: 30px;"></i>
+          <i class="fas fa-sparkles text-warning position-absolute" style="font-size: 12px; bottom: -2px; right: -6px;"></i>
         </div>
-        <div class="judge-profile-circle shadow-sm">
-          <i class="fas fa-user-tie fa-lg"></i>
+        <div class="fw-bold text-dark mt-1" style="font-size: 14px; letter-spacing: 0.4px;">TRỢ LÝ THẨM PHÁN</div>
+        <div class="text-muted fw-semibold" style="font-size: 11px;">Phiên bản V8.0 – Master Core</div>
+      </div>
+
+      <!-- NHÓM 1: NGHIỆP VỤ CHÍNH -->
+      <div class="sidebar-section-title">NGHIỆP VỤ CHÍNH</div>
+      <div>
+        <a class="nav-menu-item" id="menu-view-danh-sach-don" onclick="appNavigate('view-danh-sach-don')" title="Sổ Nhận Đơn">
+          <i class="fas fa-inbox text-info"></i> <span>SỔ NHẬN ĐƠN</span>
+        </a>
+        <a class="nav-menu-item active" id="menu-view-list" onclick="appNavigate('view-list')" title="Sổ Thụ Lý">
+          <i class="fas fa-list-ul text-primary"></i> <span>SỔ THỤ LÝ</span>
+        </a>
+        <a class="nav-menu-item" id="menu-view-detail" style="display:none;" onclick="appNavigate('view-detail')" title="Chi Tiết Vụ Án">
+          <i class="fas fa-folder-open text-warning"></i> <span>Chi Tiết Vụ Án</span>
+        </a>
+        <a class="nav-menu-item" id="menu-view-chi-tiet-don" style="display:none;" onclick="appNavigate('view-chi-tiet-don')" title="Chi Tiết Đơn">
+          <i class="fas fa-file-signature text-info"></i> <span>Chi Tiết Đơn</span>
+        </a>
+        <a class="nav-menu-item" id="menu-view-schedule" onclick="appNavigate('view-schedule')" title="Lịch Công Tác">
+          <i class="fas fa-calendar-check text-secondary"></i> <span>LỊCH CÔNG TÁC</span>
+        </a>
+        <a class="nav-menu-item" id="menu-view-stats" onclick="appNavigate('view-stats')" title="Báo Cáo Thống Kê">
+          <i class="fas fa-chart-pie text-success"></i> <span>THỐNG KÊ</span>
+        </a>
+      </div>
+      
+      <!-- NHÓM 2: CÔNG CỤ HỖ TRỢ -->
+      <div class="sidebar-section-title">CÔNG CỤ HỖ TRỢ</div>
+      <div>
+        <a class="nav-menu-item" onclick="openDraftingModal('CURRENT_CASE')" title="Soạn Thảo Văn Bản">
+          <i class="fas fa-file-signature text-primary"></i> <span>SOẠN THẢO VĂN BẢN</span>
+        </a>
+        <a class="nav-menu-item" onclick="openAnPhiModal()" title="Tính Án Phí NQ 326">
+          <i class="fas fa-calculator text-danger"></i> <span>TÍNH ÁN PHÍ</span>
+        </a>
+        <a href="https://trolyao.toaan.gov.vn/?module=editor" target="_blank" class="nav-menu-item" title="Mã Hóa & Chính Tả TANDTC">
+          <i class="fas fa-spell-check text-info"></i> <span>MÃ HÓA & CHÍNH TẢ</span>
+        </a>
+        <a href="https://qlta.toaan.gov.vn/Launcher.aspx" target="_blank" class="nav-menu-item" title="Phần Mềm Quản Lý Án QLTA">
+          <i class="fas fa-shield-halved text-danger"></i> <span style="font-weight: 700;">QLTA</span>
+        </a>
+        <a class="nav-menu-item" onclick="window.openTemplateFolder()" title="Kho Hồ Sơ Drive">
+          <i class="fab fa-google-drive text-success"></i> <span>KHO HỒ SƠ</span>
+        </a>
+      </div>
+
+    </div>
+
+    <!-- Cài đặt đáy Sidebar -->
+    <div class="p-2 border-top" style="border-color: var(--border-subtle) !important;">
+      <a class="nav-menu-item m-0 rounded" id="menu-view-settings" onclick="appNavigate('view-settings')" title="Cài Đặt & Trợ Giúp">
+        <i class="fas fa-user-cog text-secondary"></i> <span>Cài đặt & Trợ giúp</span>
+      </a>
+    </div>
+  </nav>
+
+  <!-- NỘI DUNG CHÍNH (CONTENT WRAPPER) -->
+  <div id="main-content-wrapper">
+    <!-- Top Header -->
+    <header id="main-header" class="d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center gap-2">
+        <!-- Nút mở Sidebar trên Mobile -->
+        <button class="btn-sidebar-toggle d-lg-none" onclick="toggleMobileMenu()" title="Mở danh mục">
+          <i class="fas fa-bars"></i>
+        </button>
+        
+        <!-- Nút thu gọn Sidebar 64px trên Desktop -->
+        <button class="btn-sidebar-toggle d-none d-lg-inline-flex" onclick="toggleSidebarCollapse()" title="Thu gọn / Mở rộng Sidebar">
+          <i class="fas fa-bars-staggered"></i>
+        </button>
+        
+        <span class="fw-bold text-dark ms-2" id="current-page-title" style="font-size: 14.5px; letter-spacing: 0.4px;">
+          SỔ THỤ LÝ ĐIỆN TỬ
+        </span>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <div class="text-end d-none d-sm-block">
+          <div class="fw-bold text-dark" id="header-ten-tp" style="font-size: 13px;">Đang nạp...</div>
+          <div class="text-muted" id="header-ten-toa" style="font-size: 11px;">Tòa án nhân dân</div>
+        </div>
+        <div class="rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 36px; height: 36px; background-color: #f1f5f9; border: 1px solid var(--border-subtle);">
+          <i class="fas fa-user-tie text-secondary" style="font-size: 14px;"></i>
         </div>
       </div>
     </header>
 
-    <main id="main-viewport">
-       <!-- Các View sẽ được nạp động vào đây -->
-       
-       <!-- 2 View mới của Module Xử Lý Đơn -->
-       <div id="view-danh-sach-don" class="spa-view animate-fadeIn"><?!= include('UI_DanhSach_Don'); ?></div>
-       <div id="view-chi-tiet-don" class="spa-view animate-fadeIn"><?!= include('UI_ChiTiet_Don'); ?></div>
-       
-       <!-- Các View hiện tại (View danh sách án mặc định hiển thị) -->
-       <div id="view-list" class="spa-view active animate-fadeIn"><?!= include('UI_DanhSach'); ?></div>
-       <div id="view-detail" class="spa-view animate-fadeIn"><?!= include('UI_ChiTiet'); ?></div>
-       <div id="view-schedule" class="spa-view animate-fadeIn"><?!= include('UI_Lich'); ?></div>
-       <div id="view-stats" class="spa-view animate-fadeIn"><?!= include('UI_ThongKe'); ?></div>
-       <div id="view-settings" class="spa-view animate-fadeIn"><?!= include('UI_CaiDat'); ?></div>
+    <!-- Các View SPA con -->
+    <main class="flex-grow-1 p-2 p-md-3">
+      <div id="view-list" class="spa-view active"><?!= include('UI_DanhSach'); ?></div>
+      <div id="view-detail" class="spa-view"><?!= include('UI_ChiTiet'); ?></div>
+      <div id="view-danh-sach-don" class="spa-view"><?!= include('UI_DanhSach_Don'); ?></div>
+      <div id="view-chi-tiet-don" class="spa-view"><?!= include('UI_ChiTiet_Don'); ?></div>
+      <div id="view-schedule" class="spa-view"><?!= include('UI_Lich'); ?></div>
+      <div id="view-stats" class="spa-view"><?!= include('UI_ThongKe'); ?></div>
+      <div id="view-settings" class="spa-view"><?!= include('UI_CaiDat'); ?></div>
     </main>
 
-    <!-- CHÂN TRANG -->
-    <footer class="footer-copyright">
-      <div>© 2026 <span class="text-primary fw-bold">TRỢ LÝ THẨM PHÁN V7.6</span>. All rights reserved.</div>
-      <div class="text-muted fst-italic" style="font-size: 11px; margin-top: 4px;">
-        Kiến tạo bởi <span class="text-dark fw-bold">Võ Thành Luân</span>
-      </div>
+    <!-- Footer bản quyền -->
+    <footer class="app-footer-brand">
+      © 2026 <span class="text-dark fw-bold">TRỢ LÝ THẨM PHÁN V8.0</span> — Hệ thống hỗ trợ giải quyết án Tòa án nhân dân.
     </footer>
   </div>
 
-  <!-- Nạp các thành phần hỗ trợ -->
+  <!-- NÚT AI CHAT NỔI (FAB) -->
+  <div id="ai-floating-btn" onclick="window.toggleCopilotChat ? window.toggleCopilotChat() : null" title="Trợ lý AI Tố tụng">
+    <i class="fas fa-robot"></i>
+  </div>
+
+  <!-- Nạp Modals -->
   <?!= include('UI_HopThoai'); ?>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  
-  <!-- Nạp Script Xử lý -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Nạp Javascript Nghiệp vụ -->
   <?!= include('JS_HeThong'); ?>
   <?!= include('JS_NghiepVu'); ?>
+  <?!= include('JS_NghiepVu_Don'); ?>
+  <?!= include('JS_ThongSoNghiepVu'); ?>
+
+  <script>
+    // Hàm mở menu trên mobile
+    function toggleMobileMenu() {
+      var sidebar = document.getElementById('main-sidebar');
+      var overlay = document.getElementById('mobile-overlay');
+      if (sidebar && overlay) {
+        sidebar.classList.toggle('show');
+        if (sidebar.classList.contains('show')) {
+          overlay.style.display = 'block';
+        } else {
+          overlay.style.display = 'none';
+        }
+      }
+    }
+
+    // Hàm thu gọn Sidebar dạng Mini-Bar (64px) trên Desktop
+    function toggleSidebarCollapse() {
+      var sidebar = document.getElementById('main-sidebar');
+      var wrapper = document.getElementById('main-content-wrapper');
+      if (sidebar && wrapper) {
+        sidebar.classList.toggle('collapsed');
+        wrapper.classList.toggle('sidebar-collapsed');
+      }
+    }
+  </script>
 </body>
 </html>
