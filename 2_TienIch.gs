@@ -3,10 +3,12 @@
  * HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.0 - MASTER UTILITIES CORE
  * TỆP: 2_TienIch.gs - TIỆN ÍCH HỆ THỐNG, ĐỊNH DẠNG & THUẬT TOÁN TỐ TỤNG
  * -------------------------------------------------------------------------
- * - CHUẨN HÓA QUY TẮC TÍNH NGÀY TỐ TỤNG ĐỦ 24H (ĐIỀU 147, 148 BLDS & ĐIỀU 212 BLTTDS)
- * - TỰ ĐỘNG NHẬN DIỆN MÃ VIỆC HÔN NHÂN (VHN) CHO THUẬN TÌNH LY HÔN
- * - TÍNH ÁN PHÍ, TẠM ỨNG & ĐỌC TIỀN THÀNH CHỮ CHUẨN NGHỊ QUYẾT 326/2016/UBTVQH14
- * - CÔNG CỤ QUẢN TRỊ VÀ ĐÁNH SỐ TỰ ĐỘNG TỪ 01 ĐẾN 64 CHO BIỂU MẪU TÒA ÁN
+ * - SINGLE SOURCE OF TRUTH: Nơi duy nhất định nghĩa các hàm xử lý văn bản,
+ *   tên riêng, danh xưng đương sự, phân tách thành viên và định dạng tố tụng.
+ * - CHUẨN HÓA QUY TẮC TÍNH NGÀY TỐ TỤNG ĐỦ 24H (ĐIỀU 147, 148 BLDS & ĐIỀU 212 BLTTDS).
+ * - TỰ ĐỘNG NHẬN DIỆN MÃ VIỆC HÔN NHÂN (VHN) CHO THUẬN TÌNH LY HÔN.
+ * - TÍNH ÁN PHÍ, TẠM ỨNG & ĐỌC TIỀN THÀNH CHỮ CHUẨN NGHỊ QUYẾT 326/2016/UBTVQH14.
+ * - CÔNG CỤ QUẢN TRỊ VÀ ĐÁNH SỐ TỰ ĐỘNG TỪ 01 ĐẾN 64 CHO BIỂU MẪU TÒA ÁN.
  * =========================================================================
  */
 
@@ -199,39 +201,93 @@ function getThoiGianGiaHanText(loaiAn, quanHe) {
 }
 
 // =========================================================================
-// 3. TIỆN ÍCH XỬ LÝ CHUỖI VĂN BẢN & ĐỊNH DẠNG (TEXT UTILS)
+// 3. TIỆN ÍCH XỬ LÝ CHUỖI VĂN BẢN & ĐỊNH DẠNG (SINGLE SOURCE OF TRUTH)
 // =========================================================================
 
-function toTitleCase(str) { 
-  if (!str) return ""; 
-  var keepUpper = [
+/**
+ * Chuẩn hóa viết hoa chữ cái đầu danh từ riêng, giữ nguyên viết tắt pháp lý & tên có dấu nháy đơn
+ */
+function toTitleCase(str) {
+  if (!str) return "";
+  var acronyms = [
     "TMCP", "TNHH", "CP", "MTV", "UBND", "TAND", "VKSND", "VN", "JSC", "BHTG", 
     "HTX", "NHCSXH", "NHTMCP", "NH", "BIDV", "ACB", "MB", "VPBANK", "VIETINBANK", 
     "VIETCOMBANK", "AGRIBANK", "SHB", "TPBANK", "HDBANK", "VIB", "MSB", "OCB", 
     "SEABANK", "LPBANK", "SCB", "SACOMBANK", "ABBANK", "BAB", "NCB", "QLTA"
-  ]; 
-  var words = str.toString().trim().split(/\s+/); 
-  return words.map(function(w) { 
-    var upperW = w.toUpperCase(); 
-    if (keepUpper.includes(upperW)) return upperW; 
-
-    // Bảo toàn tên có dấu nháy đơn (ví dụ: Ka Să K'bi, K'Thương...)
+  ];
+  var words = String(str).trim().toLowerCase().split(/\s+/);
+  return words.map(function(w) {
+    var upperW = w.toUpperCase();
+    if (acronyms.includes(upperW)) return upperW;
     if (w.includes("'") || w.includes("’")) {
-      var parts = w.split(/['’]/);
-      return parts.map(function(p) {
-        if (!p) return "";
-        return p.charAt(0).toUpperCase() + p.slice(1).toLowerCase();
-      }).join("'");
+      return w.split(/['’]/).map(function(p) { return p ? p.charAt(0).toUpperCase() + p.slice(1).toLowerCase() : ""; }).join("'");
     }
-
-    if (w.length > 1 && w === upperW) return w; 
-    return upperW.charAt(0) + w.slice(1).toLowerCase(); 
-  }).join(" "); 
+    return upperW.charAt(0) + w.slice(1).toLowerCase();
+  }).join(" ");
 }
 
+/**
+ * Xóa danh xưng thừa phía trước tên đương sự (bao gồm dấu chấm, dấu hai chấm, gạch ngang)
+ */
 function cleanHonorificFromName(name) {
   if (!name) return "";
-  return String(name).replace(/^(Ông|Bà|Anh|Chị|ông|bà|anh|chị)\s+/i, '').trim();
+  return String(name).replace(/^(Ông\/bà|Ông|Bà|Anh|Chị|Cháu|ông|bà|anh|chị|cháu)\s*[:.\-]?\s*/i, '').trim();
+}
+
+/**
+ * Kiểm tra danh xưng cá nhân hợp lệ (loại trừ pháp nhân, cơ quan, tổ chức)
+ */
+function isIndividualHonorific(xh) {
+  if (!xh) return false;
+  var x = String(xh).trim().toLowerCase();
+  var legalEntities = ["tổ chức", "pháp nhân", "công ty", "doanh nghiệp", "ubnd", "ngân hàng", "chi nhánh", "hợp tác xã", "cơ quan"];
+  if (legalEntities.includes(x)) return false;
+  return ["ông", "bà", "anh", "chị", "cháu", "ông/bà"].includes(x);
+}
+
+/**
+ * Lấy danh xưng cán bộ (Thẩm phán / Thư ký) dựa trên tên
+ */
+function getOfficerHonorific(rawName, defaultTitle) {
+  if (!rawName || rawName.trim() === "") return defaultTitle || "Ông";
+  var rawLower = rawName.toLowerCase().trim();
+  if (rawLower.startsWith("bà ") || rawLower.startsWith("chị ")) return "Bà";
+  if (rawLower.startsWith("ông ") || rawLower.startsWith("anh ")) return "Ông";
+  return defaultTitle || "Ông";
+}
+
+/**
+ * Thoát các ký tự đặc biệt trong biểu thức Regex
+ */
+function escapeRegex(str) { 
+  return String(str || "").replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); 
+}
+
+/**
+ * Xóa tiền tố đánh số hoặc chữ Về... trong các ô nội dung con
+ */
+function cleanChildSlotPrefix(str) { 
+  return String(str || "").replace(/^(\d+(\.\d+)*\.?\s*(Về\s*)?[^:\n]*:\s*)+/i, '').trim(); 
+}
+
+/**
+ * Làm phẳng danh sách thành viên từ các nhóm phân cụm địa chỉ
+ */
+function extractFlatMembers(groupsOrMembers) {
+  var flatList = [];
+  if (!groupsOrMembers || !Array.isArray(groupsOrMembers)) return flatList;
+  groupsOrMembers.forEach(function(item) {
+    if (item.members && Array.isArray(item.members)) {
+      item.members.forEach(function(m) { 
+        m._diaChiGoc = item.diaChi || m.diaChi || ""; 
+        flatList.push(m); 
+      });
+    } else if (item.hoTen) { 
+      item._diaChiGoc = item.diaChi || ""; 
+      flatList.push(item); 
+    }
+  });
+  return flatList;
 }
 
 function cleanTextForPlaceholder(text) { 
@@ -338,15 +394,17 @@ function numberToWordsVi(so) {
 function calculateCourtFee(loaiAn, giaTriRaw) { 
   var fee = 0; 
   var tamUng = 0; 
-  if (loaiAn === 'hinhSu') { 
+  var la = String(loaiAn || "").toLowerCase();
+
+  if (la.includes("hình sự") || la.includes("hinhsu") || la.includes("1.")) { 
     fee = 200000; 
     tamUng = 0; 
-  } else if (loaiAn === 'hanhChinh') { 
+  } else if (la.includes("hành chính") || la.includes("hanhchinh") || la.includes("6.")) { 
     fee = 300000; 
     tamUng = 300000; 
   } else { 
     var giaTri = parseInt(String(giaTriRaw).replace(/[^\d]/g, ''), 10) || 0; 
-    var isKDTM = (loaiAn === 'kinhDoanh'); 
+    var isKDTM = la.includes("kinh doanh") || la.includes("kinhdoanh") || la.includes("4."); 
     var noPriceFee = isKDTM ? 3000000 : 300000; 
 
     if (giaTri <= 0) { 

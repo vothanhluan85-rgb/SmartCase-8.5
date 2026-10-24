@@ -9,15 +9,11 @@
  *   + Động cơ thời hạn tố tụng (Deadline Engine) chuẩn xác theo BLTTDS 2015.
  *   + Tự động sao chép tài liệu chứng cứ từ Sổ đơn sang Vụ án khi thụ lý.
  *   + Lưu trữ thông tin biên lai án phí NQ 326 ngay từ khâu thụ lý ban đầu.
+ *   + Dùng chung hàm cleanHonorificFromName và toTitleCase chuẩn từ 2_TienIch.gs.
  * =========================================================================
  */
 
 var CASE_MEMORY_FILE_NAME = "_case_memory.json";
-
-function cleanHonorificFromName(name) {
-  if (!name) return "";
-  return String(name).replace(/^(Ông|Bà|Anh|Chị|ông|bà|anh|chị)\s+/i, '').trim();
-}
 
 // =========================================================================
 // 1. ĐỘNG CƠ TÍNH THỜI HẠN TỐ TỤNG CHUẨN TANDTC (DEADLINE ENGINE)
@@ -288,7 +284,6 @@ function logic_LayDanhSachAn() {
   }
 }
 
-// Alias để tương thích ngược
 function layDanhSachAn() {
   return logic_LayDanhSachAn();
 }
@@ -315,7 +310,6 @@ function logic_LayDuLieuChiTietAn(idVuAn) {
       ngayTacDong: LibDate.fmt(row[11], 'VN'), ketQuaGiaiQuyet: row[12] || ""
     };
 
-    // ĐỌC VÀ HỢP NHẤT TOÀN DIỆN CẢ 3 NHÁNH (VARIABLES, PLACEHOLDERS, NARRATIVES)
     var caseMemory = {};
     if (info.folderUrl && info.folderUrl.includes("http")) {
       caseMemory = readCaseMemoryFromDrive(info.folderUrl);
@@ -327,7 +321,6 @@ function logic_LayDuLieuChiTietAn(idVuAn) {
       caseMemory.variables || {},
       caseMemory || {}
     );
-    // Xóa các thuộc tính cấu trúc nội bộ không phải biến
     delete mergedVariables.placeholders;
     delete mergedVariables.variables;
     delete mergedVariables.narratives;
@@ -383,13 +376,12 @@ function logic_LayDuLieuChiTietAn(idVuAn) {
   }
 }
 
-// Alias để tương thích ngược
 function layDuLieuChiTiet(idVuAn) {
   return logic_LayDuLieuChiTietAn(idVuAn);
 }
 
 // =========================================================================
-// 4. LƯU THÔNG SỐ VÀO TRẠM DỮ LIỆU DRIVE (_case_memory.json) - CHUẨN SPEC
+// 4. LƯU THÔNG SỐ VÀO TRẠM DỮ LIỆU DRIVE (_case_memory.json)
 // =========================================================================
 
 function backend_LuuThongSoNghiepVuAn(payload) {
@@ -428,7 +420,6 @@ function backend_LuuThongSoNghiepVuAn(payload) {
 
     var currentMemory = readCaseMemoryFromDrive(folderUrl);
     
-    // Hợp nhất phẳng để bảo tồn 100% dữ liệu cũ không giới hạn dung lượng
     currentMemory.variables = Object.assign({}, currentMemory.placeholders || {}, currentMemory.variables || {}, vars);
     currentMemory.narratives = Object.assign({}, currentMemory.narratives || {}, narratives);
     currentMemory.lastUpdated = new Date().toISOString();
@@ -531,7 +522,6 @@ function logic_LuuVuAnMoi(data) {
   }
 }
 
-// Alias để tương thích
 function backend_LuuVuAnMoi(data) {
   return logic_LuuVuAnMoi(data);
 }
@@ -610,7 +600,6 @@ function logic_UpdateCaseResolution(data) {
   }
 }
 
-// Alias
 function backend_UpdateCaseResolution(data) {
   return logic_UpdateCaseResolution(data);
 }
@@ -668,7 +657,6 @@ function logic_UpdateAllParties(idVuAn, parties) {
   }
 }
 
-// Alias
 function backend_UpdateAllParties(idVuAn, parties) {
   return logic_UpdateAllParties(idVuAn, parties);
 }
@@ -701,7 +689,6 @@ function logic_CapNhatThongTinAn(d) {
   }
 }
 
-// Alias
 function backend_CapNhatThongTinAn(d) {
   return logic_CapNhatThongTinAn(d);
 }
@@ -743,7 +730,6 @@ function logic_DeleteCase(idVuAn) {
   }
 }
 
-// Alias
 function backend_DeleteCase(idVuAn) {
   return logic_DeleteCase(idVuAn);
 }
@@ -794,7 +780,6 @@ function logic_DeleteMultipleCases(ids) {
   }
 }
 
-// Alias
 function backend_DeleteMultipleCases(ids) {
   return logic_DeleteMultipleCases(ids);
 }

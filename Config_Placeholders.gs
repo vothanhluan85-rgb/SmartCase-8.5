@@ -5,6 +5,7 @@
  * -------------------------------------------------------------------------
  * - BỔ SUNG ĐẦY ĐỦ BỘ 3 DẠNG: {Tên} (Tiêu đề), {tên} (Viết thường), {TÊN} (IN HOA)
  * - TÍCH HỢP {Tài liệu kèm theo đơn khởi kiện} VÀ CÁC TỪ ĐỒNG NGHĨA (SYNONYMS)
+ * - ĐỒNG BỘ ĐẦY ĐỦ THẺ XỬ LÝ ĐƠN (NGƯỜI NỘP ĐƠN, NGƯỜI KHỞI KIỆN, SỬA ĐỔI BỔ SUNG)
  * - PHÂN RÃ TOÀN BỘ ĐƯƠNG SỰ ĐỘC LẬP TỪNG NGƯỜI (1, 2, 3...) VÀ TỔ HỢP GỘP
  * - QUẢN LÝ TẬP TRUNG PHỤC VỤ SOẠN THẢO VĂN BẢN, AI VÀ ĐỒNG BỘ SHEET 6_PLACEHOLDER
  * =========================================================================
@@ -138,7 +139,7 @@ const PLACEHOLDER_DEFINITIONS = [
   { group: "4. IN TÁCH TRANG HÀNG LOẠT", name: "{người đại diện}", description: "Khối thông tin Người đại diện viết thường" },
 
   // =========================================================================
-  // NHÓM 5: TỔ HỢP GỘP ĐƯƠNG SỰ CHO VỤ ÁN TRANH CHẤP
+  // NHÓM 5: VỤ ÁN TRANH CHẤP & XỬ LÝ ĐƠN KHỞI KIỆN
   // =========================================================================
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{Nguyên đơn}", description: "Xưng hô + Tên nhóm Nguyên đơn đầu câu (VD: Ông Phan Văn Thắng)" },
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{nguyên đơn}", description: "Xưng hô + Tên nhóm Nguyên đơn giữa câu (VD: ông Phan Văn Thắng)" },
@@ -146,13 +147,42 @@ const PLACEHOLDER_DEFINITIONS = [
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{Người khởi kiện}", description: "Xưng hô + Tên nhóm Người khởi kiện đầu câu" },
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{người khởi kiện}", description: "Xưng hô + Tên nhóm Người khởi kiện giữa câu" },
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{NGƯỜI KHỞI KIỆN}", description: "Nhóm Người khởi kiện viết IN HOA" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Người nộp đơn}", description: "Tên nhóm Người nộp đơn (Đồng nghĩa Người khởi kiện)" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{người nộp đơn}", description: "Tên nhóm Người nộp đơn viết thường" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{NGƯỜI NỘP ĐƠN}", description: "Tên nhóm Người nộp đơn viết IN HOA" },
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{Nguyên đơn chi tiết}", description: "Tên + Năm sinh + Địa chỉ sạch của Nguyên đơn" },
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{nguyên đơn chi tiết}", description: "Tên + Năm sinh + Địa chỉ sạch của Nguyên đơn (chữ thường)" },
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{NGUYÊN ĐƠN CHI TIẾT}", description: "Khối Nguyên đơn chi tiết viết IN HOA" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Người khởi kiện chi tiết}", description: "Tên + Năm sinh + Địa chỉ sạch của Người khởi kiện" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{người khởi kiện chi tiết}", description: "Khối Người khởi kiện chi tiết viết thường" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{NGƯỜI KHỞI KIỆN CHI TIẾT}", description: "Khối Người khởi kiện chi tiết viết IN HOA" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Người nộp đơn chi tiết}", description: "Tên + Năm sinh + Địa chỉ sạch của Người nộp đơn" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{người nộp đơn chi tiết}", description: "Khối Người nộp đơn chi tiết viết thường" },
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{Danh sách Nguyên đơn}", description: "Danh sách Nguyên đơn gộp thông minh" },
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{danh sách nguyên đơn}", description: "Danh sách Nguyên đơn gộp thông minh viết thường" },
 
-  // PHÂN RÃ NGUYÊN ĐƠN 1, 2, 3...
+  // NHÓM THẺ TỔNG HỢP CẤP NHÓM CHO KÍNH GỬI ĐƠN/ÁN
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Họ và tên Người khởi kiện}", description: "Họ và tên nhóm Người khởi kiện (Có 'và' ở cuối)" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{họ và tên người khởi kiện}", description: "Họ và tên nhóm Người khởi kiện viết thường" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{HỌ VÀ TÊN NGƯỜI KHỞI KIỆN}", description: "Họ và tên nhóm Người khởi kiện viết IN HOA" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Xưng hô Người khởi kiện}", description: "Xưng hô nhóm Người khởi kiện (Ông/Bà hoặc Các ông/bà)" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{xưng hô người khởi kiện}", description: "Xưng hô nhóm Người khởi kiện viết thường" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Năm sinh Người khởi kiện}", description: "Cụm năm sinh nhóm Người khởi kiện" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{năm sinh người khởi kiện}", description: "Cụm năm sinh nhóm Người khởi kiện viết thường" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Địa chỉ Người khởi kiện}", description: "Địa chỉ cư trú nhóm Người khởi kiện" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{địa chỉ người khởi kiện}", description: "Địa chỉ cư trú nhóm Người khởi kiện viết thường" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Số điện thoại Người khởi kiện}", description: "Số điện thoại nhóm Người khởi kiện" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{CCCD Người khởi kiện}", description: "Số CCCD nhóm Người khởi kiện" },
+
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Họ và tên Người nộp đơn}", description: "Họ và tên nhóm Người nộp đơn" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{họ và tên người nộp đơn}", description: "Họ và tên nhóm Người nộp đơn viết thường" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Xưng hô Người nộp đơn}", description: "Xưng hô nhóm Người nộp đơn" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Năm sinh Người nộp đơn}", description: "Năm sinh nhóm Người nộp đơn" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Địa chỉ Người nộp đơn}", description: "Địa chỉ nhóm Người nộp đơn" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Số điện thoại Người nộp đơn}", description: "Số điện thoại nhóm Người nộp đơn" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{CCCD Người nộp đơn}", description: "Số CCCD nhóm Người nộp đơn" },
+
+  // PHÂN RÃ NGUYÊN ĐƠN / KHỞI KIỆN / NỘP ĐƠN 1, 2, 3...
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{Nguyên đơn 1}", description: "Danh xưng + Họ tên Nguyên đơn 1" },
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{nguyên đơn 1}", description: "Danh xưng + Họ tên Nguyên đơn 1 viết thường" },
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{Họ và tên Nguyên đơn 1}", description: "Họ và tên mộc của Nguyên đơn 1" },
@@ -161,6 +191,29 @@ const PLACEHOLDER_DEFINITIONS = [
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{Địa chỉ Nguyên đơn 1}", description: "Địa chỉ Nguyên đơn 1" },
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{Số điện thoại Nguyên đơn 1}", description: "Số điện thoại Nguyên đơn 1" },
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{CCCD Nguyên đơn 1}", description: "Số CCCD Nguyên đơn 1" },
+
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Người khởi kiện 1}", description: "Danh xưng + Họ tên Người khởi kiện 1" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{người khởi kiện 1}", description: "Danh xưng + Họ tên Người khởi kiện 1 viết thường" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Họ và tên Người khởi kiện 1}", description: "Họ và tên mộc của Người khởi kiện 1" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{họ và tên người khởi kiện 1}", description: "Họ và tên mộc của Người khởi kiện 1 viết thường" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Năm sinh Người khởi kiện 1}", description: "Năm sinh Người khởi kiện 1" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Địa chỉ Người khởi kiện 1}", description: "Địa chỉ Người khởi kiện 1" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Số điện thoại Người khởi kiện 1}", description: "Số điện thoại Người khởi kiện 1" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{CCCD Người khởi kiện 1}", description: "Số CCCD Người khởi kiện 1" },
+
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Người khởi kiện 2}", description: "Danh xưng + Họ tên Người khởi kiện 2" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{người khởi kiện 2}", description: "Danh xưng + Họ tên Người khởi kiện 2 viết thường" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Họ và tên Người khởi kiện 2}", description: "Họ và tên mộc của Người khởi kiện 2" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{họ và tên người khởi kiện 2}", description: "Họ và tên mộc của Người khởi kiện 2 viết thường" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Năm sinh Người khởi kiện 2}", description: "Năm sinh Người khởi kiện 2" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Địa chỉ Người khởi kiện 2}", description: "Địa chỉ Người khởi kiện 2" },
+
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Người nộp đơn 1}", description: "Danh xưng + Họ tên Người nộp đơn 1" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{người nộp đơn 1}", description: "Danh xưng + Họ tên Người nộp đơn 1 viết thường" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Họ và tên Người nộp đơn 1}", description: "Họ và tên mộc của Người nộp đơn 1" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Năm sinh Người nộp đơn 1}", description: "Năm sinh Người nộp đơn 1" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Địa chỉ Người nộp đơn 1}", description: "Địa chỉ Người nộp đơn 1" },
+
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{Nguyên đơn 2}", description: "Danh xưng + Họ tên Nguyên đơn 2" },
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{nguyên đơn 2}", description: "Danh xưng + Họ tên Nguyên đơn 2 viết thường" },
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{Họ và tên Nguyên đơn 2}", description: "Họ và tên mộc của Nguyên đơn 2" },
@@ -168,7 +221,7 @@ const PLACEHOLDER_DEFINITIONS = [
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{Năm sinh Nguyên đơn 2}", description: "Năm sinh Nguyên đơn 2" },
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{Địa chỉ Nguyên đơn 2}", description: "Địa chỉ Nguyên đơn 2" },
 
-  // BỊ ĐƠN
+  // BỊ ĐƠN / BỊ KIỆN
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{Bị đơn}", description: "Xưng hô + Tên nhóm Bị đơn đầu câu (VD: Bà Khum Thị Bích Thủy)" },
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{bị đơn}", description: "Xưng hô + Tên nhóm Bị đơn giữa câu (VD: bà Khum Thị Bích Thủy)" },
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{BỊ ĐƠN}", description: "Nhóm Bị đơn viết IN HOA (VD: BÀ KHUM THỊ BÍCH THỦY)" },
@@ -178,10 +231,20 @@ const PLACEHOLDER_DEFINITIONS = [
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{Bị đơn chi tiết}", description: "Tên + Năm sinh + Địa chỉ sạch của Bị đơn" },
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{bị đơn chi tiết}", description: "Tên + Năm sinh + Địa chỉ sạch của Bị đơn (chữ thường)" },
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{BỊ ĐƠN CHI TIẾT}", description: "Khối Bị đơn chi tiết viết IN HOA" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Người bị kiện chi tiết}", description: "Tên + Năm sinh + Địa chỉ sạch của Người bị kiện" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{người bị kiện chi tiết}", description: "Khối Người bị kiện chi tiết viết thường" },
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{Danh sách Bị đơn}", description: "Danh sách Bị đơn gộp thông minh" },
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{danh sách bị đơn}", description: "Danh sách Bị đơn gộp thông minh viết thường" },
 
-  // PHÂN RÃ BỊ ĐƠN 1, 2, 3...
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Họ và tên Người bị kiện}", description: "Họ và tên nhóm Người bị kiện" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{họ và tên người bị kiện}", description: "Họ và tên nhóm Người bị kiện viết thường" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Xưng hô Người bị kiện}", description: "Xưng hô nhóm Người bị kiện" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Năm sinh Người bị kiện}", description: "Năm sinh nhóm Người bị kiện" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Địa chỉ Người bị kiện}", description: "Địa chỉ nhóm Người bị kiện" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Số điện thoại Người bị kiện}", description: "Số điện thoại nhóm Người bị kiện" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{CCCD Người bị kiện}", description: "Số CCCD nhóm Người bị kiện" },
+
+  // PHÂN RÃ BỊ ĐƠN / BỊ KIỆN 1, 2, 3...
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{Bị đơn 1}", description: "Danh xưng + Họ tên Bị đơn 1" },
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{bị đơn 1}", description: "Danh xưng + Họ tên Bị đơn 1 viết thường" },
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{Họ và tên Bị đơn 1}", description: "Họ và tên mộc của Bị đơn 1" },
@@ -190,6 +253,13 @@ const PLACEHOLDER_DEFINITIONS = [
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{Địa chỉ Bị đơn 1}", description: "Địa chỉ Bị đơn 1" },
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{Số điện thoại Bị đơn 1}", description: "Số điện thoại Bị đơn 1" },
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{CCCD Bị đơn 1}", description: "Số CCCD Bị đơn 1" },
+
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Người bị kiện 1}", description: "Danh xưng + Họ tên Người bị kiện 1" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{người bị kiện 1}", description: "Danh xưng + Họ tên Người bị kiện 1 viết thường" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Họ và tên Người bị kiện 1}", description: "Họ và tên mộc của Người bị kiện 1" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Năm sinh Người bị kiện 1}", description: "Năm sinh Người bị kiện 1" },
+  { group: "5. VỤ ÁN TRANH CHẤP", name: "{Địa chỉ Người bị kiện 1}", description: "Địa chỉ Người bị kiện 1" },
+
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{Bị đơn 2}", description: "Danh xưng + Họ tên Bị đơn 2" },
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{bị đơn 2}", description: "Danh xưng + Họ tên Bị đơn 2 viết thường" },
   { group: "5. VỤ ÁN TRANH CHẤP", name: "{Họ và tên Bị đơn 2}", description: "Họ và tên mộc của Bị đơn 2" },
@@ -244,16 +314,21 @@ const PLACEHOLDER_DEFINITIONS = [
   { group: "6. VIỆC HNGĐ & VIỆC DÂN SỰ", name: "{CCCD Người yêu cầu 2}", description: "Số CCCD Người yêu cầu 2" },
   { group: "6. VIỆC HNGĐ & VIỆC DÂN SỰ", name: "{NYC2}", description: "Viết tắt Danh xưng + Họ tên Người yêu cầu 2" },
   { group: "6. VIỆC HNGĐ & VIỆC DÂN SỰ", name: "{nyc2}", description: "Viết tắt Người yêu cầu 2 chữ thường" },
+
   { group: "6. VIỆC HNGĐ & VIỆC DÂN SỰ", name: "{Người bị yêu cầu}", description: "Tên Người bị yêu cầu trong Việc dân sự" },
   { group: "6. VIỆC HNGĐ & VIỆC DÂN SỰ", name: "{người bị yêu cầu}", description: "Tên Người bị yêu cầu trong Việc dân sự (chữ thường)" },
   { group: "6. VIỆC HNGĐ & VIỆC DÂN SỰ", name: "{NGƯỜI BỊ YÊU CẦU}", description: "Tên Người bị yêu cầu viết IN HOA" },
   { group: "6. VIỆC HNGĐ & VIỆC DÂN SỰ", name: "{Người bị yêu cầu chi tiết}", description: "Tên + Năm sinh + Địa chỉ sạch của Người bị yêu cầu" },
   { group: "6. VIỆC HNGĐ & VIỆC DÂN SỰ", name: "{người bị yêu cầu chi tiết}", description: "Tên + Năm sinh + Địa chỉ sạch của Người bị yêu cầu (chữ thường)" },
+  { group: "6. VIỆC HNGĐ & VIỆC DÂN SỰ", name: "{Người bị yêu cầu 1}", description: "Danh xưng + Họ tên Người bị yêu cầu 1" },
+  { group: "6. VIỆC HNGĐ & VIỆC DÂN SỰ", name: "{Họ và tên Người bị yêu cầu 1}", description: "Họ và tên mộc của Người bị yêu cầu 1" },
+  { group: "6. VIỆC HNGĐ & VIỆC DÂN SỰ", name: "{Năm sinh Người bị yêu cầu 1}", description: "Năm sinh Người bị yêu cầu 1" },
+  { group: "6. VIỆC HNGĐ & VIỆC DÂN SỰ", name: "{Địa chỉ Người bị yêu cầu 1}", description: "Địa chỉ Người bị yêu cầu 1" },
 
   // =========================================================================
   // NHÓM 7: TỔNG HỢP LỜI KHAI TRANH CHẤP (PHẦN I CỦA BIÊN BẢN & BẢN ÁN)
   // =========================================================================
-  { group: "7. TỔNG HỢP LỜI KHAI", name: "{Lời khai đương sự}", description: "Khối tổng hợp tự động toàn bộ lời khai: Nguyên đơn -> Bị đơn -> Người liên quan (CHỈ CHỨA LỜI KHAI/MÂU THUẪN, KHÔNG CHỨA THỎA THUẬN)" },
+  { group: "7. TỔNG HỢP LỜI KHAI", name: "{Lời khai đương sự}", description: "Khối tổng hợp tự động toàn bộ lời khai: Nguyên đơn -> Bị đơn -> Người liên quan" },
   { group: "7. TỔNG HỢP LỜI KHAI", name: "{lời khai đương sự}", description: "Khối tổng hợp lời khai đương sự viết thường" },
   { group: "7. TỔNG HỢP LỜI KHAI", name: "{LỜI KHAI ĐƯƠNG SỰ}", description: "Khối tổng hợp lời khai các đương sự (dạng tiêu đề HOA)" },
   { group: "7. TỔNG HỢP LỜI KHAI", name: "{Lời khai Nguyên đơn}", description: "Khối lời khai của tất cả Nguyên đơn" },
@@ -264,9 +339,9 @@ const PLACEHOLDER_DEFINITIONS = [
   { group: "7. TỔNG HỢP LỜI KHAI", name: "{lời khai người yêu cầu}", description: "Khối lời khai của Người yêu cầu viết thường" },
   { group: "7. TỔNG HỢP LỜI KHAI", name: "{Lời khai Người bị yêu cầu}", description: "Khối lời khai của Người bị yêu cầu (Việc Dân sự)" },
   { group: "7. TỔNG HỢP LỜI KHAI", name: "{lời khai người bị yêu cầu}", description: "Khối lời khai của Người bị yêu cầu viết thường" },
-  { group: "7. TỔNG HỢP LỜI KHAI", name: "{Lời khai Người khởi kiện}", description: "Khối lời khai của Người khởi kiện (Án Hành chính)" },
+  { group: "7. TỔNG HỢP LỜI KHAI", name: "{Lời khai Người khởi kiện}", description: "Khối lời khai của Người khởi kiện (Án Hành chính & Đơn)" },
   { group: "7. TỔNG HỢP LỜI KHAI", name: "{lời khai người khởi kiện}", description: "Khối lời khai của Người khởi kiện viết thường" },
-  { group: "7. TỔNG HỢP LỜI KHAI", name: "{Lời khai Người bị kiện}", description: "Khối lời khai của Người bị kiện (Án Hành chính)" },
+  { group: "7. TỔNG HỢP LỜI KHAI", name: "{Lời khai Người bị kiện}", description: "Khối lời khai của Người bị kiện (Án Hành chính & Đơn)" },
   { group: "7. TỔNG HỢP LỜI KHAI", name: "{lời khai người bị kiện}", description: "Khối lời khai của Người bị kiện viết thường" },
   { group: "7. TỔNG HỢP LỜI KHAI", name: "{Lời khai Người có quyền lợi, nghĩa vụ liên quan}", description: "Khối lời khai của tất cả Người liên quan" },
   { group: "7. TỔNG HỢP LỜI KHAI", name: "{lời khai người có quyền lợi, nghĩa vụ liên quan}", description: "Khối lời khai của Người liên quan viết thường" },
@@ -306,16 +381,16 @@ const PLACEHOLDER_DEFINITIONS = [
   { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{Thỏa thuận con chung}", description: "Trọn gói cả 3 vế: [Danh sách con] + [Giao cho ai trực tiếp nuôi dưỡng] + [Cấp dưỡng]" },
   { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{thỏa thuận con chung}", description: "Thỏa thuận con chung trọn gói (chữ thường)" },
   { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{THỎA THUẬN CON CHUNG}", description: "Thỏa thuận con chung viết IN HOA" },
-  { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{Cấp dưỡng nuôi con}", description: "Thỏa thuận cấp dưỡng nuôi con (VD: Ông Thắng cấp dưỡng 3.000.000đ/tháng hoặc Không tranh chấp)" },
+  { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{Cấp dưỡng nuôi con}", description: "Thỏa thuận cấp dưỡng nuôi con" },
   { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{cấp dưỡng nuôi con}", description: "Thỏa thuận cấp dưỡng nuôi con (chữ thường)" },
   { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{CẤP DƯỠNG NUÔI CON}", description: "Cấp dưỡng nuôi con viết IN HOA" },
   { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{Cấp dưỡng con chung}", description: "Từ đồng nghĩa của {Cấp dưỡng nuôi con}" },
   { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{cấp dưỡng con chung}", description: "Từ đồng nghĩa của {Cấp dưỡng nuôi con} (chữ thường)" },
 
-  { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{Tài sản chung}", description: "Thỏa thuận tài sản: Các bên tự thỏa thuận, không yêu cầu Tòa án giải quyết" },
+  { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{Tài sản chung}", description: "Thỏa thuận tài sản" },
   { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{tài sản chung}", description: "Thỏa thuận tài sản (chữ thường)" },
   { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{TÀI SẢN CHUNG}", description: "Thỏa thuận tài sản viết IN HOA" },
-  { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{Nợ chung}", description: "Thỏa thuận nợ: Các bên xác nhận không có nợ chung, không yêu cầu Tòa án giải quyết" },
+  { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{Nợ chung}", description: "Thỏa thuận nợ" },
   { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{nợ chung}", description: "Thỏa thuận nợ (chữ thường)" },
   { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{NỢ CHUNG}", description: "Thỏa thuận nợ viết IN HOA" },
 
@@ -326,35 +401,35 @@ const PLACEHOLDER_DEFINITIONS = [
   { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{án phí}", description: "Từ đồng nghĩa của {Thỏa thuận án phí} (chữ thường)" },
   { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{ÁN PHÍ}", description: "Án phí viết IN HOA" },
 
-  { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{Ngày hòa giải thành}", description: "Ngày lập biên bản hòa giải thành (VD: 07/09/2026 hoặc ngày 07 tháng 09 năm 2026)" },
+  { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{Ngày hòa giải thành}", description: "Ngày lập biên bản hòa giải thành" },
   { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{ngày hòa giải thành}", description: "Ngày lập biên bản hòa giải thành viết thường" },
   { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{NGÀY HÒA GIẢI THÀNH}", description: "Ngày lập biên bản hòa giải thành viết IN HOA" },
 
-  { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{Quyền thăm nom con}", description: "Điều khoản quyền thăm nom con (Điều 82, 83 Luật HNGĐ 2014) - Tự sinh khi có con chung" },
+  { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{Quyền thăm nom con}", description: "Điều khoản quyền thăm nom con (Điều 82, 83 Luật HNGĐ 2014)" },
   { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{quyền thăm nom con}", description: "Điều khoản quyền thăm nom con viết thường" },
   { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{Quyền thăm con}", description: "Từ đồng nghĩa của {Quyền thăm nom con}" },
   { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{quyền thăm con}", description: "Từ đồng nghĩa của {Quyền thăm nom con} (chữ thường)" },
 
-  { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{Lãi suất chậm thi hành án}", description: "Điều khoản lãi suất chậm trả (Điều 357, Điều 468 BLDS 2015) - Tự sinh khi có nghĩa vụ trả tiền" },
+  { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{Lãi suất chậm thi hành án}", description: "Điều khoản lãi suất chậm trả (Điều 357, Điều 468 BLDS 2015)" },
   { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{lãi suất chậm thi hành án}", description: "Điều khoản lãi suất chậm trả viết thường" },
   { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{Lãi chậm trả}", description: "Từ đồng nghĩa của {Lãi suất chậm thi hành án}" },
   { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{lãi chậm trả}", description: "Từ đồng nghĩa của {Lãi suất chậm thi hành án} (chữ thường)" },
   { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{Điều luật chậm trả}", description: "Chuỗi điều luật chậm trả (Điều 357, Điều 468 BLDS)" },
   { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{điều luật chậm trả}", description: "Chuỗi điều luật chậm trả viết thường" },
 
-  { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{Điều luật HNGĐ}", description: "Các điều luật viện dẫn chuẩn mực: Điều 28, 35, 39, 147, 212, 213 BLTTDS; Điều 55, 81, 82, 83, 84 Luật HNGĐ và NQ 326" },
+  { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{Điều luật HNGĐ}", description: "Các điều luật viện dẫn chuẩn mực HNGĐ" },
   { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{điều luật hngđ}", description: "Các điều luật viện dẫn HNGĐ viết thường" },
   { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{Thỏa thuận nghĩa vụ chính}", description: "Nghĩa vụ trả tiền, bàn giao đất trong án Dân sự/KDTM..." },
   { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{thỏa thuận nghĩa vụ chính}", description: "Nghĩa vụ trả tiền, bàn giao đất viết thường" },
   { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{Thời hạn và phương thức thực hiện}", description: "Thời gian trả nợ, phương thức chuyển khoản/tiền mặt" },
   { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{thời hạn và phương thức thực hiện}", description: "Thời gian trả nợ, phương thức thực hiện viết thường" },
-  { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{Thỏa thuận chi phí tố tụng}", description: "Thỏa thuận về chi phí xem xét thẩm định tại chỗ, định giá tài sản" },
+  { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{Thỏa thuận chi phí tố tụng}", description: "Thỏa thuận chi phí xem xét thẩm định tại chỗ, định giá tài sản" },
   { group: "9. THẺ CON HNGĐ & QUYẾT ĐỊNH", name: "{thỏa thuận chi phí tố tụng}", description: "Thỏa thuận chi phí tố tụng viết thường" },
 
   // =========================================================================
   // NHÓM 10: TÀI LIỆU CHỨNG CỨ KÈM THEO ĐƠN & THÔNG BÁO THỤ LÝ
   // =========================================================================
-  { group: "10. TÀI LIỆU CHỨNG CỨ", name: "{Tài liệu kèm theo đơn khởi kiện}", description: "Danh mục tài liệu chứng cứ kèm theo đơn khởi kiện / yêu cầu (Dùng cho Mẫu 03, 41, 53, 01)" },
+  { group: "10. TÀI LIỆU CHỨNG CỨ", name: "{Tài liệu kèm theo đơn khởi kiện}", description: "Danh mục tài liệu chứng cứ kèm theo đơn khởi kiện / yêu cầu (Mẫu 03, 41, 53, 01)" },
   { group: "10. TÀI LIỆU CHỨNG CỨ", name: "{tài liệu kèm theo đơn khởi kiện}", description: "Danh mục tài liệu chứng cứ kèm theo đơn khởi kiện viết thường" },
   { group: "10. TÀI LIỆU CHỨNG CỨ", name: "{TÀI LIỆU KÈM THEO ĐƠN KHỞI KIỆN}", description: "Danh mục tài liệu chứng cứ kèm theo đơn khởi kiện viết IN HOA" },
   { group: "10. TÀI LIỆU CHỨNG CỨ", name: "{Tài liệu kèm đơn khởi kiện}", description: "Từ đồng nghĩa của {Tài liệu kèm theo đơn khởi kiện}" },
@@ -368,10 +443,10 @@ const PLACEHOLDER_DEFINITIONS = [
   // =========================================================================
   // NHÓM 11: LIỆT KÊ KHỐI DANH SÁCH (THÔNG BÁO & BẢN ÁN)
   // =========================================================================
-  { group: "11. LIỆT KÊ KHỐI DANH SÁCH", name: "{Đương sự thông báo}", description: "Liệt kê dọc theo STT 1, 2, 3 (Dành cho phần Kính gửi của Thông báo thụ lý)" },
+  { group: "11. LIỆT KÊ KHỐI DANH SÁCH", name: "{Đương sự thông báo}", description: "Liệt kê dọc theo STT 1, 2, 3 (Dành cho phần Kính gửi của Thông báo thụ lý / Xử lý đơn)" },
   { group: "11. LIỆT KÊ KHỐI DANH SÁCH", name: "{đương sự thông báo}", description: "Liệt kê dọc theo STT 1, 2, 3 viết thường" },
   { group: "11. LIỆT KÊ KHỐI DANH SÁCH", name: "{ĐƯƠNG SỰ THÔNG BÁO}", description: "Liệt kê dọc theo STT 1, 2, 3 (Dạng tiêu đề HOA)" },
-  { group: "11. LIỆT KÊ KHỐI DANH SÁCH", name: "{Đương sự}", description: "Liệt kê dọc phân nhóm Nguyên đơn:... Bị đơn:... (Dành cho phần Đầu Bản án, Quyết định)" },
+  { group: "11. LIỆT KÊ KHỐI DANH SÁCH", name: "{Đương sự}", description: "Liệt kê dọc phân nhóm Nguyên đơn:... Bị đơn:... (Dành cho đầu Bản án, Quyết định, Xử lý đơn)" },
   { group: "11. LIỆT KÊ KHỐI DANH SÁCH", name: "{đương sự}", description: "Liệt kê dọc phân nhóm viết thường" },
   { group: "11. LIỆT KÊ KHỐI DANH SÁCH", name: "{ĐƯƠNG SỰ}", description: "Liệt kê dọc phân nhóm Nguyên đơn:... Bị đơn:... (Dạng tiêu đề HOA)" },
   { group: "11. LIỆT KÊ KHỐI DANH SÁCH", name: "{Nội dung vụ việc}", description: "Tự động chuẩn hóa câu chữ: 'Tranh chấp...' giữa A và B HOẶC 'Yêu cầu...' của A và B" },
@@ -379,22 +454,32 @@ const PLACEHOLDER_DEFINITIONS = [
   { group: "11. LIỆT KÊ KHỐI DANH SÁCH", name: "{NỘI DUNG VỤ VIỆC}", description: "Nội dung vụ việc viết IN HOA" },
 
   // =========================================================================
-  // NHÓM 12: ĐẶC THÙ NGÀNH ÁN KHÁC (ĐẤT ĐAI, TÍN DỤNG, THỪA KẾ, LAO ĐỘNG...)
+  // NHÓM 12: ĐẶC THÙ XỬ LÝ ĐƠN KHỞI KIỆN (MẪU 01, 02)
   // =========================================================================
-  { group: "12. ĐẶC THÙ NGÀNH ÁN KHÁC", name: "{Tài sản tranh chấp}", description: "Thông tin thửa đất, nhà ở hoặc tài sản tranh chấp trong án Dân sự / Đất đai" },
-  { group: "12. ĐẶC THÙ NGÀNH ÁN KHÁC", name: "{tài sản tranh chấp}", description: "Thông tin tài sản tranh chấp viết thường" },
-  { group: "12. ĐẶC THÙ NGÀNH ÁN KHÁC", name: "{Vị trí tài sản tranh chấp}", description: "Vị trí thực địa phục vụ Quyết định xem xét thẩm định tại chỗ, định giá tài sản" },
-  { group: "12. ĐẶC THÙ NGÀNH ÁN KHÁC", name: "{vị trí tài sản tranh chấp}", description: "Vị trí thực địa tài sản viết thường" },
-  { group: "12. ĐẶC THÙ NGÀNH ÁN KHÁC", name: "{Hợp đồng tín dụng}", description: "Số hợp đồng, ngày ký hợp đồng tín dụng và tài sản thế chấp trong án KDTM" },
-  { group: "12. ĐẶC THÙ NGÀNH ÁN KHÁC", name: "{hợp đồng tín dụng}", description: "Thông tin hợp đồng tín dụng viết thường" },
-  { group: "12. ĐẶC THÙ NGÀNH ÁN KHÁC", name: "{Dư nợ tín dụng}", description: "Tổng dư nợ gốc, nợ lãi trong hạn và lãi quá hạn ngân hàng" },
-  { group: "12. ĐẶC THÙ NGÀNH ÁN KHÁC", name: "{dư nợ tín dụng}", description: "Tổng dư nợ tín dụng viết thường" },
-  { group: "12. ĐẶC THÙ NGÀNH ÁN KHÁC", name: "{Di sản thừa kế}", description: "Danh mục di sản, người để lại di sản và thời điểm mở thừa kế" },
-  { group: "12. ĐẶC THÙ NGÀNH ÁN KHÁC", name: "{di sản thừa kế}", description: "Danh mục di sản thừa kế viết thường" },
-  { group: "12. ĐẶC THÙ NGÀNH ÁN KHÁC", name: "{Thiệt hại bồi thường}", description: "Hành vi gây thiệt hại và tổng số tiền yêu cầu bồi thường ngoài hợp đồng" },
-  { group: "12. ĐẶC THÙ NGÀNH ÁN KHÁC", name: "{thiệt hại bồi thường}", description: "Yêu cầu bồi thường thiệt hại viết thường" },
-  { group: "12. ĐẶC THÙ NGÀNH ÁN KHÁC", name: "{Tranh chấp lao động}", description: "Loại hợp đồng lao động, mức lương căn cứ và yêu cầu giải quyết" },
-  { group: "12. ĐẶC THÙ NGÀNH ÁN KHÁC", name: "{tranh chấp lao động}", description: "Nội dung tranh chấp lao động viết thường" }
+  { group: "12. ĐẶC THÙ XỬ LÝ ĐƠN", name: "{Những vấn đề cần sửa chữa bổ sung}", description: "Nội dung phân tích vấn đề cần sửa chữa bổ sung đơn khởi kiện (Dùng cho Mẫu 01)" },
+  { group: "12. ĐẶC THÙ XỬ LÝ ĐƠN", name: "{những vấn đề cần sửa chữa bổ sung}", description: "Những vấn đề cần sửa chữa bổ sung đơn viết thường" },
+  { group: "12. ĐẶC THÙ XỬ LÝ ĐƠN", name: "{NHỮNG VẤN ĐỀ CẦN SỬA CHỮA BỔ SUNG}", description: "Những vấn đề cần sửa chữa bổ sung đơn viết IN HOA" },
+  { group: "12. ĐẶC THÙ XỬ LÝ ĐƠN", name: "{Yêu cầu sửa đổi bổ sung}", description: "Nội dung chỉ thị yêu cầu người nộp đơn sửa đổi, bổ sung (Dùng cho Mẫu 01)" },
+  { group: "12. ĐẶC THÙ XỬ LÝ ĐƠN", name: "{yêu cầu sửa đổi bổ sung}", description: "Yêu cầu sửa đổi bổ sung viết thường" },
+  { group: "12. ĐẶC THÙ XỬ LÝ ĐƠN", name: "{YÊU CẦU SỬA ĐỔI BỔ SUNG}", description: "Yêu cầu sửa đổi bổ sung viết IN HOA" },
+
+  // =========================================================================
+  // NHÓM 13: ĐẶC THÙ NGÀNH ÁN KHÁC (ĐẤT ĐAI, TÍN DỤNG, THỪA KẾ, LAO ĐỘNG...)
+  // =========================================================================
+  { group: "13. ĐẶC THÙ NGÀNH ÁN KHÁC", name: "{Tài sản tranh chấp}", description: "Thông tin thửa đất, nhà ở hoặc tài sản tranh chấp trong án Dân sự / Đất đai" },
+  { group: "13. ĐẶC THÙ NGÀNH ÁN KHÁC", name: "{tài sản tranh chấp}", description: "Thông tin tài sản tranh chấp viết thường" },
+  { group: "13. ĐẶC THÙ NGÀNH ÁN KHÁC", name: "{Vị trí tài sản tranh chấp}", description: "Vị trí thực địa phục vụ Quyết định xem xét thẩm định tại chỗ, định giá tài sản" },
+  { group: "13. ĐẶC THÙ NGÀNH ÁN KHÁC", name: "{vị trí tài sản tranh chấp}", description: "Vị trí thực địa tài sản viết thường" },
+  { group: "13. ĐẶC THÙ NGÀNH ÁN KHÁC", name: "{Hợp đồng tín dụng}", description: "Số hợp đồng, ngày ký hợp đồng tín dụng và tài sản thế chấp trong án KDTM" },
+  { group: "13. ĐẶC THÙ NGÀNH ÁN KHÁC", name: "{hợp đồng tín dụng}", description: "Thông tin hợp đồng tín dụng viết thường" },
+  { group: "13. ĐẶC THÙ NGÀNH ÁN KHÁC", name: "{Dư nợ tín dụng}", description: "Tổng dư nợ gốc, nợ lãi trong hạn và lãi quá hạn ngân hàng" },
+  { group: "13. ĐẶC THÙ NGÀNH ÁN KHÁC", name: "{dư nợ tín dụng}", description: "Tổng dư nợ tín dụng viết thường" },
+  { group: "13. ĐẶC THÙ NGÀNH ÁN KHÁC", name: "{Di sản thừa kế}", description: "Danh mục di sản, người để lại di sản và thời điểm mở thừa kế" },
+  { group: "13. ĐẶC THÙ NGÀNH ÁN KHÁC", name: "{di sản thừa kế}", description: "Danh mục di sản thừa kế viết thường" },
+  { group: "13. ĐẶC THÙ NGÀNH ÁN KHÁC", name: "{Thiệt hại bồi thường}", description: "Hành vi gây thiệt hại và tổng số tiền yêu cầu bồi thường ngoài hợp đồng" },
+  { group: "13. ĐẶC THÙ NGÀNH ÁN KHÁC", name: "{thiệt hại bồi thường}", description: "Yêu cầu bồi thường thiệt hại viết thường" },
+  { group: "13. ĐẶC THÙ NGÀNH ÁN KHÁC", name: "{Tranh chấp lao động}", description: "Loại hợp đồng lao động, mức lương căn cứ và yêu cầu giải quyết" },
+  { group: "13. ĐẶC THÙ NGÀNH ÁN KHÁC", name: "{tranh chấp lao động}", description: "Nội dung tranh chấp lao động viết thường" }
 ];
 
 function backend_GetAllPlaceholders() {

@@ -4,7 +4,8 @@
  * HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.0 - MASTER BUSINESS CONTROLLER (PRODUCTION)
  * TỆP: JS_NghiepVu.html - ĐIỀU HÀNH NGHIỆP VỤ XỬ LÝ ÁN, SOẠN THẢO, A4 & OCR AI
  * -------------------------------------------------------------------------
- * - ĐÃ CHUẨN HÓA: Kế thừa toàn bộ hàm tiện ích NLP từ JS_HeThong.html.
+ * - ĐÃ ĐỒNG BỘ: Cảnh báo thiếu thông tin soạn thảo văn bản Án nhẹ nhàng qua AppUI.confirm
+ *   như phần Đơn, không còn ép buộc quét Drive hay kiểm tra cứng {Nội dung thỏa thuận}.
  * - TỰ ĐỘNG LẤP ĐẦY NĂM SINH, ĐỊA CHỈ, SĐT, CCCD VÀO a4State VÀ CSDL 2_DUONGSU.
  * - KẾT NỐI LIỀN MẠCH: LỊCH CÔNG TÁC ◄──► SOẠN THẢO VĂN BẢN ◄──► GOOGLE CALENDAR.
  * - TRẢI NGHIỆM SOẠN THẢO A4 IN-PLACE VÀ TRỘN THƯ MAIL MERGE V3 TOÀN NĂNG.
@@ -65,7 +66,6 @@ var BieuMauConfig = [];
 var currentLoadedTemplates = [];
 
 window.pendingMergePayload = null;
-window.pendingPreflightMissing = [];
 window.currentEditingTaskId = null;
 window.currentStagedAITplFile = null;
 window.currentPendingEvidence = null;
@@ -101,7 +101,6 @@ window.getProceduralRoleInfo = function(loaiAn, quanHe) {
 // 3. CỔNG XỬ LÝ TỆP TIN & TRÍCH XUẤT TÀI LIỆU AI OCR
 // =========================================================================
 
-// Quét đơn / thông báo scan tự động điền vào form thụ lý mới
 window.scanDocumentForInfo = function(input) {
   if (!input.files || input.files.length === 0) return;
   var file = input.files[0];
@@ -157,7 +156,6 @@ window.scanDocumentForInfo = function(input) {
   input.value = "";
 };
 
-// Quét bóc tách danh sách đương sự hàng loạt
 window.mergeAndShowReviewParties = function(partiesData) {
   if (!partiesData || !Array.isArray(partiesData) || partiesData.length === 0) {
     AppUI.showToast("Không tìm thấy đương sự nào trong tài liệu.", "info");
@@ -174,7 +172,6 @@ window.mergeAndShowReviewParties = function(partiesData) {
   window.handleIngestedEvidenceResult(pseudoRes, "Tài liệu đương sự scan");
 };
 
-// Tiếp nhận bóc tách nguyên liệu & lấp đầy thông tin đương sự
 window.handleIngestedEvidenceResult = function(res, fileName) {
   var idVuAn = window.currentCaseId;
   if (!idVuAn || !res) return;
@@ -186,7 +183,6 @@ window.handleIngestedEvidenceResult = function(res, fileName) {
   var isMismatch = res.isMismatch === true;
   var mismatchMsg = res.mismatchReason || "Số thụ lý hoặc đương sự trên tài liệu không khớp với hồ sơ đang mở.";
 
-  // 1. Tự động lấp đầy thông tin thiếu cho đương sự cũ (Năm sinh, Địa chỉ, SĐT, CCCD)
   if (updatedParties.length > 0) {
     updatedParties.forEach(function(p) {
       var cleanTarget = window.toTitleCase(window.cleanHonorificFromName(p.hoTen)).toLowerCase();
@@ -206,7 +202,6 @@ window.handleIngestedEvidenceResult = function(res, fileName) {
     window.saveA4StateToServer();
   }
 
-  // 2. Nếu có đương sự mới hoặc có cảnh báo lệch -> Mở modal cho Thẩm phán duyệt
   if (newParties.length > 0 || isMismatch) {
     var partiesReviewRowsHtml = newParties.map(function(p, i) {
       var safeName = window.toTitleCase(window.cleanHonorificFromName(p.hoTen));
@@ -1439,7 +1434,7 @@ window.saveTaskAndDraft = function() {
 };
 
 // =========================================================================
-// 7. TRUNG TÂM XUẤT VĂN BẢN V3
+// 7. TRUNG TÂM XUẤT VĂN BẢN V3 & CẢNH BÁO THIẾU THÔNG TIN CHUẨN GỌN
 // =========================================================================
 
 function checkTemplateMatchesResolution(tplName, resLoai) {
@@ -1866,10 +1861,7 @@ window.doActualMailMergePostflight = function() {
 function analyzeTemplateRequirements(selectedTpls) {
   var requirements = {
     needsSchedule: false,
-    needsAgreement: false,
-    needsPartyDetails: false,
-    scheduleTemplates: [],
-    agreementTemplates: []
+    scheduleTemplates: []
   };
 
   selectedTpls.forEach(function(t) {
@@ -1884,18 +1876,6 @@ function analyzeTemplateRequirements(selectedTpls) {
     if (isScheduleTpl) {
       requirements.needsSchedule = true;
       requirements.scheduleTemplates.push(rawName);
-    }
-
-    var isAgreementTpl = (num === 22 || num === 25 || num === 44 || num === 45 || num === 57 || num === 58 || num === 61 || num === 62) ||
-                         (nameLower.includes("công nhận sự thỏa thuận") || nameLower.includes("thuận tình ly hôn") || nameLower.includes("kết quả hòa giải"));
-    
-    if (isAgreementTpl) {
-      requirements.needsAgreement = true;
-      requirements.agreementTemplates.push(rawName);
-    }
-
-    if (num === 3 || num === 41 || num === 46 || num === 53 || nameLower.includes("thụ lý")) {
-      requirements.needsPartyDetails = true;
     }
   });
 
@@ -1973,35 +1953,6 @@ window.executeMailMergeV3 = function() {
     window.compileDynamicVariables(window.currentCaseVariables, currentA4Parties);
   }
 
-  var req = analyzeTemplateRequirements(selectedTpls);
-  var missingWarnings = [];
-
-  if (req.needsSchedule && (!extNgay || !extGio)) {
-    var tplNamesStr = req.scheduleTemplates.map(function(s) { return `"${s}"`; }).join(", ");
-    missingWarnings.push(`Chưa nhập Ngày và Giờ triệu tập (Cần thiết cho: ${tplNamesStr}).`);
-  }
-
-  if (req.needsAgreement) {
-    var availableVars = window.currentCaseVariables || {};
-    var hasAgreementText = availableVars["{Nội dung thỏa thuận}"] || availableVars["{nội dung thỏa thuận}"] ||
-                           availableVars["{Quan hệ hôn nhân}"] || availableVars["{Thỏa thuận con chung}"];
-    if (!hasAgreementText || String(hasAgreementText).trim() === "") {
-      var agTplNamesStr = req.agreementTemplates.map(function(s) { return `"${s}"`; }).join(", ");
-      missingWarnings.push(`Hồ sơ chưa có {Nội dung thỏa thuận} (Cần thiết cho: ${agTplNamesStr}).`);
-    }
-  }
-
-  if (req.needsPartyDetails) {
-    (currentA4Parties || []).forEach(function(p) {
-      if (p.xungHo !== "Tổ chức" && (!p.namSinh || String(p.namSinh).trim() === "")) {
-        missingWarnings.push(`Đương sự <b>${p.hoTen}</b> chưa có Năm sinh.`);
-      }
-      if (!p.diaChi || String(p.diaChi).trim() === "") {
-        missingWarnings.push(`Đương sự <b>${p.hoTen}</b> chưa có Địa chỉ cư trú.`);
-      }
-    });
-  }
-
   window.pendingMergePayload = {
     templateIds: selectedTpls.map(function(t) { return t.value; }), 
     selectedIndices: Array.from(dsNodes).map(function(d) { return parseInt(d.value); }),
@@ -2025,25 +1976,34 @@ window.executeMailMergeV3 = function() {
     isFormalPromulgation: isFormalPromulgation
   };
 
-  if (missingWarnings.length > 0) {
-    var listContainer = document.getElementById('preflight_missing_list_container');
-    var countBadge = document.getElementById('preflight_missing_count');
-    if (countBadge) countBadge.innerText = missingWarnings.length + " lưu ý";
+  // CƠ CHẾ CẢNH BÁO THIẾU THÔNG TIN NHẸ NHÀNG, GỌN GÀNG Y HỆT NHƯ PHẦN ĐƠN (QUA AppUI.confirm)
+  var req = analyzeTemplateRequirements(selectedTpls);
+  var warnings = [];
 
-    if (listContainer) {
-      listContainer.innerHTML = missingWarnings.map(function(item) {
-        return `<div class="p-2 border rounded bg-white text-danger fw-bold d-flex align-items-center mb-1" style="font-size: 11.5px;">
-                  <i class="fas fa-exclamation-triangle me-2 text-warning flex-shrink-0"></i>
-                  <span>${item}</span>
-                </div>`;
-      }).join('');
+  if (req.needsSchedule && (!extNgay || !extGio)) {
+    warnings.push("- Chưa nhập Ngày hoặc Giờ triệu tập / làm việc.");
+  }
+
+  var missingDob = false;
+  (currentA4Parties || []).forEach(function(p) {
+    if (p.xungHo !== "Tổ chức" && (!p.namSinh || String(p.namSinh).trim() === "")) {
+      missingDob = true;
     }
+  });
+  if (missingDob) {
+    warnings.push("- Có đương sự cá nhân chưa điền Năm sinh.");
+  }
 
-    var modalEl = document.getElementById('modalPreflightWarning');
-    if (modalEl) {
-      bootstrap.Modal.getOrCreateInstance(modalEl).show();
+  if (warnings.length > 0) {
+    var warningMsg = "CẢNH BÁO THIẾU THÔNG TIN:\n" + warnings.join("\n") + "\n\nBạn có muốn tiếp tục xuất văn bản không?";
+    if (typeof AppUI !== 'undefined') {
+      AppUI.confirm("Thiếu thông tin", warningMsg, "warning", function() {
+        window.doActualMailMergePostflight();
+      });
     } else {
-      window.doActualMailMergePostflight();
+      if (confirm(warningMsg)) {
+        window.doActualMailMergePostflight();
+      }
     }
   } else {
     window.doActualMailMergePostflight();

@@ -364,7 +364,6 @@ function logic_DongBoDonTuExcel() {
         existingSoDonSet.add(cleanCheckNo);
         existingSoDonSet.add(rawSoDon.toLowerCase());
 
-        // Phân loại ngành án từ file Excel
         var phanLoaiExcel = "2. Dân sự";
         if (String(row[5] || "").trim() !== "") phanLoaiExcel = "1. Hình sự";
         else if (String(row[6] || "").trim() !== "") phanLoaiExcel = "2. Dân sự";
@@ -387,7 +386,6 @@ function logic_DongBoDonTuExcel() {
           idDonMoi, rawSoDon, ngayObj, phanLoaiExcel, quanHe, "", "Chưa xử lý", thamPhanAuto, "", "Chưa xử lý", "Đồng bộ từ Sổ gốc"
         ]);
 
-        // Tách Người Khởi kiện mới
         var parts = rawNguoiNop.split(/,?\s*\n\s*,?|,\s*/).map(p => p.trim()).filter(p => p);
         var tenNKK = parts[0] || 'Chưa rõ';
         if (tenNKK && tenNKK !== 'Chưa rõ' && !tenNKK.includes("GMT")) {
@@ -397,7 +395,6 @@ function logic_DongBoDonTuExcel() {
           ]);
         }
 
-        // Tách Người Bị kiện mới
         var tenNBK = "";
         var lines = rawNoiDung.split('\n').map(p => p.trim()).filter(p => p);
         if (lines.length > 1) {
@@ -420,7 +417,6 @@ function logic_DongBoDonTuExcel() {
       }
     });
 
-    // 4. CHỈ GHI NỐI TIẾP VÀO CUỐI BẢNG (TUYỆT ĐỐI KHÔNG CLEAR CONTENT BẢNG CŨ)
     if (newDonRows.length > 0) {
       sheetDon.getRange(sheetDon.getLastRow() + 1, 1, newDonRows.length, 11).setValues(newDonRows);
     }
@@ -663,112 +659,15 @@ function api_XoaNhieuDon(ids) {
 }
 
 // =========================================================================
-// 6. TRỘN THƯ ĐƠN HỢP NHẤT (CHUYỂN GIAO CHO MASTER ENGINE 6_VanBan.gs)
+// 6. TRỘN THƯ ĐƠN HỢP NHẤT (CHUYỂN GIAO 100% CHO MASTER ENGINE 6_VanBan.gs)
 // =========================================================================
 
 function logic_TronThuChoDon_V2(payload) {
-  // Chuyển giao trực tiếp cho Động cơ Master Merge Engine tại 6_VanBan.gs
+  // Chuyển giao trực tiếp 100% cho Động cơ Master Merge Engine tại 6_VanBan.gs
   if (typeof api_RunMailMergeDon_Logic === 'function') {
     return api_RunMailMergeDon_Logic(payload);
   }
-
-  // Dự phòng trường hợp độc lập
-  try {
-    var config = (typeof getConfigFromSheet === 'function') ? getConfigFromSheet() : {};
-    var rootFolderId = extractFolderId(config["ID_THUMUC_DON"]);
-    if (!rootFolderId) throw new Error("Chưa cấu hình ID Thư mục lưu Đơn.");
-
-    var rootFolder = DriveApp.getFolderById(rootFolderId);
-    var yearFolder;
-    var currentYear = "Năm " + new Date().getFullYear();
-    var yFolders = rootFolder.getFoldersByName(currentYear);
-    if (yFolders.hasNext()) yearFolder = yFolders.next();
-    else yearFolder = rootFolder.createFolder(currentYear);
-
-    var cleanNo = payload.soDon ? payload.soDon.toString().split('/')[0].trim() : "";
-    var folderName = `${cleanNo} - ${payload.firstNKKName}`;
-    var subFolders = yearFolder.getFoldersByName(folderName);
-    var caseFolder = subFolders.hasNext() ? subFolders.next() : yearFolder.createFolder(folderName);
-
-    if (payload.trieuTapDate) {
-      try { 
-        api_LuuLichMoi_Logic({ 
-          idVuAn: "GENERAL", 
-          ngay: payload.trieuTapDate, 
-          gio: payload.trieuTapTime || "08:30", 
-          noiDung: `[Đơn ${cleanNo}] Tiếp nhận & Xử lý: ${payload.firstNKKName}` 
-        }); 
-      } catch (e) {}
-    }
-
-    if (payload.newStatus) {
-      var sheetDon = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("0_SoNhanDon");
-      var finder = sheetDon.getRange("A:A").createTextFinder(payload.idDon).matchEntireCell(true).findNext();
-      if (finder) {
-        sheetDon.getRange(finder.getRow(), 7).setValue(payload.newStatus);
-        sheetDon.getRange(finder.getRow(), 10).setValue(payload.newStatus);
-      }
-    }
-
-    var createdFiles = [];
-    var ph = payload.compiledPlaceholders || {};
-    ph["{Thẩm phán}"] = config["TEN_THAM_PHAN"] || "..............................";
-    ph["{Tòa án}"] = config["TEN_TOA_AN"] || "Tòa án nhân dân";
-    ph["{Địa chỉ tòa án}"] = config["DIA_CHI_TOA"] || "Trụ sở Tòa án";
-
-    payload.templateIds.forEach(templateId => {
-      var templateFile = DriveApp.getFileById(templateId);
-      var cleanDocName = templateFile.getName().replace(/\.(gdoc|docx|doc)$/i, "").trim();
-      var expectedName = `${cleanDocName} - ${cleanNo}`;
-
-      var existingFiles = caseFolder.getFilesByName(expectedName);
-      while (existingFiles.hasNext()) existingFiles.next().setTrashed(true);
-
-      var newFile = templateFile.makeCopy(expectedName, caseFolder);
-      var doc = DocumentApp.openById(newFile.getId());
-      var body = doc.getBody();
-
-      var rawMatches = (body.getText().match(/\{[^\{\}\n\r]+\}/g) || []);
-      var uniqueTokens = Array.from(new Set(rawMatches));
-
-      uniqueTokens.forEach(function(tag) {
-        var val = ph[tag];
-        if (val === undefined) {
-          var lowerTag = tag.toLowerCase();
-          for (var k in ph) {
-            if (k.toLowerCase() === lowerTag) {
-              val = ph[k];
-              break;
-            }
-          }
-        }
-        if (val !== undefined) {
-          var safeStr = String(val).replace(/\$/g, '$$$$').trim();
-          var innerKey = tag.replace(/[{}]/g, "").trim();
-          try {
-            body.replaceText("(?i)\\{\\s*" + escapeRegex(innerKey) + "\\s*\\}", safeStr);
-          } catch(e) {
-            body.replaceText(escapeRegex(tag), safeStr);
-          }
-        }
-      });
-
-      if (typeof sanitizeMergedDocument === 'function') {
-        sanitizeMergedDocument(body);
-      }
-      doc.saveAndClose();
-
-      createdFiles.push({ 
-        name: newFile.getName(), 
-        url: newFile.getUrl(),
-        docxUrl: "https://docs.google.com/document/d/" + newFile.getId() + "/export?format=docx"
-      });
-    });
-
-    return { success: true, files: createdFiles };
-  } catch (e) { 
-    return { success: false, error: e.toString() }; 
-  }
+  return { success: false, error: "Không tìm thấy động cơ api_RunMailMergeDon_Logic trong 6_VanBan.gs" };
 }
 
 function logic_LuuVaTronThuDon_SuperFast(payloadData, payloadMerge) {

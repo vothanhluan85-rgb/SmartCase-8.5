@@ -1,12 +1,16 @@
 /**
  * =========================================================================
  * HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN - TÒA ÁN NHÂN DÂN
- * TỆP: 6_VanBan.gs - ĐỘNG CƠ SOẠN THẢO VĂN BẢN & TRỘN THƯ MASTER HỢP NHẤT (V8.6)
+ * TỆP: 6_VanBan.gs - MASTER DOCUMENT MERGE ENGINE (BẢN TINH CHỈNH NGỮ PHÁP V8.7)
  * -------------------------------------------------------------------------
- * - ĐÃ SỬA LỖI RÁC NGỮ PHÁP: Gắn chặt [Họ tên] + [Năm sinh] trước khi ghép nối.
- * - ĐÃ SỬA LỖI KHUYẾT THẺ: Phục hồi và bổ sung đầy đủ bộ thẻ tách lẻ cho nhóm 
- *   đương sự: {Xưng hô...}, {Họ và tên...}, {Số điện thoại...}, {CCCD...}.
- * - Nâng cấp cảm biến Tách trang nhận diện thẻ {Địa chỉ} và {Số điện thoại}.
+ * - ĐÃ TINH CHỈNH NGỮ PHÁP CHUẨN MỰC TÒA ÁN:
+ *   + Chuẩn hóa danh sách đương sự theo Phương án nguyên thủy: [Danh xưng A, năm sinh A; danh xưng B, năm sinh B; địa chỉ...],
+ *     phân tách bằng dấu chấm phẩy (;), triệt tiêu hoàn toàn từ "và" thừa và cụm "Các ông/bà" dư thừa.
+ *   + Xử lý triệt để thẻ {Xưng hô...} khi là Tổ chức hoặc đứng độc lập trong câu:
+ *     * Khi đi kèm tên tổ chức: triệt tiêu tự nhiên (Kính gửi: Ngân hàng TMCP...).
+ *     * Khi đứng độc lập làm chủ ngữ/đại từ: tự động điền "Người khởi kiện" / "Bị đơn" / "Các đương sự",
+ *       chấm dứt hoàn toàn tình trạng bị khuyết rỗng chủ ngữ trong câu.
+ *   + Đồng bộ chuẩn hóa trên cả Header, Footer và Body cho cả Án và Đơn.
  * =========================================================================
  */
 
@@ -118,76 +122,55 @@ function backend_AutoExtractMediationAgreement(idVuAn, folderUrl) {
 }
 
 // =========================================================================
-// MỤC 2: TIỆN ÍCH NLP, CHUẨN HÓA DANH XƯNG & THỂ THỨC TỐ TỤNG BACKEND
+// MỤC 2: PHÂN CỤM ĐƯƠNG SỰ & GHÉP CHUỖI DÙNG CHUNG (CHUẨN HÓA OPTION B)
 // =========================================================================
 
-function isIndividualHonorific(xh) {
-  if (!xh) return false;
-  var x = String(xh).trim().toLowerCase();
-  var legalEntities = ["tổ chức", "pháp nhân", "công ty", "doanh nghiệp", "ubnd", "ngân hàng", "chi nhánh", "hợp tác xã", "cơ quan"];
-  if (legalEntities.includes(x)) return false;
-  return ["ông", "bà", "anh", "chị", "cháu", "ông/bà"].includes(x);
-}
+function buildPartyClusters(parties, isThuanTinhLyHon, isDon) {
+  var groupsNKK = [], groupsNBK = [], groupsNYCau = [], groupsNLQ = [], groupsNLC = [];
+  parties = parties || [];
 
-function cleanHonorificFromName(name) {
-  if (!name) return "";
-  return String(name).replace(/^(Ông\/bà|Ông|Bà|Anh|Chị|Cháu|ông|bà|anh|chị|cháu)\s*[:.\-]?\s*/i, '').trim();
-}
+  parties.forEach(function(d, idx) {
+    var roleLower = String(d.tuCach || "").toLowerCase();
+    var type = 'BD';
 
-function toTitleCase(str) {
-  if (!str) return "";
-  var acronyms = [
-    "TMCP", "TNHH", "CP", "MTV", "UBND", "TAND", "VKSND", "VN", "JSC", "BHTG", 
-    "HTX", "NHCSXH", "NHTMCP", "NH", "BIDV", "ACB", "MB", "VPBANK", "VIETINBANK", 
-    "VIETCOMBANK", "AGRIBANK", "SHB", "TPBANK", "HDBANK", "VIB", "MSB", "OCB", 
-    "SEABANK", "LPBANK", "SCB", "SACOMBANK", "ABBANK", "BAB", "NCB", "QLTA"
-  ];
-  var words = String(str).trim().toLowerCase().split(/\s+/);
-  return words.map(function(w) {
-    var upperW = w.toUpperCase();
-    if (acronyms.includes(upperW)) return upperW;
-    if (w.includes("'") || w.includes("’")) {
-      return w.split(/['’]/).map(function(p) { return p ? p.charAt(0).toUpperCase() + p.slice(1).toLowerCase() : ""; }).join("'");
+    if (isThuanTinhLyHon && !isDon) {
+      if (roleLower.includes('liên quan')) type = 'LQ';
+      else if (roleLower.includes('làm chứng')) type = 'LC';
+      else type = (idx === 0) ? 'ND' : 'BD';
+    } else {
+      if (roleLower.includes('nguyên đơn') || roleLower.includes('khởi kiện') || roleLower.includes('bị hại')) {
+        type = 'ND';
+      } else if (roleLower.includes('yêu cầu') && !roleLower.includes('bị yêu cầu')) {
+        type = isDon ? 'ND' : 'YC';
+      } else if (roleLower.includes('liên quan')) {
+        type = 'LQ';
+      } else if (roleLower.includes('làm chứng')) {
+        type = isDon ? 'BD' : 'LC';
+      } else {
+        type = 'BD';
+      }
     }
-    return upperW.charAt(0) + w.slice(1).toLowerCase();
-  }).join(" ");
-}
 
-function formatPhoneNumber(phone) {
-  if (!phone) return "";
-  var str = String(phone).trim().replace(/[^0-9+]/g, '');
-  if (str.length > 0 && str.charAt(0) !== '0' && str.charAt(0) !== '+') str = '0' + str;
-  return str;
-}
-
-function escapeRegex(str) { return String(str || "").replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
-function cleanChildSlotPrefix(str) { return String(str || "").replace(/^(\d+(\.\d+)*\.?\s*(Về\s*)?[^:\n]*:\s*)+/i, '').trim(); }
-
-function extractFlatMembers(groupsOrMembers) {
-  var flatList = [];
-  if (!groupsOrMembers || !Array.isArray(groupsOrMembers)) return flatList;
-  groupsOrMembers.forEach(function(item) {
-    if (item.members && Array.isArray(item.members)) {
-      item.members.forEach(function(m) { m._diaChiGoc = item.diaChi || m.diaChi || ""; flatList.push(m); });
-    } else if (item.hoTen) { 
-      item._diaChiGoc = item.diaChi || ""; 
-      flatList.push(item); 
-    }
+    var targetGroup = (type === 'ND') ? groupsNKK : (type === 'YC' ? groupsNYCau : (type === 'LQ' ? groupsNLQ : (type === 'LC' ? groupsNLC : groupsNBK)));
+    var addrKey = d.diaChi ? d.diaChi.trim().toLowerCase() : "";
+    var found = addrKey ? targetGroup.find(function(g) { return (g.diaChi ? g.diaChi.trim().toLowerCase() : "") === addrKey; }) : null;
+    if (found) found.members.push(d);
+    else targetGroup.push({ diaChi: d.diaChi || "", members: [d] });
   });
-  return flatList;
-}
 
-function getOfficerHonorific(rawName, defaultTitle) {
-  if (!rawName || rawName.trim() === "") return defaultTitle || "Ông";
-  var rawLower = rawName.toLowerCase().trim();
-  if (rawLower.startsWith("bà ") || rawLower.startsWith("chị ")) return "Bà";
-  if (rawLower.startsWith("ông ") || rawLower.startsWith("anh ")) return "Ông";
-  return defaultTitle || "Ông";
-}
+  var nkkToUse = (isThuanTinhLyHon && !isDon)
+    ? groupsNKK.concat(groupsNBK)
+    : ((groupsNYCau.length > 0) ? groupsNYCau : groupsNKK);
 
-// =========================================================================
-// MỤC 3: GHÉP NỐI ĐƯƠNG SỰ & XÂY DỰNG TỪ ĐIỂN PLACEHOLDER CHUẨN
-// =========================================================================
+  return {
+    groupsNKK: groupsNKK,
+    groupsNBK: groupsNBK,
+    groupsNYCau: groupsNYCau,
+    groupsNLQ: groupsNLQ,
+    groupsNLC: groupsNLC,
+    nkkToUse: nkkToUse
+  };
+}
 
 function formatRepsBlock(repJson) {
   if (!repJson) return "";
@@ -300,13 +283,14 @@ function buildShortPartyStringBackend(groups, isLowerXungHo) {
     }
     return (xh + toTitleCase(cleanHonorificFromName(m.hoTen))).trim();
   });
-  return names.join(", ");
+  // Nối danh sách tên bằng dấu chấm phẩy (; ) chuẩn mực
+  return names.join("; ");
 }
 
-// -------------------------------------------------------------------------
-// [FIXED]: SỬA LỖI RÁC NGỮ PHÁP (A, B sinh năm 1987, 2000)
-// Ghép chặt [Tên] + [Năm sinh] cho từng cá nhân TRƯỚC KHI nối bằng dấu phẩy
-// -------------------------------------------------------------------------
+/**
+ * Ghép chuỗi đương sự chi tiết theo Option B:
+ * Từng người giữ danh xưng riêng, nối bằng dấu chấm phẩy (; ), không dùng từ "và"
+ */
 function buildSmartPartyStringBackend(groups, isLowerXungHo) {
   if (!groups || groups.length === 0) return ".......................................................";
   var groupStrings = groups.map(function(g) {
@@ -327,32 +311,26 @@ function buildSmartPartyStringBackend(groups, isLowerXungHo) {
       return xh + cleanName + ns;
     });
 
-    var groupStr = "";
     var cleanDiaChi = String(g.diaChi || "").replace(/^(địa chỉ:\s*|cùng địa chỉ:\s*)/i, "").trim();
-
-    if (memStrs.length === 1) { 
-      groupStr = memStrs[0]; 
-      if (cleanDiaChi) groupStr += `, địa chỉ: ${cleanDiaChi}`; 
-    } else { 
-      var lastMem = memStrs.pop();
-      groupStr = memStrs.join(", ") + " và " + lastMem; 
-      if (cleanDiaChi) groupStr += ` (cùng địa chỉ: ${cleanDiaChi})`; 
+    var groupStr = memStrs.join("; ");
+    if (cleanDiaChi) {
+      groupStr += (memStrs.length > 1) ? ` (cùng địa chỉ: ${cleanDiaChi})` : `, địa chỉ: ${cleanDiaChi}`;
     }
     return groupStr;
   });
   return groupStrings.join("; ");
 }
 
-// -------------------------------------------------------------------------
-// [FIXED]: SỬA LỖI KHUYẾT THẺ KÍNH GỬI (Họ và tên người khởi kiện, SĐT...)
-// Cung cấp đầy đủ biến phân rã cho cá nhân và tổ hợp cho nhóm
-// -------------------------------------------------------------------------
+/**
+ * Xây dựng từ điển Placeholder cho từng vai trò tố tụng.
+ * Xử lý hoàn hảo đại từ độc lập {Xưng hô...} khi là Tổ chức hoặc nhiều đương sự.
+ */
 function backend_buildExactPlaceholders(phMap, roleKey, groups) {
   var allMembers = extractFlatMembers(groups);
   var rLow = roleKey.toLowerCase();
   var rUp = roleKey.toUpperCase();
 
-  // 1. Cấp độ cá nhân (Nguyên đơn 1, Nguyên đơn 2...)
+  // 1. Phân rã theo từng cá nhân 1, 2, 3...
   for (var idx = 0; idx < Math.max(allMembers.length, 3); idx++) {
     var num = idx + 1, m = allMembers[idx];
     
@@ -400,7 +378,7 @@ function backend_buildExactPlaceholders(phMap, roleKey, groups) {
     }
   }
 
-  // 2. Cấp độ nhóm tổng hợp (Dành cho Kính gửi, Địa chỉ nhóm, SĐT nhóm)
+  // 2. Cấp độ nhóm tổng hợp
   var nameKeyHoa = `{Họ và tên ${roleKey}}`, nameKeyThuong = `{họ và tên ${rLow}}`, nameKeyUpper = `{HỌ VÀ TÊN ${rUp}}`, nameKeySent = `{Họ và tên ${rLow}}`;
   var xhKeyHoa = `{Xưng hô ${roleKey}}`, xhKeyThuong = `{xưng hô ${rLow}}`, xhKeySent = `{Xưng hô ${rLow}}`;
   var nsKeyHoa = `{Năm sinh ${roleKey}}`, nsKeyThuong = `{năm sinh ${rLow}}`, nsKeySent = `{Năm sinh ${rLow}}`;
@@ -419,25 +397,20 @@ function backend_buildExactPlaceholders(phMap, roleKey, groups) {
   }
 
   var namesCompound = [];
-  var firstXhHoa = "", firstXhThuong = "";
   var sdtList = [];
   var cccdList = [];
-  var isAllOrg = true;
+  var individualCount = 0;
+  var orgCount = 0;
 
   for (var i = 0; i < allMembers.length; i++) {
     var mem = allMembers[i];
     var isIndM = isIndividualHonorific(mem.xungHo);
-    if (isIndM) isAllOrg = false;
+    if (isIndM) individualCount++; else orgCount++;
+
     var cleanN = toTitleCase(cleanHonorificFromName(mem.hoTen));
     var xhM = (mem.xungHo && mem.xungHo !== "Ông/Bà") ? mem.xungHo.trim() : "Ông/bà";
-    
-    if (i === 0) {
-      firstXhHoa = isIndM ? (xhM.charAt(0).toUpperCase() + xhM.slice(1).toLowerCase()) : "";
-      firstXhThuong = isIndM ? xhM.toLowerCase() : "";
-      namesCompound.push(cleanN);
-    } else {
-      namesCompound.push((isIndM ? (xhM.toLowerCase() + " ") : "") + cleanN);
-    }
+    var prefix = isIndM ? ((i === 0 ? (xhM.charAt(0).toUpperCase() + xhM.slice(1).toLowerCase()) : xhM.toLowerCase()) + " ") : "";
+    namesCompound.push(prefix + cleanN);
 
     if (mem.sdt) {
       var phoneFmt = formatPhoneNumber(mem.sdt);
@@ -446,18 +419,32 @@ function backend_buildExactPlaceholders(phMap, roleKey, groups) {
     if (mem.cccd && !cccdList.includes(mem.cccd)) cccdList.push(mem.cccd);
   }
 
-  // Tự động phân tích danh xưng nhóm
-  if (allMembers.length > 1 && !isAllOrg) {
-    phMap[xhKeyHoa] = "Các ông/bà";
-    phMap[xhKeyThuong] = "các ông/bà";
-    phMap[xhKeySent] = "Các ông/bà";
+  // XỬ LÝ ĐỘC LẬP DANH XƯNG {XƯNG HÔ...}:
+  // Đảm bảo không bao giờ bị rỗng khi đứng làm chủ ngữ trong câu văn!
+  if (allMembers.length === 1) {
+    if (individualCount === 1) {
+      var singleXhRaw = (allMembers[0].xungHo && allMembers[0].xungHo !== "Ông/Bà") ? allMembers[0].xungHo.trim() : "Ông/bà";
+      phMap[xhKeyHoa] = singleXhRaw.charAt(0).toUpperCase() + singleXhRaw.slice(1).toLowerCase();
+      phMap[xhKeyThuong] = singleXhRaw.toLowerCase();
+    } else {
+      // Khi là Tổ chức đứng một mình trong câu: Lấy chính tư cách tố tụng làm chủ ngữ (Người khởi kiện / Bị đơn...)
+      phMap[xhKeyHoa] = roleKey;
+      phMap[xhKeyThuong] = rLow;
+    }
   } else {
-    phMap[xhKeyHoa] = firstXhHoa;
-    phMap[xhKeyThuong] = firstXhThuong;
-    phMap[xhKeySent] = firstXhHoa;
+    // Nhiều đương sự
+    if (orgCount === 0) {
+      phMap[xhKeyHoa] = "Các đương sự";
+      phMap[xhKeyThuong] = "các đương sự";
+    } else {
+      phMap[xhKeyHoa] = roleKey;
+      phMap[xhKeyThuong] = rLow;
+    }
   }
+  phMap[xhKeySent] = phMap[xhKeyHoa];
 
-  var compoundFullName = namesCompound.length > 1 ? (namesCompound.slice(0, -1).join(", ") + " và " + namesCompound[namesCompound.length - 1]) : namesCompound[0];
+  // Họ và tên nhóm nối bằng dấu chấm phẩy (; ) chuẩn Option B
+  var compoundFullName = namesCompound.join("; ");
   phMap[nameKeyHoa] = phMap[nameKeyThuong] = phMap[nameKeySent] = compoundFullName;
   phMap[nameKeyUpper] = compoundFullName.toUpperCase();
 
@@ -474,7 +461,7 @@ function backend_buildExactPlaceholders(phMap, roleKey, groups) {
     compoundNs = "sinh năm " + nsList[0];
   } else if (nsList.length > 1) {
     var allSame = nsList.every(function(y) { return y === nsList[0]; });
-    compoundNs = allSame ? ("cùng sinh năm " + nsList[0]) : ("sinh năm " + nsList.join(", "));
+    compoundNs = allSame ? ("cùng sinh năm " + nsList[0]) : ("sinh năm " + nsList.join("; "));
   }
   phMap[nsKeyHoa] = phMap[nsKeyThuong] = phMap[nsKeySent] = compoundNs;
 
@@ -489,30 +476,140 @@ function backend_buildExactPlaceholders(phMap, roleKey, groups) {
   phMap[cccdKeyHoa] = phMap[cccdKeyThuong] = phMap[cccdKeySent] = cccdList.length > 0 ? cccdList.join("; ") : "";
 }
 
+function buildSharedPartyDictionary(clusters, isThuanTinhLyHon) {
+  var roleMap = {};
+  var groupsNKK = clusters.groupsNKK;
+  var groupsNBK = clusters.groupsNBK;
+  var groupsNLQ = clusters.groupsNLQ;
+  var groupsNLC = clusters.groupsNLC;
+  var nkkToUse = clusters.nkkToUse;
+
+  roleMap["{Nguyên đơn}"] = buildShortPartyStringBackend(groupsNKK, false);
+  roleMap["{nguyên đơn}"] = buildShortPartyStringBackend(groupsNKK, true);
+  roleMap["{NGUYÊN ĐƠN}"] = roleMap["{Nguyên đơn}"].toUpperCase();
+
+  roleMap["{Người khởi kiện}"] = roleMap["{Nguyên đơn}"];
+  roleMap["{người khởi kiện}"] = roleMap["{nguyên đơn}"];
+  roleMap["{NGƯỜI KHỞI KIỆN}"] = roleMap["{NGUYÊN ĐƠN}"];
+
+  roleMap["{Người nộp đơn}"] = roleMap["{Nguyên đơn}"];
+  roleMap["{người nộp đơn}"] = roleMap["{nguyên đơn}"];
+  roleMap["{NGƯỜI NỘP ĐƠN}"] = roleMap["{NGUYÊN ĐƠN}"];
+
+  roleMap["{Bị đơn}"] = buildShortPartyStringBackend(groupsNBK, false);
+  roleMap["{bị đơn}"] = buildShortPartyStringBackend(groupsNBK, true);
+  roleMap["{BỊ ĐƠN}"] = roleMap["{Bị đơn}"].toUpperCase();
+
+  roleMap["{Người bị kiện}"] = roleMap["{Bị đơn}"];
+  roleMap["{người bị kiện}"] = roleMap["{bị đơn}"];
+  roleMap["{NGƯỜI BỊ KIỆN}"] = roleMap["{BỊ ĐƠN}"];
+
+  roleMap["{Người yêu cầu}"] = isThuanTinhLyHon ? `${buildShortPartyStringBackend(groupsNKK, false)}; ${buildShortPartyStringBackend(groupsNBK, false)}` : buildShortPartyStringBackend(nkkToUse, false);
+  roleMap["{người yêu cầu}"] = isThuanTinhLyHon ? `${buildShortPartyStringBackend(groupsNKK, true)}; ${buildShortPartyStringBackend(groupsNBK, true)}` : buildShortPartyStringBackend(nkkToUse, true);
+  roleMap["{NGƯỜI YÊU CẦU}"] = roleMap["{Người yêu cầu}"].toUpperCase();
+
+  roleMap["{Người bị yêu cầu}"] = buildShortPartyStringBackend(groupsNBK, false);
+  roleMap["{người bị yêu cầu}"] = buildShortPartyStringBackend(groupsNBK, true);
+  roleMap["{NGƯỜI BỊ YÊU CẦU}"] = roleMap["{Người bị yêu cầu}"].toUpperCase();
+
+  roleMap["{Người có quyền lợi, nghĩa vụ liên quan}"] = buildShortPartyStringBackend(groupsNLQ, false);
+  roleMap["{người có quyền lợi, nghĩa vụ liên quan}"] = buildShortPartyStringBackend(groupsNLQ, true);
+  roleMap["{NGƯỜI CÓ QUYỀN LỢI, NGHĨA VỤ LIÊN QUAN}"] = roleMap["{Người có quyền lợi, nghĩa vụ liên quan}"].toUpperCase();
+
+  roleMap["{Người làm chứng}"] = buildShortPartyStringBackend(groupsNLC, false);
+  roleMap["{người làm chứng}"] = buildShortPartyStringBackend(groupsNLC, true);
+  roleMap["{NGƯỜI LÀM CHỨNG}"] = roleMap["{Người làm chứng}"].toUpperCase();
+
+  roleMap["{Danh sách Nguyên đơn}"] = roleMap["{Nguyên đơn}"];
+  roleMap["{danh sách nguyên đơn}"] = roleMap["{nguyên đơn}"];
+  roleMap["{Danh sách Bị đơn}"] = roleMap["{Bị đơn}"];
+  roleMap["{danh sách bị đơn}"] = roleMap["{bị đơn}"];
+  roleMap["{Danh sách Người yêu cầu}"] = roleMap["{Người yêu cầu}"];
+  roleMap["{danh sách người yêu cầu}"] = roleMap["{người yêu cầu}"];
+  roleMap["{Danh sách NYC}"] = roleMap["{Người yêu cầu}"];
+
+  backend_buildExactPlaceholders(roleMap, "Người yêu cầu", nkkToUse);
+  backend_buildExactPlaceholders(roleMap, "Nguyên đơn", groupsNKK);
+  backend_buildExactPlaceholders(roleMap, "Bị đơn", groupsNBK);
+  backend_buildExactPlaceholders(roleMap, "Người có quyền lợi, nghĩa vụ liên quan", groupsNLQ);
+  backend_buildExactPlaceholders(roleMap, "Người khởi kiện", groupsNKK);
+  backend_buildExactPlaceholders(roleMap, "Người bị kiện", groupsNBK);
+  backend_buildExactPlaceholders(roleMap, "Người nộp đơn", groupsNKK);
+  backend_buildExactPlaceholders(roleMap, "Người bị yêu cầu", groupsNBK);
+  backend_buildExactPlaceholders(roleMap, "Người làm chứng", groupsNLC);
+
+  return roleMap;
+}
+
+function buildRoleClusterMap(clusters) {
+  return {
+    "Nguyên đơn": clusters.groupsNKK,
+    "Người khởi kiện": clusters.groupsNKK,
+    "Người nộp đơn": clusters.groupsNKK,
+    "Người yêu cầu": clusters.nkkToUse,
+    "Bị đơn": clusters.groupsNBK,
+    "Người bị kiện": clusters.groupsNBK,
+    "Người bị yêu cầu": clusters.groupsNBK,
+    "Người có quyền lợi, nghĩa vụ liên quan": clusters.groupsNLQ,
+    "Người làm chứng": clusters.groupsNLC
+  };
+}
+
 // =========================================================================
-// MỤC 4: THAO TÁC DOM DOCS, TỰ ĐỘNG IN ĐẬM & CẶP THẺ SONG HÀNH
+// MỤC 3: THAO TÁC DOM DOCS & BỘ GHÉP NỐI THÔNG MINH (TRIỆT TIÊU RÁC NGỮ PHÁP)
 // =========================================================================
 
+/**
+ * Ghép cặp [Họ tên] + [Năm sinh] thông minh:
+ * Hấp thụ luôn cả thẻ {Xưng hô...} đứng liền trước để không sinh rác "Các ông/bà A và bà B".
+ * Từng người giữ danh xưng riêng, nối bằng dấu chấm phẩy (; ).
+ */
 function resolvePairedNameAndYearTags(container, roleGroupsMap, containerText) {
+  if (!container) return;
   if (!containerText) try { containerText = container.getText(); } catch(e) { containerText = ""; }
-  if (!containerText.includes("{")) return;
+  if (!containerText || !containerText.includes("{")) return;
 
   Object.keys(roleGroupsMap).forEach(function(roleName) {
     if (!containerText.toLowerCase().includes(roleName.toLowerCase())) return;
     var members = extractFlatMembers(roleGroupsMap[roleName] || []);
-    if (!members || members.length <= 1) return; 
+    if (!members || members.length === 0) return;
 
-    var segments = [];
+    var segmentsWithYear = [];
+    var segmentsNameOnly = [];
+
     for (var i = 0; i < members.length; i++) {
       var m = members[i], isInd = isIndividualHonorific(m.xungHo);
       var rawXh = (m.xungHo && m.xungHo !== "Ông/Bà") ? m.xungHo.trim() : "Ông/bà";
-      var xhPrefix = (i > 0 && isInd) ? (rawXh.toLowerCase() + " ") : "";
+      var xhPrefix = "";
+      if (isInd) {
+        xhPrefix = (i === 0 ? (rawXh.charAt(0).toUpperCase() + rawXh.slice(1).toLowerCase()) : rawXh.toLowerCase()) + " ";
+      }
       var name = toTitleCase(cleanHonorificFromName(m.hoTen));
       var ns = (m.namSinh && isInd) ? (", sinh năm " + m.namSinh) : "";
-      segments.push(xhPrefix + name + ns);
+
+      segmentsWithYear.push(xhPrefix + name + ns);
+      segmentsNameOnly.push(xhPrefix + name);
     }
+
+    var joinedWithYear = segmentsWithYear.join("; ");
+    var joinedNameOnly = segmentsNameOnly.join("; ");
+
+    // 1. Cụm 3 thẻ: {Xưng hô ROLE} {Họ và tên ROLE}, {Năm sinh ROLE}
+    var fullTrioPattern = "(?i)\\{\\s*Xưng hô\\s+" + escapeRegex(roleName) + "\\s*\\}\\s*[:,-]?\\s*\\{\\s*Họ và tên\\s+" + escapeRegex(roleName) + "\\s*\\}\\s*,?\\s*\\{\\s*Năm sinh\\s+" + escapeRegex(roleName) + "\\s*\\}";
+    try { container.replaceText(fullTrioPattern, joinedWithYear); } catch(e) {}
+
+    // 2. Cặp 2 thẻ: {Họ và tên ROLE}, {Năm sinh ROLE}
     var pairedPattern = "(?i)\\{\\s*Họ và tên\\s+" + escapeRegex(roleName) + "\\s*\\}\\s*,?\\s*\\{\\s*Năm sinh\\s+" + escapeRegex(roleName) + "\\s*\\}";
-    try { container.replaceText(pairedPattern, segments.join(", ")); } catch(e) {}
+    try { container.replaceText(pairedPattern, joinedWithYear); } catch(e) {}
+
+    // 3. Cặp ngược: {Năm sinh ROLE}, {Họ và tên ROLE}
+    var reversePattern = "(?i)\\{\\s*Năm sinh\\s+" + escapeRegex(roleName) + "\\s*\\}\\s*,?\\s*\\{\\s*Họ và tên\\s+" + escapeRegex(roleName) + "\\s*\\}";
+    try { container.replaceText(reversePattern, joinedWithYear); } catch(e) {}
+
+    // 4. Cặp {Xưng hô ROLE} {Họ và tên ROLE} (khi không có Năm sinh):
+    // Triệt tiêu danh xưng thừa nếu là tổ chức
+    var duoPattern = "(?i)\\{\\s*Xưng hô\\s+" + escapeRegex(roleName) + "\\s*\\}\\s*[:,-]?\\s*\\{\\s*Họ và tên\\s+" + escapeRegex(roleName) + "\\s*\\}";
+    try { container.replaceText(duoPattern, joinedNameOnly); } catch(e) {}
   });
 }
 
@@ -630,22 +727,13 @@ function replaceTimeString(body, searchKey, timeStr) {
   }
 }
 
-// =========================================================================
-// MỤC 5: [NÂNG CẤP TWO-PASS SCANNER] ĐIỀN PLACEHOLDER THÔNG MINH
-// =========================================================================
-
-function replaceTextSafe(container, searchKey, replaceStr) {
-  if (!container) return;
-  var safeStr = String(replaceStr === null || replaceStr === undefined ? "" : replaceStr).replace(/\$/g, '$$$$');
-  var regexPattern = "\\{\\s*" + escapeRegex(searchKey.replace(/[{}]/g, "").trim()) + "\\s*\\}";
-  try { container.replaceText(regexPattern, safeStr); } catch(e) { container.replaceText(escapeRegex(searchKey), safeStr); }
-}
-
 function applyAtomicReplacements(container, dictionaryMap, containerText) {
+  if (!container) return;
   if (!containerText) try { containerText = container.getText(); } catch(e) { containerText = ""; }
   
-  // LỚP 1: THAY THẾ CHÍNH XÁC 100% (CASE-SENSITIVE) - Bảo vệ người dùng cố tình phân biệt Hoa/Thường
-  Object.keys(dictionaryMap).sort(function(a, b) { return b.length - a.length; }).forEach(function(key) {
+  var keysSorted = Object.keys(dictionaryMap).sort(function(a, b) { return b.length - a.length; });
+
+  keysSorted.forEach(function(key) {
     var val = dictionaryMap[key];
     if (val !== undefined && val !== null) {
       if (containerText.includes(key)) {
@@ -656,11 +744,8 @@ function applyAtomicReplacements(container, dictionaryMap, containerText) {
     }
   });
 
-  // LỚP 2: QUÉT VÉT BẰNG REGEX KHÔNG PHÂN BIỆT HOA THƯỜNG (?i) VÀ CHO PHÉP KHOẢNG TRẮNG THỪA
-  // Giải quyết triệt để lỗi người dùng gõ sai hoa thường trong file Word như:
-  // {Họ và tên người khởi kiện} thay vì chuẩn TANDTC là {Họ và tên Người khởi kiện}
   var textLower = containerText.toLowerCase();
-  Object.keys(dictionaryMap).sort(function(a, b) { return b.length - a.length; }).forEach(function(key) {
+  keysSorted.forEach(function(key) {
     var val = dictionaryMap[key];
     if (val !== undefined && val !== null) {
       var innerKey = key.replace(/[{}]/g, "").trim().toLowerCase();
@@ -674,6 +759,7 @@ function applyAtomicReplacements(container, dictionaryMap, containerText) {
 }
 
 function sanitizeMergedDocument(body) {
+  if (!body) return;
   try {
     body.replaceText("(?i)Căn cứ các\\s+Căn cứ vào", "Căn cứ vào");
     body.replaceText("(?i)Căn cứ vào\\s+Căn cứ vào", "Căn cứ vào");
@@ -691,10 +777,13 @@ function sanitizeMergedDocument(body) {
       body.replaceText("(?i)\\b" + prep + "\\s+Chị\\b", prep + " chị");
     });
 
+    // Làm sạch dấu câu bị cụt sau dấu hai chấm
     body.replaceText(":\\s*[ \\t\\u00A0]{2,}", ": ");
     body.replaceText(":\\s*[ \\t\\u00A0]+", ": ");
     body.replaceText("(?i)địa chỉ:\\s*cùng địa chỉ:", "cùng địa chỉ:");
     body.replaceText("(?i)địa chỉ:\\s*địa chỉ:", "địa chỉ:");
+    body.replaceText(":\\s*[;,]\\s*", ": ");
+    body.replaceText(":\\s*\\.\\s*$", ": ....................");
 
     body.replaceText("\\.{3,}", "...");
     body.replaceText("\\s+,", ","); body.replaceText("\\s+\\.", "."); body.replaceText("\\s+;", ";");
@@ -702,11 +791,9 @@ function sanitizeMergedDocument(body) {
     body.replaceText(",\\s*;", ";"); body.replaceText(";\\s*,", ";");
     body.replaceText(",\\s*,", ","); body.replaceText(";\\s*;", ";");
     body.replaceText(",\\s*\\.", "."); body.replaceText(";\\s*\\.", ".");
-    body.replaceText(":\\s*[;\\.,]", ":");
     body.replaceText("và\\s*\\.", "."); body.replaceText("và\\s*;", ";");
     body.replaceText("\\(\\s*\\)", ""); body.replaceText(" {2,}", " ");
     
-    // Xóa triệt để các thẻ placeholder mồ côi chưa được điền
     body.replaceText("\\{[^\\}]+\\}", ""); 
   } catch (e) {}
 }
@@ -740,7 +827,127 @@ function appendPageCloneDeep(targetBody, sourceElements) {
 }
 
 // =========================================================================
-// MỤC 6: ĐỘNG CƠ TRỘN THƯ VỤ ÁN CHÍNH THỨC (MASTER MAIL MERGE V3)
+// MỤC 4: HÀM IN TÁCH TRANG & HÀM XỬ LÝ VĂN BẢN DÙNG CHUNG
+// =========================================================================
+
+function processDocumentSeparatedPages(body, fullMap, parties, selectedIndices) {
+  var indices = (selectedIndices && selectedIndices.length > 0) ? selectedIndices : parties.map((_, i) => i);
+  var mergeRecipients = [];
+
+  parties.filter((_, idx) => indices.includes(idx)).forEach(function(p) {
+    mergeRecipients.push(p);
+    if (p.daiDien) {
+      try { 
+        JSON.parse(p.daiDien).forEach(r => mergeRecipients.push({ 
+          hoTen: r.hoTen, 
+          xungHo: r.xungHo || "Ông/Bà", 
+          tuCach: (r.tuCach || "Người đại diện") + " của " + p.tuCach + " " + p.hoTen, 
+          diaChi: r.diaChi || p.diaChi, 
+          namSinh: r.namSinh || "", 
+          sdt: r.sdt || "", 
+          cccd: r.cccd || "", 
+          daiDien: "" 
+        })); 
+      } catch(e) {}
+    }
+  });
+
+  var originalElements = []; 
+  for (var i = 0; i < body.getNumChildren(); i++) originalElements.push(body.getChild(i).copy());
+  var pagesElementArrays = [[]]; 
+  for (var p1 = 0; p1 < body.getNumChildren(); p1++) pagesElementArrays[0].push(body.getChild(p1));
+  for (var idx = 1; idx < mergeRecipients.length; idx++) pagesElementArrays.push(appendPageCloneDeep(body, originalElements));
+
+  mergeRecipients.forEach(function(ds, rIdx) {
+    var pageElements = pagesElementArrays[rIdx];
+    if (!ds || !pageElements) return;
+    var cleanName = toTitleCase(cleanHonorificFromName(ds.hoTen)), isInd = isIndividualHonorific(ds.xungHo);
+    var xhHoa = isInd ? toTitleCase(ds.xungHo || "Ông/bà") : "";
+    var xhThuong = isInd ? (ds.xungHo ? ds.xungHo.toLowerCase() : "ông/bà") : "";
+
+    var localPartyMap = {
+      "{Xưng hô}": xhHoa, "{xưng hô}": xhThuong, "{XƯNG HÔ}": xhHoa.toUpperCase(),
+      "{Họ và tên}": cleanName, "{họ và tên}": cleanName, "{HỌ VÀ TÊN}": cleanName.toUpperCase(),
+      "{Địa chỉ}": ds.diaChi || "....................", "{địa chỉ}": ds.diaChi || "....................",
+      "{Tư cách}": ds.tuCach || ".........", "{tư cách}": ds.tuCach ? ds.tuCach.toLowerCase() : ".........", "{TƯ CÁCH}": ds.tuCach ? ds.tuCach.toUpperCase() : ".........",
+      "{Năm sinh}": (ds.namSinh && isInd) ? ("sinh năm " + ds.namSinh) : "", "{năm sinh}": (ds.namSinh && isInd) ? ("sinh năm " + ds.namSinh) : "",
+      "{Người đại diện}": formatRepsBlock(ds.daiDien), "{người đại diện}": formatRepsBlock(ds.daiDien),
+      "{CCCD}": ds.cccd || "", "{cccd}": ds.cccd || "",
+      "{Số điện thoại}": ds.sdt ? formatPhoneNumber(ds.sdt) : "", "{số điện thoại}": ds.sdt ? formatPhoneNumber(ds.sdt) : ""
+    };
+
+    var finalMapPage = Object.assign({}, fullMap, localPartyMap);
+    var pageTextCache = pageElements.map(e => (typeof e.getText === 'function') ? e.getText() : "").join("\n");
+
+    pageElements.forEach(function(el) {
+      applyAtomicReplacements(el, finalMapPage, pageTextCache);
+      if (el.getType() === DocumentApp.ElementType.PARAGRAPH) applyPrecisionBold(el.asParagraph(), [cleanName]);
+    });
+  });
+}
+
+function processDocumentBodyAndHeaders(doc, roleClusterMap, fullMap, parties, clusters, allCasePartyNames) {
+  var header = doc.getHeader(); 
+  if (header) { 
+    resolvePairedNameAndYearTags(header, roleClusterMap, header.getText()); 
+    applyAtomicReplacements(header, fullMap, header.getText()); 
+    sanitizeMergedDocument(header); 
+  }
+  var footer = doc.getFooter(); 
+  if (footer) { 
+    resolvePairedNameAndYearTags(footer, roleClusterMap, footer.getText()); 
+    applyAtomicReplacements(footer, fullMap, footer.getText()); 
+    sanitizeMergedDocument(footer); 
+  }
+
+  var body = doc.getBody();
+  var docTextContent = body.getText();
+
+  resolvePairedNameAndYearTags(body, roleClusterMap, docTextContent);
+
+  replaceBlockParties(body, "{Đương sự}", getBlockType2Items(parties));
+  replaceBlockParties(body, "{Đương sự thông báo}", getBlockType1Items(parties));
+  replaceBlockParties(body, "{Nguyên đơn chi tiết}", getPartyDetailItems(clusters.groupsNKK));
+  replaceBlockParties(body, "{Người khởi kiện chi tiết}", getPartyDetailItems(clusters.groupsNKK));
+  replaceBlockParties(body, "{Bị đơn chi tiết}", getPartyDetailItems(clusters.groupsNBK));
+  replaceBlockParties(body, "{Người bị kiện chi tiết}", getPartyDetailItems(clusters.groupsNBK));
+  replaceBlockParties(body, "{Người yêu cầu chi tiết}", getPartyDetailItems(clusters.nkkToUse));
+  replaceBlockParties(body, "{Người bị yêu cầu chi tiết}", getPartyDetailItems(clusters.groupsNBK));
+  replaceBlockParties(body, "{Người có quyền lợi, nghĩa vụ liên quan chi tiết}", getPartyDetailItems(clusters.groupsNLQ));
+  replaceBlockParties(body, "{Người làm chứng chi tiết}", getPartyDetailItems(clusters.groupsNLC));
+
+  [
+    "{Nội dung thỏa thuận}", 
+    "{Nội dung hòa giải thành}"
+  ].forEach(function(synTag) {
+    if (fullMap["{Nội dung thỏa thuận}"]) {
+      replaceBlockMultiline(body, synTag, fullMap["{Nội dung thỏa thuận}"], allCasePartyNames || []);
+    }
+  });
+
+  [
+    "{Tài liệu kèm theo đơn khởi kiện}",
+    "{Tài liệu kèm đơn khởi kiện}",
+    "{Tài liệu chứng cứ kèm theo}",
+    "{Danh mục chứng cứ}"
+  ].forEach(function(synTag) {
+    if (fullMap["{Tài liệu kèm theo đơn khởi kiện}"]) {
+      replaceBlockMultiline(body, synTag, fullMap["{Tài liệu kèm theo đơn khởi kiện}"]);
+    }
+  });
+
+  if (fullMap["{Những vấn đề cần sửa chữa bổ sung}"]) {
+    replaceBlockMultiline(body, "{Những vấn đề cần sửa chữa bổ sung}", fullMap["{Những vấn đề cần sửa chữa bổ sung}"]);
+  }
+  if (fullMap["{Yêu cầu sửa đổi bổ sung}"]) {
+    replaceBlockMultiline(body, "{Yêu cầu sửa đổi bổ sung}", fullMap["{Yêu cầu sửa đổi bổ sung}"]);
+  }
+
+  applyAtomicReplacements(body, fullMap, body.getText());
+}
+
+// =========================================================================
+// MỤC 5: HÀM ĐIỀU PHỐI VỤ ÁN (MASTER MERGE V3 CHO VỤ ÁN)
 // =========================================================================
 
 function api_RunMailMergeV3_Logic(input) {
@@ -804,35 +1011,17 @@ function api_RunMailMergeV3_Logic(input) {
     var isThuanTinhLyHon = (acronymCase === "VHN") || qhRaw.toLowerCase().includes("thuận tình") || qhRaw.toLowerCase().includes("thuan tinh");
     var isHNGD = info.loaiAn.includes("Hôn nhân") || info.loaiAn.includes("3.") || isThuanTinhLyHon;
 
-    // Phân nhóm đương sự theo tư cách
-    var groupsNKK = [], groupsNBK = [], groupsNYCau = [], groupsNLQ = [], groupsNLC = [];
-    parties.forEach(function(d, idx) {
-      var roleLower = String(d.tuCach || "").toLowerCase(), type = 'BD';
-      if (isThuanTinhLyHon) {
-        if (roleLower.includes('liên quan')) type = 'LQ'; 
-        else if (roleLower.includes('làm chứng')) type = 'LC'; 
-        else type = (idx === 0) ? 'ND' : 'BD'; // Người 1 vào ND, Người 2 vào BD
-      } else {
-        if (roleLower.includes('nguyên đơn') || roleLower.includes('khởi kiện') || roleLower.includes('bị hại')) type = 'ND';
-        else if (roleLower.includes('yêu cầu') && !roleLower.includes('bị yêu cầu')) type = 'YC';
-        else if (roleLower.includes('liên quan')) type = 'LQ'; 
-        else if (roleLower.includes('làm chứng')) type = 'LC';
-      }
-      var targetGroup = (type === 'ND') ? groupsNKK : (type === 'YC' ? groupsNYCau : (type === 'LQ' ? groupsNLQ : (type === 'LC' ? groupsNLC : groupsNBK)));
-      var addrKey = d.diaChi ? d.diaChi.trim().toLowerCase() : "";
-      var found = addrKey ? targetGroup.find(function(g) { return (g.diaChi ? g.diaChi.trim().toLowerCase() : "") === addrKey; }) : null;
-      if (found) found.members.push(d); else targetGroup.push({ diaChi: d.diaChi, members: [d] });
-    });
-
-    // TRỌNG TÂM: Trong Thuận tình ly hôn, danh sách Người yêu cầu là gộp của CẢ 2 VỢ CHỒNG
-    var nkkToUse = isThuanTinhLyHon ? groupsNKK.concat(groupsNBK) : ((groupsNYCau.length > 0) ? groupsNYCau : groupsNKK);
+    var clusters = buildPartyClusters(parties, isThuanTinhLyHon, false);
+    var groupsNKK = clusters.groupsNKK;
+    var groupsNBK = clusters.groupsNBK;
+    var nkkToUse = clusters.nkkToUse;
 
     var ndFullStr = buildShortPartyStringBackend(groupsNKK, true);
     var bdFullStr = buildShortPartyStringBackend(groupsNBK, true);
     var yCauFullStr = buildShortPartyStringBackend(nkkToUse, true);
 
     var qhInQuotes = qhRaw.startsWith("“") || qhRaw.startsWith('"') ? qhRaw : `“${qhRaw}”`;
-    var noiDungVuViec = (isThuanTinhLyHon || (groupsNYCau.length > 0 && groupsNBK.length === 0)) ? `${qhInQuotes} của ${yCauFullStr || ndFullStr || "..."}` : `${qhInQuotes} giữa ${ndFullStr || "..."} đối với ${bdFullStr || "..."}`;
+    var noiDungVuViec = (isThuanTinhLyHon || (clusters.groupsNYCau.length > 0 && groupsNBK.length === 0)) ? `${qhInQuotes} của ${yCauFullStr || ndFullStr || "..."}` : `${qhInQuotes} giữa ${ndFullStr || "..."} đối với ${bdFullStr || "..."}`;
 
     var customVars = Object.assign({}, input.customVariables || {});
     if (info.folderUrl && typeof readCaseMemoryFromDrive === 'function') {
@@ -840,7 +1029,6 @@ function api_RunMailMergeV3_Logic(input) {
       if (driveMemory && driveMemory.variables) customVars = Object.assign({}, driveMemory.variables, customVars);
     }
 
-    // Nhận diện tự động con chung, cấp dưỡng tiền và tài sản
     var rawThoaThuanCon = customVars["{Thỏa thuận con chung}"] || customVars["{Con chung}"] || "";
     var rawNoiDungFull = customVars["{Nội dung thỏa thuận}"] || customVars["{Nội dung vụ án}"] || "";
     var checkConText = (rawThoaThuanCon + " " + rawNoiDungFull).toLowerCase();
@@ -863,7 +1051,7 @@ function api_RunMailMergeV3_Logic(input) {
     var doanLaiChamTra = hasCapDuongTien ? "Kể từ ngày có đơn yêu cầu thi hành án của người được thi hành án (đối với các khoản tiền phải trả cho người được thi hành án) cho đến khi thi hành án xong, bên phải thi hành án còn phải chịu khoản tiền lãi của số tiền còn phải thi hành án theo mức lãi suất quy định tại Điều 357, Điều 468 của Bộ luật dân sự năm 2015." : "";
     var doanQuyenThamNom = hasConChung ? "Quyền thăm nom, chăm sóc, nuôi dưỡng, giáo dục con; quyền thay đổi người trực tiếp nuôi con; thay đổi mức cấp dưỡng được thực hiện theo quy định của Luật hôn nhân và gia đình." : "";
 
-    var valHN = cleanChildSlotPrefix(customVars["{Quan hệ hôn nhân}"] || customVars["{Thỏa thuận ly hôn}"] || `${buildShortPartyStringBackend(groupsNKK, false)}, ${buildShortPartyStringBackend(groupsNBK, false)} thuận tình ly hôn.`);
+    var valHN = cleanChildSlotPrefix(customVars["{Quan hệ hôn nhân}"] || customVars["{Thỏa thuận ly hôn}"] || `${buildShortPartyStringBackend(groupsNKK, false)}; ${buildShortPartyStringBackend(groupsNBK, false)} thuận tình ly hôn.`);
     var valCon = cleanChildSlotPrefix(customVars["{Thỏa thuận con chung}"] || (hasConChung ? "Các bên tự thỏa thuận giao con chung cho một bên trực tiếp nuôi dưỡng." : "Các bên xác nhận không có con chung, không yêu cầu Tòa án giải quyết."));
     var valCapDuong = cleanChildSlotPrefix(customVars["{Cấp dưỡng nuôi con}"] || customVars["{Cấp dưỡng con chung}"] || (hasCapDuongTien ? "" : "Các bên không tranh chấp về cấp dưỡng nuôi con chung."));
     var valTS = cleanChildSlotPrefix(customVars["{Tài sản chung}"] || "Các bên tự thỏa thuận, không yêu cầu Tòa án giải quyết.");
@@ -878,58 +1066,8 @@ function api_RunMailMergeV3_Logic(input) {
       else valTaiLieuKiemTheo = "- Đơn khởi kiện;\n- Bản sao Căn cước công dân của các đương sự;\n- Các tài liệu, chứng cứ chứng minh cho yêu cầu khởi kiện.";
     }
 
-    // XÂY DỰNG TỪ ĐIỂN ROLE MAP TOÀN DIỆN
-    var roleMap = {};
-    roleMap["{Nguyên đơn}"] = buildShortPartyStringBackend(groupsNKK, false);
-    roleMap["{nguyên đơn}"] = buildShortPartyStringBackend(groupsNKK, true);
-    roleMap["{NGUYÊN ĐƠN}"] = roleMap["{Nguyên đơn}"].toUpperCase();
+    var roleMap = buildSharedPartyDictionary(clusters, isThuanTinhLyHon);
 
-    roleMap["{Người khởi kiện}"] = roleMap["{Nguyên đơn}"];
-    roleMap["{người khởi kiện}"] = roleMap["{nguyên đơn}"];
-    roleMap["{NGƯỜI KHỞI KIỆN}"] = roleMap["{NGUYÊN ĐƠN}"];
-
-    roleMap["{Bị đơn}"] = buildShortPartyStringBackend(groupsNBK, false);
-    roleMap["{bị đơn}"] = buildShortPartyStringBackend(groupsNBK, true);
-    roleMap["{BỊ ĐƠN}"] = roleMap["{Bị đơn}"].toUpperCase();
-
-    roleMap["{Người bị kiện}"] = roleMap["{Bị đơn}"];
-    roleMap["{người bị kiện}"] = roleMap["{bị đơn}"];
-    roleMap["{NGƯỜI BỊ KIỆN}"] = roleMap["{BỊ ĐƠN}"];
-
-    roleMap["{Người yêu cầu}"] = isThuanTinhLyHon ? `${buildShortPartyStringBackend(groupsNKK, false)}, ${buildShortPartyStringBackend(groupsNBK, false)}` : buildShortPartyStringBackend(nkkToUse, false);
-    roleMap["{người yêu cầu}"] = isThuanTinhLyHon ? `${buildShortPartyStringBackend(groupsNKK, true)}, ${buildShortPartyStringBackend(groupsNBK, true)}` : buildShortPartyStringBackend(nkkToUse, true);
-    roleMap["{NGƯỜI YÊU CẦU}"] = roleMap["{Người yêu cầu}"].toUpperCase();
-
-    roleMap["{Người bị yêu cầu}"] = buildShortPartyStringBackend(groupsNBK, false);
-    roleMap["{người bị yêu cầu}"] = buildShortPartyStringBackend(groupsNBK, true);
-    roleMap["{NGƯỜI BỊ YÊU CẦU}"] = roleMap["{Người bị yêu cầu}"].toUpperCase();
-
-    roleMap["{Người có quyền lợi, nghĩa vụ liên quan}"] = buildShortPartyStringBackend(groupsNLQ, false);
-    roleMap["{người có quyền lợi, nghĩa vụ liên quan}"] = buildShortPartyStringBackend(groupsNLQ, true);
-    roleMap["{NGƯỜI CÓ QUYỀN LỢI, NGHĨA VỤ LIÊN QUAN}"] = roleMap["{Người có quyền lợi, nghĩa vụ liên quan}"].toUpperCase();
-
-    roleMap["{Người làm chứng}"] = buildShortPartyStringBackend(groupsNLC, false);
-    roleMap["{người làm chứng}"] = buildShortPartyStringBackend(groupsNLC, true);
-    roleMap["{NGƯỜI LÀM CHỨNG}"] = roleMap["{Người làm chứng}"].toUpperCase();
-
-    // Các từ đồng nghĩa của Danh sách
-    roleMap["{Danh sách Nguyên đơn}"] = roleMap["{Nguyên đơn}"];
-    roleMap["{danh sách nguyên đơn}"] = roleMap["{nguyên đơn}"];
-    roleMap["{Danh sách Bị đơn}"] = roleMap["{Bị đơn}"];
-    roleMap["{danh sách bị đơn}"] = roleMap["{bị đơn}"];
-    roleMap["{Danh sách Người yêu cầu}"] = roleMap["{Người yêu cầu}"];
-    roleMap["{danh sách người yêu cầu}"] = roleMap["{người yêu cầu}"];
-    roleMap["{Danh sách NYC}"] = roleMap["{Người yêu cầu}"];
-
-    // Phân rã từng người 1, 2, 3
-    backend_buildExactPlaceholders(roleMap, "Người yêu cầu", nkkToUse);
-    backend_buildExactPlaceholders(roleMap, "Nguyên đơn", groupsNKK);
-    backend_buildExactPlaceholders(roleMap, "Bị đơn", groupsNBK);
-    backend_buildExactPlaceholders(roleMap, "Người có quyền lợi, nghĩa vụ liên quan", groupsNLQ);
-    backend_buildExactPlaceholders(roleMap, "Người khởi kiện", groupsNKK);
-    backend_buildExactPlaceholders(roleMap, "Người bị kiện", groupsNBK);
-
-    // CÁN BỘ TIẾN HÀNH TỐ TỤNG
     var tenTP_Clean = toTitleCase(cleanHonorificFromName(config["TEN_THAM_PHAN"] || ""));
     var chucVuTP = config["CHUC_VU"] || "Thẩm phán";
     var danhXungTP = getOfficerHonorific(config["TEN_THAM_PHAN"], "Ông");
@@ -939,7 +1077,6 @@ function api_RunMailMergeV3_Logic(input) {
     var danhXungTK = input.xhThuKy || getOfficerHonorific(tenTK_Clean, "Bà");
     var thuKyFull = danhXungTK + " " + tenTK_Clean;
 
-    // NGÀY HÒA GIẢI THÀNH
     var rawNgayHGThanh = customVars["{Ngày hòa giải thành}"] || customVars["{ngày hòa giải thành}"] || "";
     var valNgayHGThanhHoa = "Ngày ... tháng ... năm ...";
     var valNgayHGThanhThuong = "ngày ... tháng ... năm ...";
@@ -951,7 +1088,6 @@ function api_RunMailMergeV3_Logic(input) {
       }
     }
 
-    // THỂ THỨC CHỮ HOA / THƯỜNG CHO TOÀN BỘ MỐC THỜI GIAN
     var valNgayThulyHoa = (typeof LibDate !== 'undefined') ? LibDate.toVNText(info.ngayTL, true) : "";
     var valNgayThulyThuong = valNgayThulyHoa ? (valNgayThulyHoa.charAt(0).toLowerCase() + valNgayThulyHoa.slice(1)) : "";
 
@@ -964,7 +1100,6 @@ function api_RunMailMergeV3_Logic(input) {
     var valNgayHetHanHoa = (typeof LibDate !== 'undefined') ? LibDate.toVNText(dHan, true) : "";
     var valNgayHetHanThuong = valNgayHetHanHoa ? (valNgayHetHanHoa.charAt(0).toLowerCase() + valNgayHetHanHoa.slice(1)) : "";
 
-    // TÍNH TOÁN ÁN PHÍ VÀ ĐỌC SỐ TIỀN THÀNH CHỮ CHUẨN NQ 326
     var giaTriTranhChapRaw = customVars["{Giá trị tranh chấp}"] || customVars["{Giá trị}"] || info.giaTri || "0";
     var feeCalc = calculateCourtFee(info.loaiAn, giaTriTranhChapRaw);
 
@@ -974,7 +1109,6 @@ function api_RunMailMergeV3_Logic(input) {
     var valAnPhiChu = customVars["{Án phí bằng chữ}"] || feeCalc.anPhiChu;
 
     var commonMap = {
-      // NHÓM 1: THÔNG TIN CHUNG
       "{Số thụ lý}": String(info.soTL), "{số thụ lý}": String(info.soTL).toLowerCase(), "{SỐ THỤ LÝ}": String(info.soTL).toUpperCase(),
       "{Số thụ lý rút gọn}": extractShortNo(info.soTL), "{số thụ lý rút gọn}": extractShortNo(info.soTL),
       "{Số đơn}": extractShortNo(info.soTL), "{số đơn}": extractShortNo(info.soTL),
@@ -988,7 +1122,6 @@ function api_RunMailMergeV3_Logic(input) {
       "{Địa chỉ tòa án}": String(config["DIA_CHI_TOA"] || "Trụ sở Tòa án"), "{địa chỉ tòa án}": String(config["DIA_CHI_TOA"] || "Trụ sở Tòa án"),
       "{Chức vụ}": chucVuTP, "{chức vụ}": chucVuTP.toLowerCase(),
 
-      // CÁN BỘ TỐ TỤNG
       "{Danh xưng Thẩm phán}": danhXungTP, "{danh xưng thẩm phán}": danhXungTP.toLowerCase(),
       "{Họ và tên Thẩm phán}": tenTP_Clean, "{họ và tên thẩm phán}": tenTP_Clean,
       "{Thẩm phán}": tenTP_Clean, "{thẩm phán}": tenTP_Clean, "{THẨM PHÁN}": tenTP_Clean.toUpperCase(),
@@ -998,7 +1131,6 @@ function api_RunMailMergeV3_Logic(input) {
       "{Thư ký}": tenTK_Clean, "{thư ký}": tenTK_Clean, "{THƯ KÝ}": tenTK_Clean.toUpperCase(),
       "{Thư ký đầy đủ}": thuKyFull, "{thư ký đầy đủ}": thuKyFull,
 
-      // NHÓM 2: THỜI GIAN & NGÀY THÁNG
       "{Ngày thụ lý}": valNgayThulyHoa, "{ngày thụ lý}": valNgayThulyThuong, "{NGÀY THỤ LÝ}": valNgayThulyHoa.toUpperCase(),
       "{Ngày nhận đơn}": valNgayThulyHoa, "{ngày nhận đơn}": valNgayThulyThuong, "{NGÀY NHẬN ĐƠN}": valNgayThulyHoa.toUpperCase(),
       "{Ngày ban hành}": valNgayBanHanhHoa, "{ngày ban hành}": valNgayBanHanhThuong, "{NGÀY BAN HÀNH}": valNgayBanHanhHoa.toUpperCase(),
@@ -1010,7 +1142,6 @@ function api_RunMailMergeV3_Logic(input) {
       "{Nội dung làm việc}": noiDungLamViec, "{nội dung làm việc}": noiDungLamViec,
       "{Nội dung vụ việc}": noiDungVuViec, "{nội dung vụ việc}": noiDungVuViec, "{NỘI DUNG VỤ VIỆC}": noiDungVuViec.toUpperCase(),
 
-      // NHÓM 3: ÁN PHÍ, LỆ PHÍ & BIÊN LAI
       "{Tạm ứng án phí bằng số}": valTamUngSo, "{tạm ứng án phí bằng số}": valTamUngSo,
       "{Tạm ứng án phí bằng chữ}": valTamUngChu, "{tạm ứng án phí bằng chữ}": valTamUngChu,
       "{Án phí bằng số}": valAnPhiSo, "{án phí bằng số}": valAnPhiSo,
@@ -1021,7 +1152,6 @@ function api_RunMailMergeV3_Logic(input) {
       "{Ngày biên lai}": customVars["{Ngày biên lai}"] || "", "{ngày biên lai}": customVars["{Ngày biên lai}"] || "",
       "{Cơ quan thu tiền}": customVars["{Cơ quan thu tiền}"] || "", "{cơ quan thu tiền}": customVars["{Cơ quan thu tiền}"] || "",
 
-      // NHÓM 8 & 9: NỘI DUNG THỎA THUẬN HÒA GIẢI & CÁC THẺ CON HNGĐ
       "{Nội dung thỏa thuận}": customVars["{Nội dung thỏa thuận}"] || "", "{nội dung thỏa thuận}": customVars["{Nội dung thỏa thuận}"] || "", "{NỘI DUNG THỎA THUẬN}": (customVars["{Nội dung thỏa thuận}"] || "").toUpperCase(),
       "{Nội dung hòa giải thành}": customVars["{Nội dung thỏa thuận}"] || "", "{nội dung hòa giải thành}": customVars["{Nội dung thỏa thuận}"] || "", "{NỘI DUNG HÒA GIẢI THÀNH}": (customVars["{Nội dung thỏa thuận}"] || "").toUpperCase(),
       "{Quan hệ hôn nhân}": valHN, "{quan hệ hôn nhân}": valHN, "{QUAN HỆ HÔN NHÂN}": valHN.toUpperCase(),
@@ -1044,13 +1174,11 @@ function api_RunMailMergeV3_Logic(input) {
       "{Thời hạn và phương thức thực hiện}": customVars["{Thời hạn và phương thức thực hiện}"] || "", "{thời hạn và phương thức thực hiện}": customVars["{Thời hạn và phương thức thực hiện}"] || "",
       "{Thỏa thuận chi phí tố tụng}": customVars["{Thỏa thuận chi phí tố tụng}"] || "", "{thỏa thuận chi phí tố tụng}": customVars["{Thỏa thuận chi phí tố tụng}"] || "",
 
-      // NHÓM 10: TÀI LIỆU CHỨNG CỨ
       "{Tài liệu kèm theo đơn khởi kiện}": valTaiLieuKiemTheo, "{tài liệu kèm theo đơn khởi kiện}": valTaiLieuKiemTheo, "{TÀI LIỆU KÈM THEO ĐƠN KHỞI KIỆN}": valTaiLieuKiemTheo.toUpperCase(),
       "{Tài liệu kèm đơn khởi kiện}": valTaiLieuKiemTheo, "{tài liệu kèm đơn khởi kiện}": valTaiLieuKiemTheo, "{TÀI LIỆU KÈM ĐƠN KHỞI KIỆN}": valTaiLieuKiemTheo.toUpperCase(),
       "{Tài liệu chứng cứ kèm theo}": valTaiLieuKiemTheo, "{tài liệu chứng cứ kèm theo}": valTaiLieuKiemTheo,
       "{Danh mục chứng cứ}": valTaiLieuKiemTheo, "{danh mục chứng cứ}": valTaiLieuKiemTheo,
 
-      // NHÓM 12: ĐẶC THÙ NGÀNH ÁN KHÁC (ĐẤT ĐAI, TÍN DỤNG, THỪA KẾ...)
       "{Tài sản tranh chấp}": customVars["{Tài sản tranh chấp}"] || "", "{tài sản tranh chấp}": customVars["{Tài sản tranh chấp}"] || "",
       "{Vị trí tài sản tranh chấp}": customVars["{Vị trí tài sản tranh chấp}"] || "", "{vị trí tài sản tranh chấp}": customVars["{Vị trí tài sản tranh chấp}"] || "",
       "{Hợp đồng tín dụng}": customVars["{Hợp đồng tín dụng}"] || "", "{hợp đồng tín dụng}": customVars["{Hợp đồng tín dụng}"] || "",
@@ -1062,20 +1190,17 @@ function api_RunMailMergeV3_Logic(input) {
 
     var fullMap = Object.assign({}, commonMap, roleMap, customVars);
     
-    // Tự động mở rộng bộ biến chữ thường và IN HOA cho các biến tùy chỉnh
     var expandedMap = Object.assign({}, fullMap);
     for (var k in fullMap) {
       if (fullMap[k] !== undefined && fullMap[k] !== null) {
         var vStr = String(fullMap[k]);
-        var lowK = k.toLowerCase();
-        var upK = k.toUpperCase();
+        var lowK = k.toLowerCase(), upK = k.toUpperCase();
         if (!expandedMap.hasOwnProperty(lowK)) expandedMap[lowK] = vStr;
         if (!expandedMap.hasOwnProperty(upK)) expandedMap[upK] = vStr.toUpperCase();
       }
     }
     fullMap = expandedMap;
 
-    // GHI LỊCH ĐỒNG BỘ NỀN VÀO GOOGLE CALENDAR
     if (input.trieuTapDate && input.trieuTapTime && typeof api_LuuLichMoi_Logic === 'function') {
       try {
         var allTasksDesc = [];
@@ -1091,18 +1216,8 @@ function api_RunMailMergeV3_Logic(input) {
       } catch(eLich) { console.warn("Lỗi ghi lịch tự động:", eLich.message); }
     }
 
-    var roleClusterMap = {
-      "Nguyên đơn": groupsNKK, 
-      "Người khởi kiện": groupsNKK, 
-      "Người yêu cầu": nkkToUse,
-      "Bị đơn": groupsNBK, 
-      "Người bị kiện": groupsNBK, 
-      "Người bị yêu cầu": groupsNBK,
-      "Người có quyền lợi, nghĩa vụ liên quan": groupsNLQ, 
-      "Người làm chứng": groupsNLC
-    };
+    var roleClusterMap = buildRoleClusterMap(clusters);
 
-    // TIẾN HÀNH TRỘN TỪNG BIỂU MẪU ĐƯỢC CHỌN
     input.templateIds.forEach(function (templateId) {
       var templateFile = DriveApp.getFileById(templateId);
       var baseExportName = templateFile.getName().replace(/\.(gdoc|docx|doc)$/i, "").trim() + (extractShortNo(info.soTL) ? (" - " + extractShortNo(info.soTL)) : "") + " - " + exportDateStr;
@@ -1117,125 +1232,15 @@ function api_RunMailMergeV3_Logic(input) {
                         docTextContent.includes("{Địa chỉ}") ||
                         docTextContent.includes("{Số điện thoại}");
 
-      // CHẾ ĐỘ 1: IN TÁCH TRANG HÀNG LOẠT
       if (isTachTrang) {
-        var indices = (input.selectedIndices && input.selectedIndices.length > 0) ? input.selectedIndices : parties.map((_, i) => i);
-        var mergeRecipients = [];
-        parties.filter((_, idx) => indices.includes(idx)).forEach(function(p) {
-          mergeRecipients.push(p);
-          if (p.daiDien) {
-            try { 
-              JSON.parse(p.daiDien).forEach(r => mergeRecipients.push({ 
-                hoTen: r.hoTen, 
-                xungHo: r.xungHo || "Ông/Bà", 
-                tuCach: (r.tuCach || "Người đại diện") + " của " + p.tuCach + " " + p.hoTen, 
-                diaChi: r.diaChi || p.diaChi, 
-                namSinh: r.namSinh || "", 
-                sdt: r.sdt || "", 
-                cccd: r.cccd || "", 
-                daiDien: "" 
-              })); 
-            } catch(e) {}
-          }
-        });
-
-        var originalElements = []; 
-        for (var i = 0; i < body.getNumChildren(); i++) originalElements.push(body.getChild(i).copy());
-        var pagesElementArrays = [[]]; 
-        for (var p1 = 0; p1 < body.getNumChildren(); p1++) pagesElementArrays[0].push(body.getChild(p1));
-        for (var idx = 1; idx < mergeRecipients.length; idx++) pagesElementArrays.push(appendPageCloneDeep(body, originalElements));
-
-        mergeRecipients.forEach(function(ds, rIdx) {
-          var pageElements = pagesElementArrays[rIdx];
-          if (!ds || !pageElements) return;
-          var cleanName = toTitleCase(cleanHonorificFromName(ds.hoTen)), isInd = isIndividualHonorific(ds.xungHo);
-          var xhHoa = isInd ? toTitleCase(ds.xungHo || "Ông/bà") : "";
-          var xhThuong = isInd ? (ds.xungHo ? ds.xungHo.toLowerCase() : "ông/bà") : "";
-
-          var localPartyMap = {
-            "{Xưng hô}": xhHoa, "{xưng hô}": xhThuong, "{XƯNG HÔ}": xhHoa.toUpperCase(),
-            "{Họ và tên}": cleanName, "{họ và tên}": cleanName, "{HỌ VÀ TÊN}": cleanName.toUpperCase(),
-            "{Địa chỉ}": ds.diaChi || "....................", "{địa chỉ}": ds.diaChi || "....................",
-            "{Tư cách}": ds.tuCach || ".........", "{tư cách}": ds.tuCach ? ds.tuCach.toLowerCase() : ".........", "{TƯ CÁCH}": ds.tuCach ? ds.tuCach.toUpperCase() : ".........",
-            "{Năm sinh}": (ds.namSinh && isInd) ? ("sinh năm " + ds.namSinh) : "", "{năm sinh}": (ds.namSinh && isInd) ? ("sinh năm " + ds.namSinh) : "",
-            "{Người đại diện}": formatRepsBlock(ds.daiDien), "{người đại diện}": formatRepsBlock(ds.daiDien),
-            "{CCCD}": ds.cccd || "", "{cccd}": ds.cccd || "",
-            "{Số điện thoại}": ds.sdt ? formatPhoneNumber(ds.sdt) : "", "{số điện thoại}": ds.sdt ? formatPhoneNumber(ds.sdt) : ""
-          };
-
-          var finalMapPage = Object.assign({}, fullMap, localPartyMap);
-          var pageTextCache = pageElements.map(e => (typeof e.getText === 'function') ? e.getText() : "").join("\n");
-
-          pageElements.forEach(function(el) {
-            applyAtomicReplacements(el, finalMapPage, pageTextCache);
-            if (el.getType() === DocumentApp.ElementType.PARAGRAPH) applyPrecisionBold(el.asParagraph(), [cleanName]);
-          });
-        });
-      } 
-      // CHẾ ĐỘ 2: TRỘN GỘP VĂN BẢN ÁN (BẢN ÁN, QUYẾT ĐỊNH, BIÊN BẢN HÒA GIẢI...)
-      else {
-        var header = doc.getHeader(); 
-        if (header) { 
-          resolvePairedNameAndYearTags(header, roleClusterMap, header.getText()); 
-          applyAtomicReplacements(header, fullMap, header.getText()); 
-          sanitizeMergedDocument(header); 
-        }
-        var footer = doc.getFooter(); 
-        if (footer) { 
-          resolvePairedNameAndYearTags(footer, roleClusterMap, footer.getText()); 
-          applyAtomicReplacements(footer, fullMap, footer.getText()); 
-          sanitizeMergedDocument(footer); 
-        }
-
-        resolvePairedNameAndYearTags(body, roleClusterMap, docTextContent);
-
-        // Thay thế các khối danh sách đương sự dạng bảng / dạng lặp
-        replaceBlockParties(body, "{Đương sự}", getBlockType2Items(parties));
-        replaceBlockParties(body, "{Đương sự thông báo}", getBlockType1Items(parties));
-        replaceBlockParties(body, "{Nguyên đơn chi tiết}", getPartyDetailItems(groupsNKK));
-        replaceBlockParties(body, "{Người khởi kiện chi tiết}", getPartyDetailItems(groupsNKK));
-        replaceBlockParties(body, "{Bị đơn chi tiết}", getPartyDetailItems(groupsNBK));
-        replaceBlockParties(body, "{Người bị kiện chi tiết}", getPartyDetailItems(groupsNBK));
-        replaceBlockParties(body, "{Người yêu cầu chi tiết}", getPartyDetailItems(nkkToUse));
-        replaceBlockParties(body, "{Người bị yêu cầu chi tiết}", getPartyDetailItems(groupsNBK));
-        replaceBlockParties(body, "{Người có quyền lợi, nghĩa vụ liên quan chi tiết}", getPartyDetailItems(groupsNLQ));
-        replaceBlockParties(body, "{Người làm chứng chi tiết}", getPartyDetailItems(groupsNLC));
-
-        // Thay thế khối nhiều dòng cho Nội dung thỏa thuận (kèm các từ đồng nghĩa)
-        [
-          "{Nội dung thỏa thuận}", 
-          "{Nội dung hòa giải thành}"
-        ].forEach(function(synTag) {
-          replaceBlockMultiline(body, synTag, fullMap["{Nội dung thỏa thuận}"], allCasePartyNames);
-        });
-
-        // Thay thế khối nhiều dòng cho Danh mục chứng cứ kèm theo (kèm các từ đồng nghĩa)
-        [
-          "{Tài liệu kèm theo đơn khởi kiện}",
-          "{Tài liệu kèm đơn khởi kiện}",
-          "{Tài liệu chứng cứ kèm theo}",
-          "{Danh mục chứng cứ}"
-        ].forEach(function(synTag) {
-          replaceBlockMultiline(body, synTag, fullMap["{Tài liệu kèm theo đơn khởi kiện}"]);
-        });
-
-        // Khối đa dòng cho Sửa đổi bổ sung
-        if (fullMap["{Những vấn đề cần sửa chữa bổ sung}"]) {
-          replaceBlockMultiline(body, "{Những vấn đề cần sửa chữa bổ sung}", fullMap["{Những vấn đề cần sửa chữa bổ sung}"]);
-        }
-        if (fullMap["{Yêu cầu sửa đổi bổ sung}"]) {
-          replaceBlockMultiline(body, "{Yêu cầu sửa đổi bổ sung}", fullMap["{Yêu cầu sửa đổi bổ sung}"]);
-        }
-
-        // Áp dụng thay thế nguyên tử cho toàn bộ các Placeholder đơn lẻ
-        applyAtomicReplacements(body, fullMap, body.getText());
+        processDocumentSeparatedPages(body, fullMap, parties, input.selectedIndices);
+      } else {
+        processDocumentBodyAndHeaders(doc, roleClusterMap, fullMap, parties, clusters, allCasePartyNames);
       }
 
-      // Xử lý chuỗi thời gian triệu tập in đậm số học
       replaceTimeString(body, "{Thời gian triệu tập}", timeString);
       replaceTimeString(body, "{thời gian triệu tập}", timeString);
       
-      // Dọn dẹp ngữ pháp và xóa thẻ thừa sau trộn
       sanitizeMergedDocument(body);
       doc.saveAndClose();
 
@@ -1254,7 +1259,7 @@ function api_RunMailMergeV3_Logic(input) {
 }
 
 // =========================================================================
-// MỤC 7: ĐỘNG CƠ TRỘN THƯ ĐƠN KHỞI KIỆN HỢP NHẤT (MASTER DON ENGINE)
+// MỤC 6: HÀM ĐIỀU PHỐI ĐƠN KHỞI KIỆN (MASTER MERGE CHO ĐƠN)
 // =========================================================================
 
 function backend_LayDuLieuChiTietDon(idDon) {
@@ -1330,7 +1335,6 @@ function api_RunMailMergeDon_Logic(input) {
     var parties = (input.partiesOverride && input.partiesOverride.length > 0) ? input.partiesOverride : (donData.ds || []);
     var config = (typeof getConfigFromSheet === 'function') ? getConfigFromSheet() : {};
 
-    // 1. Quản lý thư mục lưu trữ Đơn trên Drive
     var rootFolderId = extractFolderId(config["ID_THUMUC_DON"]);
     if (!rootFolderId) throw new Error("Chưa cấu hình ID Thư mục lưu Đơn trong Cài đặt.");
 
@@ -1340,30 +1344,23 @@ function api_RunMailMergeDon_Logic(input) {
     var yearFolder = yFolders.hasNext() ? yFolders.next() : rootFolder.createFolder(currentYear);
 
     var cleanNo = info.soDon ? String(info.soDon).split('/')[0].trim() : "Don";
+    var qhRaw = String(info.quanHe || "---").trim();
+    var isThuanTinhLyHon = qhRaw.toLowerCase().includes("thuận tình") || qhRaw.toLowerCase().includes("thuan tinh");
+
+    // PHÂN CỤM ĐƯƠNG SỰ ĐƠN BẰNG BỘ LÕI CHUẨN HÓA DÙNG CHUNG
+    var clusters = buildPartyClusters(parties, isThuanTinhLyHon, true);
+    var groupsNKK = clusters.groupsNKK;
+
     var firstNKK = "Chưa rõ";
-
-    var groupsNKK = [], groupsNBK = [], groupsNLQ = [];
-    parties.forEach(function(d) {
-      var tcLower = String(d.tuCach || "").toLowerCase();
-      var type = 'NBK';
-      if (tcLower.includes('khởi kiện') || tcLower.includes('yêu cầu') || tcLower.includes('bị hại') || tcLower.includes('nguyên đơn')) {
-        type = 'NKK';
-        if (firstNKK === 'Chưa rõ') firstNKK = toTitleCase(cleanHonorificFromName(d.hoTen));
-      } else if (tcLower.includes('liên quan')) {
-        type = 'NLQ';
-      }
-
-      var targetGroup = (type === 'NKK') ? groupsNKK : (type === 'NLQ' ? groupsNLQ : groupsNBK);
-      var addrKey = d.diaChi ? d.diaChi.trim().toLowerCase() : "";
-      var found = addrKey ? targetGroup.find(function(g) { return (g.diaChi ? g.diaChi.trim().toLowerCase() : "") === addrKey; }) : null;
-      if (found) found.members.push(d); else targetGroup.push({ diaChi: d.diaChi, members: [d] });
-    });
+    var allNKKMembers = extractFlatMembers(groupsNKK);
+    if (allNKKMembers.length > 0) {
+      firstNKK = toTitleCase(cleanHonorificFromName(allNKKMembers[0].hoTen));
+    }
 
     var folderName = `${cleanNo} - ${firstNKK}`;
     var subFolders = yearFolder.getFoldersByName(folderName);
     var caseFolder = subFolders.hasNext() ? subFolders.next() : yearFolder.createFolder(folderName);
 
-    // 2. Tự động đồng bộ lịch hẹn công tác nếu có ngày giờ làm việc
     if (input.trieuTapDate) {
       try {
         if (typeof api_LuuLichMoi_Logic === 'function') {
@@ -1378,7 +1375,6 @@ function api_RunMailMergeDon_Logic(input) {
       } catch (eLich) {}
     }
 
-    // 3. Tự động cập nhật trạng thái đơn
     if (input.newStatus) {
       var ss = SpreadsheetApp.getActiveSpreadsheet();
       var sheetDon = ss.getSheetByName("0_SoNhanDon");
@@ -1391,7 +1387,6 @@ function api_RunMailMergeDon_Logic(input) {
       }
     }
 
-    // 4. Định dạng ngày tháng tư pháp
     var dBanHanhObj = input.ngayBanHanh ? (LibDate.parse(input.ngayBanHanh) || new Date()) : new Date();
     var valNgayBanHanhHoa = LibDate.toVNText(dBanHanhObj, true);
     var valNgayBanHanhThuong = LibDate.toVNText(dBanHanhObj, false);
@@ -1407,7 +1402,6 @@ function api_RunMailMergeDon_Logic(input) {
     var diaDiemRaw = input.diaDiemLamViec || config["DIA_CHI_TOA"] || "Trụ sở Tòa án";
     var phanLoaiDonStr = info.loaiAn ? (info.loaiAn.split('. ')[1] || info.loaiAn) : "Dân sự";
 
-    // 5. Tính án phí / Tạm ứng án phí NQ 326
     var keyLoaiAn = "danSu";
     if (String(info.loaiAn).includes("Kinh doanh")) keyLoaiAn = "kinhDoanh";
     else if (String(info.loaiAn).includes("Hình sự")) keyLoaiAn = "hinhSu";
@@ -1415,39 +1409,12 @@ function api_RunMailMergeDon_Logic(input) {
 
     var feeCalc = calculateCourtFee(keyLoaiAn, String(info.giaTri || "0"));
 
-    // 6. Xây dựng toàn diện từ điển Placeholder Đơn bộ 3 thể thức
-    var donRoleMap = {};
-    backend_buildExactPlaceholders(donRoleMap, "Người khởi kiện", groupsNKK);
-    backend_buildExactPlaceholders(donRoleMap, "Người nộp đơn", groupsNKK);
-    backend_buildExactPlaceholders(donRoleMap, "Người yêu cầu", groupsNKK);
-    backend_buildExactPlaceholders(donRoleMap, "Nguyên đơn", groupsNKK);
-    backend_buildExactPlaceholders(donRoleMap, "Bị đơn", groupsNBK);
-    backend_buildExactPlaceholders(donRoleMap, "Người bị kiện", groupsNBK);
-    backend_buildExactPlaceholders(donRoleMap, "Người bị yêu cầu", groupsNBK);
-    backend_buildExactPlaceholders(donRoleMap, "Người có quyền lợi, nghĩa vụ liên quan", groupsNLQ);
+    // TỪ ĐIỂN VAI TRÒ CHUẨN DÙNG CHUNG CHO ĐƠN
+    var donRoleMap = buildSharedPartyDictionary(clusters, isThuanTinhLyHon);
 
-    donRoleMap["{Người khởi kiện}"] = buildShortPartyStringBackend(groupsNKK, false);
-    donRoleMap["{người khởi kiện}"] = buildShortPartyStringBackend(groupsNKK, true);
-    donRoleMap["{NGƯỜI KHỞI KIỆN}"] = donRoleMap["{Người khởi kiện}"].toUpperCase();
-
-    donRoleMap["{Người nộp đơn}"] = donRoleMap["{Người khởi kiện}"];
-    donRoleMap["{người nộp đơn}"] = donRoleMap["{người khởi kiện}"];
-
-    donRoleMap["{Người yêu cầu}"] = donRoleMap["{Người khởi kiện}"];
-    donRoleMap["{người yêu cầu}"] = donRoleMap["{người khởi kiện}"];
-
-    donRoleMap["{Nguyên đơn}"] = donRoleMap["{Người khởi kiện}"];
-    donRoleMap["{nguyên đơn}"] = donRoleMap["{người khởi kiện}"];
-
-    donRoleMap["{Bị đơn}"] = buildShortPartyStringBackend(groupsNBK, false);
-    donRoleMap["{bị đơn}"] = buildShortPartyStringBackend(groupsNBK, true);
-    donRoleMap["{BỊ ĐƠN}"] = donRoleMap["{Bị đơn}"].toUpperCase();
-
-    donRoleMap["{Người bị kiện}"] = donRoleMap["{Bị đơn}"];
-    donRoleMap["{người bị kiện}"] = donRoleMap["{bị đơn}"];
-
-    donRoleMap["{Người có quyền lợi, nghĩa vụ liên quan}"] = buildShortPartyStringBackend(groupsNLQ, false);
-    donRoleMap["{người có quyền lợi, nghĩa vụ liên quan}"] = buildShortPartyStringBackend(groupsNLQ, true);
+    var tenTP_Clean = toTitleCase(cleanHonorificFromName(info.thamPhan || config["TEN_THAM_PHAN"] || ""));
+    var danhXungTP = getOfficerHonorific(tenTP_Clean, "Ông");
+    var thamPhanFull = danhXungTP + " " + tenTP_Clean;
 
     var baseDonMap = {
       "{Số đơn}": String(info.soDon || ""),
@@ -1495,8 +1462,16 @@ function api_RunMailMergeDon_Logic(input) {
       "{Yêu cầu sửa đổi bổ sung}": input.sbsYeuCau || "",
       "{yêu cầu sửa đổi bổ sung}": input.sbsYeuCau || "",
 
-      "{Thẩm phán}": toTitleCase(cleanHonorificFromName(info.thamPhan || config["TEN_THAM_PHAN"] || "")),
-      "{thẩm phán}": toTitleCase(cleanHonorificFromName(info.thamPhan || config["TEN_THAM_PHAN"] || "")),
+      "{Danh xưng Thẩm phán}": danhXungTP,
+      "{danh xưng thẩm phán}": danhXungTP.toLowerCase(),
+      "{Họ và tên Thẩm phán}": tenTP_Clean,
+      "{họ và tên thẩm phán}": tenTP_Clean,
+      "{Thẩm phán}": tenTP_Clean,
+      "{thẩm phán}": tenTP_Clean,
+      "{THẨM PHÁN}": tenTP_Clean.toUpperCase(),
+      "{Thẩm phán đầy đủ}": thamPhanFull,
+      "{thẩm phán đầy đủ}": thamPhanFull,
+
       "{Tòa án}": String(config["TEN_TOA_AN"] || "Tòa án nhân dân"),
       "{tòa án}": String(config["TEN_TOA_AN"] || "Tòa án nhân dân"),
       "{TÒA ÁN}": String(config["TEN_TOA_AN"] || "Tòa án nhân dân").toUpperCase(),
@@ -1506,7 +1481,6 @@ function api_RunMailMergeDon_Logic(input) {
 
     var fullDonMap = Object.assign({}, baseDonMap, donRoleMap, input.compiledPlaceholders || {}, input.customVariables || {});
 
-    // Mở rộng case không phân biệt hoa thường
     var expandedDonMap = Object.assign({}, fullDonMap);
     for (var k in fullDonMap) {
       if (fullDonMap[k] !== undefined && fullDonMap[k] !== null) {
@@ -1518,7 +1492,8 @@ function api_RunMailMergeDon_Logic(input) {
     }
     fullDonMap = expandedDonMap;
 
-    // 7. Thực hiện trộn từng biểu mẫu đơn
+    var roleClusterMapDon = buildRoleClusterMap(clusters);
+
     var createdFiles = [];
     var allPartyNames = parties.map(function(p) { return toTitleCase(cleanHonorificFromName(p.hoTen)); }).filter(Boolean);
 
@@ -1544,81 +1519,9 @@ function api_RunMailMergeDon_Logic(input) {
                         docTextContent.includes("{Số điện thoại}");
 
       if (isTachTrang) {
-        // [CẮT BỎ ĐOẠN CODE IN TÁCH TRANG Ở ĐÂY CHO ĐƠN GIẢN, BẠN CÓ THỂ GIỮ NGUYÊN NẾU MUỐN]
-        // NẾU GIẤY TRIỆU TẬP, IN TÁCH TRANG TƯƠNG TỰ BÊN ÁN
-        var indices = (input.selectedIndices && input.selectedIndices.length > 0) ? input.selectedIndices : parties.map((_, i) => i);
-        var mergeRecipients = [];
-        parties.filter((_, idx) => indices.includes(idx)).forEach(function(p) {
-          mergeRecipients.push(p);
-          if (p.daiDien) {
-            try { 
-              JSON.parse(p.daiDien).forEach(r => mergeRecipients.push({ 
-                hoTen: r.hoTen, xungHo: r.xungHo || "Ông/Bà", tuCach: (r.tuCach || "Người đại diện") + " của " + p.tuCach + " " + p.hoTen, 
-                diaChi: r.diaChi || p.diaChi, namSinh: r.namSinh || "", sdt: r.sdt || "", cccd: r.cccd || "", daiDien: "" 
-              })); 
-            } catch(e) {}
-          }
-        });
-
-        var originalElements = []; 
-        for (var i = 0; i < body.getNumChildren(); i++) originalElements.push(body.getChild(i).copy());
-        var pagesElementArrays = [[]]; 
-        for (var p1 = 0; p1 < body.getNumChildren(); p1++) pagesElementArrays[0].push(body.getChild(p1));
-        for (var idx = 1; idx < mergeRecipients.length; idx++) pagesElementArrays.push(appendPageCloneDeep(body, originalElements));
-
-        mergeRecipients.forEach(function(ds, rIdx) {
-          var pageElements = pagesElementArrays[rIdx];
-          if (!ds || !pageElements) return;
-          var cleanName = toTitleCase(cleanHonorificFromName(ds.hoTen)), isInd = isIndividualHonorific(ds.xungHo);
-          var xhHoa = isInd ? toTitleCase(ds.xungHo || "Ông/bà") : "";
-          var xhThuong = isInd ? (ds.xungHo ? ds.xungHo.toLowerCase() : "ông/bà") : "";
-
-          var localPartyMap = {
-            "{Xưng hô}": xhHoa, "{xưng hô}": xhThuong, "{XƯNG HÔ}": xhHoa.toUpperCase(),
-            "{Họ và tên}": cleanName, "{họ và tên}": cleanName, "{HỌ VÀ TÊN}": cleanName.toUpperCase(),
-            "{Địa chỉ}": ds.diaChi || "....................", "{địa chỉ}": ds.diaChi || "....................",
-            "{Tư cách}": ds.tuCach || ".........", "{tư cách}": ds.tuCach ? ds.tuCach.toLowerCase() : ".........", "{TƯ CÁCH}": ds.tuCach ? ds.tuCach.toUpperCase() : ".........",
-            "{Năm sinh}": (ds.namSinh && isInd) ? ("sinh năm " + ds.namSinh) : "", "{năm sinh}": (ds.namSinh && isInd) ? ("sinh năm " + ds.namSinh) : "",
-            "{Người đại diện}": formatRepsBlock(ds.daiDien), "{người đại diện}": formatRepsBlock(ds.daiDien),
-            "{CCCD}": ds.cccd || "", "{cccd}": ds.cccd || "",
-            "{Số điện thoại}": ds.sdt ? formatPhoneNumber(ds.sdt) : "", "{số điện thoại}": ds.sdt ? formatPhoneNumber(ds.sdt) : ""
-          };
-
-          var finalMapPage = Object.assign({}, fullDonMap, localPartyMap);
-          var pageTextCache = pageElements.map(e => (typeof e.getText === 'function') ? e.getText() : "").join("\n");
-
-          pageElements.forEach(function(el) {
-            applyAtomicReplacements(el, finalMapPage, pageTextCache);
-            if (el.getType() === DocumentApp.ElementType.PARAGRAPH) applyPrecisionBold(el.asParagraph(), [cleanName]);
-          });
-        });
+        processDocumentSeparatedPages(body, fullDonMap, parties, input.selectedIndices);
       } else {
-        // TRỘN GỘP VĂN BẢN ĐƠN
-        replaceBlockParties(body, "{Đương sự thông báo}", getBlockType1Items(parties));
-        replaceBlockParties(body, "{Đương sự}", getBlockType2Items(parties));
-        replaceBlockParties(body, "{Người khởi kiện chi tiết}", getPartyDetailItems(groupsNKK));
-        replaceBlockParties(body, "{Bị đơn chi tiết}", getPartyDetailItems(groupsNBK));
-        replaceBlockParties(body, "{Người có quyền lợi, nghĩa vụ liên quan chi tiết}", getPartyDetailItems(groupsNLQ));
-
-        if (fullDonMap["{Những vấn đề cần sửa chữa bổ sung}"]) {
-          replaceBlockMultiline(body, "{Những vấn đề cần sửa chữa bổ sung}", fullDonMap["{Những vấn đề cần sửa chữa bổ sung}"]);
-        }
-        if (fullDonMap["{Yêu cầu sửa đổi bổ sung}"]) {
-          replaceBlockMultiline(body, "{Yêu cầu sửa đổi bổ sung}", fullDonMap["{Yêu cầu sửa đổi bổ sung}"]);
-        }
-
-        applyAtomicReplacements(body, fullDonMap, body.getText());
-      }
-
-      var header = doc.getHeader();
-      if (header) {
-        applyAtomicReplacements(header, fullDonMap, header.getText());
-        sanitizeMergedDocument(header);
-      }
-      var footer = doc.getFooter();
-      if (footer) {
-        applyAtomicReplacements(footer, fullDonMap, footer.getText());
-        sanitizeMergedDocument(footer);
+        processDocumentBodyAndHeaders(doc, roleClusterMapDon, fullDonMap, parties, clusters, allPartyNames);
       }
 
       replaceTimeString(body, "{Thời gian triệu tập}", timeString);

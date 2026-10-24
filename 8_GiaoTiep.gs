@@ -4,7 +4,8 @@
  * TỆP: 8_GiaoTiep.gs - ĐIỀU PHỐI ĐỊNH TUYẾN TOÀN DIỆN, BẢO VỆ CSDL & CHẨN ĐOÁN KHO MẪU
  * -------------------------------------------------------------------------
  * - CẮT ĐỨT 100% LỖI ĐỆ QUY TRÀN BỘ NHỚ (MAXIMUM CALL STACK EXCEEDED).
- * - BỌC TRY-CATCH VÀ KIỂM TRA TYPEOF AN TOÀN CHO TOÀN BỘ 7 PHÂN HỆ.
+ * - BỌC TRY-CATCH VÀ KIỂM TRA TYPEOF AN TOÀN CHO TOÀN BỘ CÁC PHÂN HỆ.
+ * - ĐẤU NỐI ĐẦY ĐỦ CỔNG TRỘN VĂN BẢN ĐƠN (api_RunMailMergeDon) & QUÉT DRIVE (api_ScanCaseDriveSmartMilestone).
  * - THỰC THI THUẬT TOÁN QUÉT VÀ TỰ ĐỘNG SỬA LỖI PLACEHOLDER THẬT TRÊN GOOGLE DRIVE.
  * =========================================================================
  */
@@ -497,6 +498,60 @@ function api_RunMailMergeV3(input) {
   }
 }
 
+function api_RunMailMergeDon(input) {
+  try {
+    return (typeof api_RunMailMergeDon_Logic === 'function') 
+      ? api_RunMailMergeDon_Logic(input) 
+      : { success: false, error: "Chưa cấu hình hàm trộn văn bản đơn." };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+function api_ScanCaseDriveSmartMilestone(idVuAn) {
+  try {
+    if (!idVuAn) return { success: false, error: "Chưa chọn vụ án." };
+    var caseDetail = (typeof layDuLieuChiTiet === 'function') ? layDuLieuChiTiet(idVuAn) : {};
+    if (caseDetail.error || !caseDetail.info || !caseDetail.info.folderUrl) {
+      return { success: false, error: "Hồ sơ chưa có thư mục Google Drive." };
+    }
+    var folderUrl = caseDetail.info.folderUrl;
+    var folderId = extractFolderId(folderUrl);
+    if (!folderId) return { success: false, error: "ID thư mục Drive không hợp lệ." };
+
+    var folder = DriveApp.getFolderById(folderId);
+    var files = folder.getFiles();
+    var candidates = [];
+
+    while (files.hasNext()) {
+      var f = files.next();
+      var fName = f.getName().toLowerCase();
+      var mime = f.getMimeType();
+      if (fName.startsWith("~$") || fName === "_case_memory.json" || fName.startsWith("[temp]")) continue;
+      if (mime === MimeType.GOOGLE_DOCS || fName.endsWith('.docx') || fName.endsWith('.doc') || mime === MimeType.PDF || fName.endsWith('.pdf')) {
+        candidates.push(f);
+      }
+    }
+
+    if (candidates.length === 0) {
+      return { success: false, error: "Không tìm thấy tệp văn bản hoặc PDF nào trong thư mục vụ án." };
+    }
+
+    // Sắp xếp tệp mới cập nhật nhất lên đầu
+    candidates.sort(function(a, b) {
+      return b.getLastUpdated().getTime() - a.getLastUpdated().getTime();
+    });
+    var targetFile = candidates[0];
+
+    if (typeof ai_ParseEvidenceDocument === 'function') {
+      return ai_ParseEvidenceDocument(idVuAn, targetFile.getName(), targetFile.getMimeType(), targetFile.getId());
+    }
+    return { success: false, error: "Chưa cấu hình hàm AI bóc tách tài liệu." };
+  } catch (e) {
+    return { success: false, error: "Lỗi quét Drive: " + e.toString() };
+  }
+}
+
 function api_GetAppIdentity() { 
   try {
     return (typeof getConfigFromSheet === 'function') ? getConfigFromSheet() : {}; 
@@ -563,12 +618,7 @@ function api_GetTemplateSettings() {
 
 function backend_GetAllPlaceholders() {
   try {
-    return (typeof PLACEHOLDER_DEFINITIONS !== 'undefined') ? PLACEHOLDER_DEFINITIONS : [
-      { group: "1. THÔNG TIN CHUNG", name: "{Số thụ lý}", description: "Số thụ lý đầy đủ" },
-      { group: "1. THÔNG TIN CHUNG", name: "{Loại án}", description: "Tên loại án đầy đủ" },
-      { group: "1. THÔNG TIN CHUNG", name: "{Quan hệ tranh chấp}", description: "Quan hệ tranh chấp hoặc tội danh" },
-      { group: "1. THÔNG TIN CHUNG", name: "{Tòa án}", description: "Tên Tòa án nhân dân giải quyết" }
-    ];
+    return (typeof PLACEHOLDER_DEFINITIONS !== 'undefined') ? PLACEHOLDER_DEFINITIONS : [];
   } catch (e) { return []; }
 }
 
