@@ -1,11 +1,12 @@
 <script>
 /**
  * =========================================================================
- * HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.0 - MASTER CASE PARAMETERS & OCR ENGINE (PRODUCTION)
+ * HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.5 - MASTER CASE PARAMETERS & OCR ENGINE (PRODUCTION)
  * TỆP: JS_ThongSoNghiepVu.html - ĐIỀU HÀNH BỘ NHỚ VỤ ÁN, CANVAS & MULTI-PHOTO OCR
  * -------------------------------------------------------------------------
  * - BẢO TỒN MASTER DATA: BIẾN DO AI BÓC TÁCH ĐƯỢC LƯU VĨNH VIỄN VÀO _case_memory.json.
  * - KHÔNG BỊ XÓA HAY ĐÈ BIẾN BỞI CÁC CÂU MẪU MẶC ĐỊNH (FALLBACK STRINGS).
+ * - BÓC TÁCH CHUẨN XÁC: VỊ TRÍ TÀI SẢN, HỢP ĐỒNG TÍN DỤNG, DƯ NỢ, DI SẢN THỪA KẾ.
  * - CHUẨN HÓA BỘ 3 THỂ THỨC: {Tên} (Tiêu đề), {tên} (Viết thường), {TÊN} (IN HOA).
  * - MULTI-PHOTO OCR: NÉN CLIENT-SIDE, CHỤP ĐA TRANG VÀ BÓC TÁCH LIỀN MẠCH.
  * =========================================================================
@@ -27,7 +28,7 @@ window.renderAllSavedVariableCards = function(v, loaiAn, narratives) {
   var textarea = document.getElementById('case_free_narrative_text');
   if (!textarea) return;
 
-  // Nếu đã có văn bản toàn văn nội dung vụ án
+  // Nếu đã có văn bản toàn văn nội dung vụ án do người dùng gõ
   if (v["{Nội dung vụ án}"] && String(v["{Nội dung vụ án}"]).trim() !== "") {
     textarea.value = v["{Nội dung vụ án}"];
     return;
@@ -69,7 +70,21 @@ window.renderAllSavedVariableCards = function(v, loaiAn, narratives) {
     compiledSections.push("[TRÍCH LỤC LỜI KHAI ĐƯƠNG SỰ]:\n" + lkParts.join("\n\n"));
   }
 
-  // D. Khối Thỏa thuận hòa giải
+  // D. Khối Thông tin Tài sản / Hợp đồng tín dụng / Thừa kế
+  var assetParts = [];
+  if (v["{Vị trí tài sản tranh chấp}"]) assetParts.push("- Vị trí tài sản tranh chấp: " + v["{Vị trí tài sản tranh chấp}"]);
+  if (v["{Tài sản tranh chấp}"] && v["{Tài sản tranh chấp}"] !== v["{Vị trí tài sản tranh chấp}"]) assetParts.push("- Tài sản tranh chấp: " + v["{Tài sản tranh chấp}"]);
+  if (v["{Hợp đồng tín dụng}"]) assetParts.push("- Hợp đồng tín dụng: " + v["{Hợp đồng tín dụng}"]);
+  if (v["{Dư nợ tín dụng}"]) assetParts.push("- Dư nợ tín dụng: " + v["{Dư nợ tín dụng}"]);
+  if (v["{Di sản thừa kế}"]) assetParts.push("- Di sản thừa kế: " + v["{Di sản thừa kế}"]);
+  if (v["{Thiệt hại bồi thường}"]) assetParts.push("- Thiệt hại bồi thường: " + v["{Thiệt hại bồi thường}"]);
+  if (v["{Tranh chấp lao động}"]) assetParts.push("- Tranh chấp lao động: " + v["{Tranh chấp lao động}"]);
+
+  if (assetParts.length > 0) {
+    compiledSections.push("[THÔNG TIN TÀI SẢN / HỢP ĐỒNG / DI SẢN]:\n" + assetParts.join("\n"));
+  }
+
+  // E. Khối Thỏa thuận hòa giải
   if (v["{Nội dung thỏa thuận}"] && String(v["{Nội dung thỏa thuận}"]).trim() !== "") {
     compiledSections.push("[NỘI DUNG THỎA THUẬN HÒA GIẢI]:\n" + v["{Nội dung thỏa thuận}"]);
   } else {
@@ -83,11 +98,11 @@ window.renderAllSavedVariableCards = function(v, loaiAn, narratives) {
       if (v["{Thỏa thuận con chung}"] || v["{Con chung}"]) {
         tsParts.push("2. Về con chung: " + (v["{Thỏa thuận con chung}"] || v["{Con chung}"]));
       }
-      if (v["{Tài sản chung}"] || v["{Tài sản tranh chấp}"]) {
-        tsParts.push("3. Về tài sản chung: " + (v["{Tài sản chung}"] || v["{Tài sản tranh chấp}"]));
+      if (v["{Tài sản chung}"]) {
+        tsParts.push("3. Về tài sản chung: " + v["{Tài sản chung}"]);
       }
-      if (v["{Nợ chung}"] || v["{Dư nợ tín dụng}"]) {
-        tsParts.push("4. Về nợ chung: " + (v["{Nợ chung}"] || v["{Dư nợ tín dụng}"]));
+      if (v["{Nợ chung}"]) {
+        tsParts.push("4. Về nợ chung: " + v["{Nợ chung}"]);
       }
       if (v["{Thỏa thuận án phí}"] || v["{Án phí}"]) {
         tsParts.push("5. Về án phí: " + (v["{Thỏa thuận án phí}"] || v["{Án phí}"]));
@@ -111,12 +126,23 @@ window.renderAllSavedVariableCards = function(v, loaiAn, narratives) {
 // 2. TỰ ĐỘNG LƯU NGẦM CANVAS & BẢO TOÀN DỮ LIỆU MASTER
 // =========================================================================
 
+window.saveOpenCanvasText = function() {
+  clearTimeout(window.openCanvasAutoSaveTimer);
+  var ind = document.getElementById('open_canvas_autosave_indicator');
+  if (ind) ind.innerHTML = '<i class="fas fa-spinner fa-spin text-warning me-1"></i> <span class="text-warning">Đang chờ lưu...</span>';
+
+  window.openCanvasAutoSaveTimer = setTimeout(function() {
+    window.saveCaseVariables(true);
+  }, 1200);
+};
+
 window.saveCaseVariables = function(isAuto) {
   if (!window.currentCaseId) return;
 
   var textarea = document.getElementById('case_free_narrative_text');
   var fullText = textarea ? textarea.value.trim() : "";
 
+  // BẢO TOÀN DỮ LIỆU GỐC: Kế thừa toàn bộ biến đã bóc tách trước đó từ AI
   var vars = Object.assign({}, window.currentCaseVariables || {});
   var narratives = Object.assign({}, window.currentCaseNarratives || {});
 
@@ -142,8 +168,8 @@ window.saveCaseVariables = function(isAuto) {
       vars["{Danh mục chứng cứ}"] = valTL;
     }
 
-    // 3. BÓC TÁCH CHI TIẾT TỪNG LỜI KHAI (NGUYÊN ĐƠN, BỊ ĐƠN, NGƯỜI LIÊN QUAN, LÀM CHỨNG)
-    var matchFullLk = fullText.match(/\[TRÍCH LỤC LỜI KHAI ĐƯƠNG SỰ\]:([\s\S]*?)(?=(?:\[NỘI DUNG|\[THÔNG SỐ|\[TẠM ỨNG|\[DANH MỤC|$))/i);
+    // 3. BÓC TÁCH CHI TIẾT TỪNG LỜI KHAI
+    var matchFullLk = fullText.match(/\[TRÍCH LỤC LỜI KHAI ĐƯƠNG SỰ\]:([\s\S]*?)(?=(?:\[NỘI DUNG|\[THÔNG SỐ|\[TẠM ỨNG|\[DANH MỤC|\[THÔNG TIN|$))/i);
     if (matchFullLk && matchFullLk[1].trim()) {
       vars["{Lời khai đương sự}"] = matchFullLk[1].trim();
       vars["{lời khai đương sự}"] = matchFullLk[1].trim();
@@ -173,7 +199,50 @@ window.saveCaseVariables = function(isAuto) {
     var mLkLC = fullText.match(/(?:\{Lời khai người làm chứng\}:?|- Lời khai Người làm chứng:)([\s\S]*?)(?=(?:\{|- Lời khai|\[|$))/i);
     if (mLkLC && mLkLC[1].trim()) vars["{Lời khai người làm chứng}"] = mLkLC[1].trim();
 
-    // 4. BÓC TÁCH NỘI DUNG THỎA THUẬN HÒA GIẢI CHUNG
+    // 4. BÓC TÁCH KHỐI VỊ TRÍ TÀI SẢN, HỢP ĐỒNG TÍN DỤNG, DƯ NỢ, DI SẢN THỪA KẾ
+    var mViTri = fullText.match(/(?:\{Vị trí tài sản tranh chấp\}:?|- Vị trí tài sản(?: tranh chấp)?:)([\s\S]*?)(?=(?:\[|\{|- |$))/i);
+    if (mViTri && mViTri[1].trim()) {
+      vars["{Vị trí tài sản tranh chấp}"] = mViTri[1].trim();
+      vars["{vị trí tài sản tranh chấp}"] = mViTri[1].trim();
+    }
+
+    var mTS = fullText.match(/(?:\{Tài sản tranh chấp\}:?|- Tài sản tranh chấp:)([\s\S]*?)(?=(?:\[|\{|- |$))/i);
+    if (mTS && mTS[1].trim()) {
+      vars["{Tài sản tranh chấp}"] = mTS[1].trim();
+      vars["{tài sản tranh chấp}"] = mTS[1].trim();
+    }
+
+    var mHDTD = fullText.match(/(?:\{Hợp đồng tín dụng\}:?|- Hợp đồng tín dụng:)([\s\S]*?)(?=(?:\[|\{|- |$))/i);
+    if (mHDTD && mHDTD[1].trim()) {
+      vars["{Hợp đồng tín dụng}"] = mHDTD[1].trim();
+      vars["{hợp đồng tín dụng}"] = mHDTD[1].trim();
+    }
+
+    var mDuNo = fullText.match(/(?:\{Dư nợ tín dụng\}:?|- Dư nợ(?: tín dụng)?:)([\s\S]*?)(?=(?:\[|\{|- |$))/i);
+    if (mDuNo && mDuNo[1].trim()) {
+      vars["{Dư nợ tín dụng}"] = mDuNo[1].trim();
+      vars["{dư nợ tín dụng}"] = mDuNo[1].trim();
+    }
+
+    var mThuaKe = fullText.match(/(?:\{Di sản thừa kế\}:?|- Di sản thừa kế:)([\s\S]*?)(?=(?:\[|\{|- |$))/i);
+    if (mThuaKe && mThuaKe[1].trim()) {
+      vars["{Di sản thừa kế}"] = mThuaKe[1].trim();
+      vars["{di sản thừa kế}"] = mThuaKe[1].trim();
+    }
+
+    var mThietHai = fullText.match(/(?:\{Thiệt hại bồi thường\}:?|- Thiệt hại bồi thường:)([\s\S]*?)(?=(?:\[|\{|- |$))/i);
+    if (mThietHai && mThietHai[1].trim()) {
+      vars["{Thiệt hại bồi thường}"] = mThietHai[1].trim();
+      vars["{thiệt hại bồi thường}"] = mThietHai[1].trim();
+    }
+
+    var mLaoDong = fullText.match(/(?:\{Tranh chấp lao động\}:?|- Tranh chấp lao động:)([\s\S]*?)(?=(?:\[|\{|- |$))/i);
+    if (mLaoDong && mLaoDong[1].trim()) {
+      vars["{Tranh chấp lao động}"] = mLaoDong[1].trim();
+      vars["{tranh chấp lao động}"] = mLaoDong[1].trim();
+    }
+
+    // 5. BÓC TÁCH NỘI DUNG THỎA THUẬN HÒA GIẢI CHUNG
     var matchThoaThuan = fullText.match(/\[NỘI DUNG THỎA THUẬN HÒA GIẢI\]:([\s\S]*?)(?=(?:\[|$))/i);
     if (matchThoaThuan && matchThoaThuan[1].trim()) {
       var valTT = matchThoaThuan[1].trim();
@@ -182,7 +251,7 @@ window.saveCaseVariables = function(isAuto) {
       vars["{Nội dung hòa giải thành}"] = valTT;
     }
 
-    // 5. BÓC TÁCH CÁC THẺ CON HNGĐ
+    // 6. BÓC TÁCH CÁC THẺ CON HNGĐ
     var mHN = fullText.match(/(?:(?:1\.\s*)?(?:Về\s*)?quan hệ hôn nhân:?|- Hôn nhân:|\{Quan hệ hôn nhân\}:?|\{Thỏa thuận ly hôn\}:?)([\s\S]*?)(?=(?:(?:2\.\s*)?(?:Về\s*)?con chung:?|- Con chung:|\{Con chung\}|3\.\s*Về|4\.\s*Về|5\.\s*Về|\[|\{|$))/i);
     if (mHN && mHN[1].trim()) {
       vars["{Quan hệ hôn nhân}"] = mHN[1].trim();
@@ -204,18 +273,16 @@ window.saveCaseVariables = function(isAuto) {
       vars["{Cấp dưỡng con chung}"] = mCapDuong[1].trim();
     }
 
-    var mTS = fullText.match(/(?:(?:3\.\s*)?(?:Về\s*)?tài sản(?: chung)?:?|- Tài sản:|\{Tài sản chung\}:?|\{Tài sản tranh chấp\}:?)([\s\S]*?)(?=(?:(?:4\.\s*)?(?:Về\s*)?nợ(?: chung)?|- Nợ:|\{Nợ chung\}|5\.\s*Về|\[|\{|$))/i);
-    if (mTS && mTS[1].trim()) {
-      vars["{Tài sản chung}"] = mTS[1].trim();
-      vars["{tài sản chung}"] = mTS[1].trim();
-      vars["{Tài sản tranh chấp}"] = mTS[1].trim();
+    var mTSC = fullText.match(/(?:(?:3\.\s*)?(?:Về\s*)?tài sản(?: chung)?:?|- Tài sản:|\{Tài sản chung\}:?)([\s\S]*?)(?=(?:(?:4\.\s*)?(?:Về\s*)?nợ(?: chung)?|- Nợ:|\{Nợ chung\}|5\.\s*Về|\[|\{|$))/i);
+    if (mTSC && mTSC[1].trim()) {
+      vars["{Tài sản chung}"] = mTSC[1].trim();
+      vars["{tài sản chung}"] = mTSC[1].trim();
     }
 
-    var mNo = fullText.match(/(?:(?:4\.\s*)?(?:Về\s*)?nợ(?: chung| nần)?:?|- Nợ:|\{Nợ chung\}:?|\{Dư nợ tín dụng\}:?)([\s\S]*?)(?=(?:(?:5\.\s*)?(?:Về\s*)?án phí|- Án phí:|\{Thỏa thuận án phí\}|\[|\{|$))/i);
+    var mNo = fullText.match(/(?:(?:4\.\s*)?(?:Về\s*)?nợ(?: chung| nần)?:?|- Nợ:|\{Nợ chung\}:?)([\s\S]*?)(?=(?:(?:5\.\s*)?(?:Về\s*)?án phí|- Án phí:|\{Thỏa thuận án phí\}|\[|\{|$))/i);
     if (mNo && mNo[1].trim()) {
       vars["{Nợ chung}"] = mNo[1].trim();
       vars["{nợ chung}"] = mNo[1].trim();
-      vars["{Dư nợ tín dụng}"] = mNo[1].trim();
     }
 
     var mAP = fullText.match(/(?:(?:5\.\s*)?(?:Về\s*)?án phí:?|- Án phí:|\{Thỏa thuận án phí\}:?|\{Án phí\}:?)([\s\S]*?)(?=(?:\[|\{|NHỮNG SỬA ĐỔI|$))/i);
@@ -225,16 +292,7 @@ window.saveCaseVariables = function(isAuto) {
       vars["{Án phí}"] = mAP[1].trim();
     }
 
-    // 6. BÓC TÁCH CÁC TRƯỜNG ĐẶC THÙ NGÀNH ÁN KHÁC (ĐẤT ĐAI, TÍN DỤNG, THỪA KẾ)
-    var mViTri = fullText.match(/(?:\{Vị trí tài sản tranh chấp\}:?|- Vị trí tài sản:)([\s\S]*?)(?=(?:\[|\{|$))/i);
-    if (mViTri && mViTri[1].trim()) vars["{Vị trí tài sản tranh chấp}"] = mViTri[1].trim();
-
-    var mHDTD = fullText.match(/(?:\{Hợp đồng tín dụng\}:?|- Hợp đồng tín dụng:)([\s\S]*?)(?=(?:\[|\{|$))/i);
-    if (mHDTD && mHDTD[1].trim()) vars["{Hợp đồng tín dụng}"] = mHDTD[1].trim();
-
-    var mThuaKe = fullText.match(/(?:\{Di sản thừa kế\}:?|- Di sản thừa kế:)([\s\S]*?)(?=(?:\[|\{|$))/i);
-    if (mThuaKe && mThuaKe[1].trim()) vars["{Di sản thừa kế}"] = mThuaKe[1].trim();
-
+    // 7. BÓC TÁCH CÁC THẺ NGHĨA VỤ DÂN SỰ
     var mNghiaVu = fullText.match(/(?:\{Thỏa thuận nghĩa vụ chính\}:?|- Nghĩa vụ chính:)([\s\S]*?)(?=(?:\[|\{|$))/i);
     if (mNghiaVu && mNghiaVu[1].trim()) vars["{Thỏa thuận nghĩa vụ chính}"] = mNghiaVu[1].trim();
 
@@ -359,7 +417,7 @@ window.compileDynamicVariables = function(vars, currentA4Parties) {
   vars["{Điều luật HNGĐ}"] = dieuLuatHNGD_Str;
   vars["{điều luật hngđ}"] = dieuLuatHNGD_Str;
 
-  // E. Nhân bản bộ 3 thể thức cho toàn bộ Placeholder
+  // E. Nhân bản bộ 3 thể thức cho toàn bộ Placeholder ({Tên}, {tên}, {TÊN})
   for (var key in vars) {
     if (vars[key] !== undefined && vars[key] !== null) {
       var valStr = String(vars[key]);
@@ -563,6 +621,15 @@ window.executeApplyEvidenceCanvas = function(mode, partiesToInsert) {
     if (lk) {
       compiled.push("[TRÍCH LỤC LỜI KHAI ĐƯƠNG SỰ]:\n" + lk);
     }
+    // Thông tin tài sản, hợp đồng, di sản
+    var assetSec = [];
+    if (extractedVars["{Vị trí tài sản tranh chấp}"]) assetSec.push("- Vị trí tài sản tranh chấp: " + extractedVars["{Vị trí tài sản tranh chấp}"]);
+    if (extractedVars["{Tài sản tranh chấp}"] && extractedVars["{Tài sản tranh chấp}"] !== extractedVars["{Vị trí tài sản tranh chấp}"]) assetSec.push("- Tài sản tranh chấp: " + extractedVars["{Tài sản tranh chấp}"]);
+    if (extractedVars["{Hợp đồng tín dụng}"]) assetSec.push("- Hợp đồng tín dụng: " + extractedVars["{Hợp đồng tín dụng}"]);
+    if (extractedVars["{Dư nợ tín dụng}"]) assetSec.push("- Dư nợ tín dụng: " + extractedVars["{Dư nợ tín dụng}"]);
+    if (extractedVars["{Di sản thừa kế}"]) assetSec.push("- Di sản thừa kế: " + extractedVars["{Di sản thừa kế}"]);
+    if (assetSec.length > 0) compiled.push("[THÔNG TIN TÀI SẢN / HỢP ĐỒNG / DI SẢN]:\n" + assetSec.join("\n"));
+
     // Thỏa thuận hòa giải
     if (extractedVars["{Nội dung thỏa thuận}"]) {
       compiled.push("[NỘI DUNG THỎA THUẬN HÒA GIẢI]:\n" + extractedVars["{Nội dung thỏa thuận}"]);

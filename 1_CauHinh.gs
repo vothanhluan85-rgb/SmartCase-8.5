@@ -254,3 +254,65 @@ function api_GetTemplateSettings() {
     return list;
   } catch(e) { return []; }
 }
+/**
+ * XUẤT CHÍNH XÁC TOÀN BỘ 64 BIỂU MẪU ÁN TỪ THƯ MỤC "ID_THUMUC_MAU"
+ */
+function TOOL_XuatChuanToanBo64MauAnRaText() {
+  var config = getConfigFromSheet();
+  var folderId = extractFolderId(config["ID_THUMUC_MAU"]);
+  if (!folderId) {
+    Logger.log("❌ CHƯA CẤU HÌNH ID_THUMUC_MAU TRONG CÀI ĐẶT!");
+    return;
+  }
+
+  var folder = DriveApp.getFolderById(folderId);
+  var files = folder.getFiles();
+  var blobs = [];
+  var fileCount = 0;
+  var report = [];
+
+  while (files.hasNext()) {
+    var f = files.next();
+    var fName = f.getName();
+    var mime = f.getMimeType();
+
+    // Bỏ qua các file tạm hoặc file dictionary
+    if (fName.startsWith("~$") || fName.toLowerCase().includes("placeholder") || fName.startsWith("[TEMP]")) continue;
+
+    var text = "";
+    if (mime === MimeType.GOOGLE_DOCS) {
+      try {
+        var doc = DocumentApp.openById(f.getId());
+        text = doc.getBody().getText();
+        if (doc.getHeader()) text = doc.getHeader().getText() + "\n" + text;
+        if (doc.getFooter()) text = text + "\n" + doc.getFooter().getText();
+      } catch(e) { text = "Lỗi đọc Docs: " + e.message; }
+    } else if (fName.endsWith('.docx') || fName.endsWith('.doc')) {
+      try {
+        var tempFile = Drive.Files.create({ name: "[TEMP] " + fName, mimeType: MimeType.GOOGLE_DOCS }, f.getBlob());
+        var tempDoc = DocumentApp.openById(tempFile.id);
+        text = tempDoc.getBody().getText();
+        Drive.Files.remove(tempFile.id);
+      } catch(e) { text = "Lỗi convert Word: " + e.message; }
+    } else {
+      continue;
+    }
+
+    var cleanName = fName.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9_\.\-\s]/g, "");
+    var isBlank = (!text || text.trim().length < 50);
+
+    report.push((isBlank ? "⚠️ [TRỐNG] " : "✅ [CÓ CHỮ] ") + cleanName + " (" + text.trim().length + " ký tự)");
+
+    blobs.push(Utilities.newBlob(text, "text/plain", cleanName + ".md"));
+    fileCount++;
+  }
+
+  var zip = Utilities.zip(blobs, "64_Bieu_Mau_An_Thuc_Te.zip");
+  var zipFile = folder.createFile(zip);
+
+  Logger.log("==========================================");
+  Logger.log("ĐÃ XUẤT XONG " + fileCount + " BIỂU MẪU ÁN!");
+  Logger.log("LINK TẢI FILE ZIP: " + zipFile.getUrl());
+  Logger.log("==========================================");
+  Logger.log(report.join("\n"));
+}

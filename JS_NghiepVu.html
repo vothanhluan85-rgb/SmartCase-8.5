@@ -172,141 +172,338 @@ window.mergeAndShowReviewParties = function(partiesData) {
   window.handleIngestedEvidenceResult(pseudoRes, "Tài liệu đương sự scan");
 };
 
+// =========================================================================
+// 1. CỔNG PHÊ DUYỆT THÔNG TIN ĐƯƠNG SỰ & NỘI DUNG TỪ VĂN BẢN QUÉT (OCR)
+// =========================================================================
+
 window.handleIngestedEvidenceResult = function(res, fileName) {
   var idVuAn = window.currentCaseId;
   if (!idVuAn || !res) return;
 
   window.currentPendingEvidence = res;
 
-  var updatedParties = res.updatedExistingParties || [];
+  var updatedPartiesRaw = res.updatedExistingParties || [];
   var newParties = res.newParties || [];
   var isMismatch = res.isMismatch === true;
   var mismatchMsg = res.mismatchReason || "Số thụ lý hoặc đương sự trên tài liệu không khớp với hồ sơ đang mở.";
 
-  if (updatedParties.length > 0) {
-    updatedParties.forEach(function(p) {
-      var cleanTarget = window.toTitleCase(window.cleanHonorificFromName(p.hoTen)).toLowerCase();
-      window.a4State.forEach(function(group) {
-        group.members.forEach(function(m) {
-          if (window.cleanHonorificFromName(m.name).toLowerCase() === cleanTarget) {
-            if (p.namSinh && (!m.year || m.year === '---')) m.year = p.namSinh;
-            if (p.diaChi && (!m.address || m.address === '---' || m.address === 'Chưa rõ địa chỉ')) m.address = p.diaChi;
-            if (p.sdt && (!m.phone || m.phone === '---')) m.phone = window.formatPhoneNumber(p.sdt);
-            if (p.cccd && (!m.idCard || m.idCard === '---')) m.idCard = p.cccd;
-            if (p.xungHo && p.xungHo !== 'Ông/Bà' && (!m.title || m.title === 'Ông/Bà')) m.title = p.xungHo;
-          }
-        });
-      });
-    });
-    window.renderA4Editor();
-    window.saveA4StateToServer();
+  // Hàm kiểm tra trường còn trống hoặc đang chứa ký tự tạm
+  function isBlankField(val) {
+    if (!val) return true;
+    var s = String(val).trim().toLowerCase();
+    return s === "" || s === "---" || s === "19xx" || s.includes("chưa có") || s.includes("nhập địa chỉ");
   }
 
-  if (newParties.length > 0 || isMismatch) {
-    var partiesReviewRowsHtml = newParties.map(function(p, i) {
-      var safeName = window.toTitleCase(window.cleanHonorificFromName(p.hoTen));
-      var safeXh = p.xungHo || 'Ông/Bà';
-      var currentRole = String(p.tuCach || "Người có quyền lợi, nghĩa vụ liên quan").trim();
+  // 1. ĐỐI SOÁT THÔNG TIN VỚI CÁC ĐƯƠNG SỰ HIỆN CÓ TRÊN GIAO DIỆN A4
+  var existingPartyUpdates = [];
 
-      var selND = (currentRole.includes("Nguyên đơn") || currentRole.includes("khởi kiện")) ? "selected" : "";
-      var selBD = (currentRole.includes("Bị đơn") || currentRole.includes("bị kiện") || currentRole.includes("bị cáo")) ? "selected" : "";
-      var selYC = (currentRole.includes("yêu cầu") && !currentRole.includes("bị")) ? "selected" : "";
-      var selLC = currentRole.includes("làm chứng") ? "selected" : "";
-      var selLQ = (!selND && !selBD && !selYC && !selLC) ? "selected" : "";
+  updatedPartiesRaw.forEach(function(p) {
+    var cleanTarget = window.removeAccents ? window.removeAccents(window.cleanHonorificFromName(p.hoTen)).toLowerCase().trim() : window.cleanHonorificFromName(p.hoTen).toLowerCase().trim();
+    if (!cleanTarget) return;
 
-      return `
-        <div class="p-3 mb-2 bg-white border rounded-3 shadow-sm new-party-review-card" id="new_party_card_${i}">
-          <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom flex-wrap gap-2">
-            <div class="form-check m-0">
-              <input class="form-check-input check-add-party" type="checkbox" id="check_party_${i}" checked style="cursor: pointer; width: 1.1rem; height: 1.1rem;">
-              <label class="form-check-label fw-bold text-dark ms-1" for="check_party_${i}" style="cursor: pointer; font-size: 13.5px;">
-                ${i + 1}. ${safeXh} ${safeName}
-              </label>
-            </div>
-            <div class="d-flex align-items-center gap-2">
-              <span class="text-secondary small fw-bold">Tư cách tố tụng:</span>
-              <select class="form-select form-select-sm fw-bold border-primary select-new-party-role" id="select_role_${i}" style="width: auto; font-size: 12px;">
-                <option value="Nguyên đơn" ${selND}>Nguyên đơn (Người khởi kiện)</option>
-                <option value="Bị đơn" ${selBD}>Bị đơn (Người bị kiện)</option>
-                <option value="Người yêu cầu" ${selYC}>Người yêu cầu</option>
-                <option value="Người có quyền lợi, nghĩa vụ liên quan" ${selLQ}>Người có quyền lợi, nghĩa vụ liên quan</option>
-                <option value="Người làm chứng" ${selLC}>Người làm chứng</option>
-              </select>
-            </div>
-          </div>
-          <div class="row g-2 text-muted" style="font-size: 11.5px;">
-            <div class="col-md-3"><b>Năm sinh:</b> ${p.namSinh || '---'}</div>
-            <div class="col-md-6"><b>Địa chỉ:</b> ${p.diaChi || 'Chưa rõ địa chỉ'}</div>
-            <div class="col-md-3"><b>SĐT:</b> ${p.sdt || '---'}</div>
-          </div>
+    window.a4State.forEach(function(group) {
+      group.members.forEach(function(m) {
+        var mClean = window.removeAccents ? window.removeAccents(window.cleanHonorificFromName(m.name)).toLowerCase().trim() : window.cleanHonorificFromName(m.name).toLowerCase().trim();
+        
+        // Khớp tên linh hoạt (có hoặc không có danh xưng)
+        if (mClean === cleanTarget || mClean.includes(cleanTarget) || cleanTarget.includes(mClean)) {
+          var changes = [];
+
+          if (p.namSinh && isBlankField(m.year)) changes.push(`Năm sinh: <b>${p.namSinh}</b>`);
+          if (p.diaChi && isBlankField(m.address)) changes.push(`Địa chỉ: <b>${p.diaChi}</b>`);
+          if (p.sdt && isBlankField(m.phone)) changes.push(`SĐT: <b>${window.formatPhoneNumber ? window.formatPhoneNumber(p.sdt) : p.sdt}</b>`);
+          if (p.cccd && isBlankField(m.idCard)) changes.push(`CCCD: <b>${p.cccd}</b>`);
+          if (p.xungHo && p.xungHo !== "Ông/Bà" && (isBlankField(m.title) || m.title === "Ông/Bà")) changes.push(`Danh xưng: <b>${p.xungHo}</b>`);
+
+          if (changes.length > 0) {
+            existingPartyUpdates.push({
+              memberId: m.id,
+              roleKey: group.roleKey,
+              hoTen: m.name || p.hoTen,
+              changesText: changes.join(" • "),
+              rawUpdate: p
+            });
+          }
+        }
+      });
+    });
+  });
+
+  // Nếu không có thông tin đương sự mới nào -> Nạp thẳng lời khai vào Canvas
+  if (existingPartyUpdates.length === 0 && newParties.length === 0 && !isMismatch) {
+    window.executeApplyEvidenceCanvas('FULL', [], []);
+    return;
+  }
+
+  // 2. TẠO HTML DUYỆT CẬP NHẬT ĐƯƠNG SỰ ĐÃ CÓ (CÓ Ô TÍCH CHỌN)
+  var existingRowsHtml = "";
+  if (existingPartyUpdates.length > 0) {
+    existingRowsHtml = `
+      <div class="mb-3">
+        <div class="small-label text-primary mb-2">
+          <i class="fas fa-user-pen me-1"></i> 1. CẬP NHẬT THÔNG TIN ĐƯƠNG SỰ ĐÃ CÓ TRONG VỤ ÁN (${existingPartyUpdates.length}):
         </div>
-      `;
-    }).join('');
-
-    var alertBannerHtml = isMismatch ? `
-      <div class="p-3 mb-3 bg-danger-subtle border border-danger rounded-3 text-danger d-flex align-items-start gap-2 shadow-sm">
-        <i class="fas fa-triangle-exclamation fa-lg mt-1 flex-shrink-0 text-danger"></i>
-        <div style="font-size: 12.5px; line-height: 1.5;" class="text-dark">
-          <b class="text-danger">CẢNH BÁO LỆCH HỒ SƠ:</b><br>${mismatchMsg}
-        </div>
-      </div>` : "";
-
-    var modalHtml = `
-      <div class="modal fade" id="modalReviewNewParties" tabindex="-1" data-bs-backdrop="static">
-        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-          <div class="modal-content border-0 shadow-lg" style="border-radius: 14px; overflow: hidden;">
-            <div class="modal-header bg-white border-bottom py-3">
-              <h6 class="modal-title fw-bold text-primary text-uppercase" style="font-size: 13.5px;">
-                <i class="fas fa-users-viewfinder text-primary me-2"></i>THẨM ĐỊNH ĐƯƠNG SỰ PHÁT HIỆN TỪ TÀI LIỆU
-              </h6>
-              <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-3 bg-light">
-              ${alertBannerHtml}
-              <div class="small-label text-dark mb-2">DANH SÁCH ĐƯƠNG SỰ MỚI ĐƯỢC TÌM THẤY:</div>
-              <div class="d-flex flex-column gap-1">${partiesReviewRowsHtml}</div>
-            </div>
-            <div class="modal-footer bg-white border-top justify-content-between p-3 flex-wrap gap-2">
-              <button type="button" class="btn btn-action-outline btn-action-tool text-secondary" data-bs-dismiss="modal" onclick="window.executeApplyEvidenceCanvas('STATEMENT_ONLY', [])">
-                <i class="fas fa-file-signature me-1"></i> Chỉ nạp lời khai
-              </button>
-              <div class="d-flex gap-2">
-                <button type="button" class="btn btn-action-outline btn-action-tool" data-bs-dismiss="modal">Hủy</button>
-                <button type="button" class="btn btn-action-primary btn-action-tool shadow-sm" id="btn_confirm_new_parties">
-                  <i class="fas fa-check-circle me-1"></i> Thêm người & Nạp dữ liệu
-                </button>
+        <div class="d-flex flex-column gap-2">
+          ${existingPartyUpdates.map(function(item, idx) {
+            return `
+              <div class="p-2 px-3 bg-white border border-primary-subtle rounded-3 shadow-sm">
+                <div class="form-check m-0">
+                  <input class="form-check-input check-update-existing" type="checkbox" id="chk_exist_${idx}" checked data-idx="${idx}" style="cursor: pointer; width: 1.1rem; height: 1.1rem;">
+                  <label class="form-check-label fw-bold text-dark ms-1" for="chk_exist_${idx}" style="cursor: pointer; font-size: 13px;">
+                    ${item.hoTen}
+                  </label>
+                </div>
+                <div class="text-success small mt-1 ps-4" style="font-size: 11.5px;">
+                  <i class="fas fa-arrow-right me-1"></i> Bổ sung: ${item.changesText}
+                </div>
               </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  // 3. TẠO HTML DUYỆT THÊM ĐƯƠNG SỰ MỚI (CÓ Ô TÍCH CHỌN & CHỌN TƯ CÁCH)
+  var newRowsHtml = "";
+  if (newParties.length > 0) {
+    newRowsHtml = `
+      <div class="mb-2">
+        <div class="small-label text-danger mb-2">
+          <i class="fas fa-user-plus me-1"></i> 2. ĐƯƠNG SỰ MỚI PHÁT HIỆN TỪ TÀI LIỆU (${newParties.length}) - TÍCH CHỌN NGƯỜI CẦN THÊM VÀO VỤ ÁN:
+        </div>
+        <div class="d-flex flex-column gap-2">
+          ${newParties.map(function(p, i) {
+            var safeName = window.toTitleCase ? window.toTitleCase(window.cleanHonorificFromName(p.hoTen)) : p.hoTen;
+            var safeXh = p.xungHo || "Ông/Bà";
+            var currentRole = String(p.tuCach || "Người có quyền lợi, nghĩa vụ liên quan").trim();
+
+            var selND = (currentRole.includes("Nguyên đơn") || currentRole.includes("khởi kiện")) ? "selected" : "";
+            var selBD = (currentRole.includes("Bị đơn") || currentRole.includes("bị kiện") || currentRole.includes("bị cáo")) ? "selected" : "";
+            var selYC = (currentRole.includes("yêu cầu") && !currentRole.includes("bị")) ? "selected" : "";
+            var selLC = currentRole.includes("làm chứng") ? "selected" : "";
+            var selLQ = (!selND && !selBD && !selYC && !selLC) ? "selected" : "";
+
+            return `
+              <div class="p-2 px-3 bg-white border rounded-3 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-1 flex-wrap gap-2">
+                  <div class="form-check m-0">
+                    <input class="form-check-input check-add-new-party" type="checkbox" id="chk_new_${i}" checked data-idx="${i}" style="cursor: pointer; width: 1.1rem; height: 1.1rem;">
+                    <label class="form-check-label fw-bold text-dark ms-1" for="chk_new_${i}" style="cursor: pointer; font-size: 13px;">
+                      ${safeXh} ${safeName}
+                    </label>
+                  </div>
+                  <div class="d-flex align-items-center gap-1">
+                    <span class="text-secondary small fw-bold" style="font-size: 11px;">Tư cách:</span>
+                    <select class="form-select form-select-sm fw-bold border-primary select-new-role" id="select_role_${i}" style="width: auto; font-size: 11.5px; height: 28px;">
+                      <option value="Nguyên đơn" ${selND}>Nguyên đơn</option>
+                      <option value="Bị đơn" ${selBD}>Bị đơn</option>
+                      <option value="Người yêu cầu" ${selYC}>Người yêu cầu</option>
+                      <option value="Người có quyền lợi, nghĩa vụ liên quan" ${selLQ}>Người có QL, NV liên quan</option>
+                      <option value="Người làm chứng" ${selLC}>Người làm chứng</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="row g-1 text-muted ps-4" style="font-size: 11px;">
+                  <div class="col-md-3"><b>Năm sinh:</b> ${p.namSinh || '---'}</div>
+                  <div class="col-md-6 text-truncate"><b>Địa chỉ:</b> ${p.diaChi || 'Chưa rõ'}</div>
+                  <div class="col-md-3"><b>CCCD:</b> ${p.cccd || '---'}</div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  // 4. CẢNH BÁO LỆCH HỒ SƠ NẾU CÓ
+  var alertBannerHtml = isMismatch ? `
+    <div class="p-2 px-3 mb-3 bg-danger-subtle border border-danger rounded-3 text-danger d-flex align-items-start gap-2 shadow-sm">
+      <i class="fas fa-triangle-exclamation fa-lg mt-1 flex-shrink-0 text-danger"></i>
+      <div style="font-size: 12px; line-height: 1.4;" class="text-dark">
+        <b class="text-danger">CẢNH BÁO SỐ THỤ LÝ KHÔNG TRÙNG KHỚP:</b><br>${mismatchMsg}
+      </div>
+    </div>` : "";
+
+  // 5. HIỂN THỊ MODAL PHÊ DUYỆT
+  var modalHtml = `
+    <div class="modal fade" id="modalReviewEvidenceUnified" tabindex="-1" data-bs-backdrop="static">
+      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 14px; overflow: hidden;">
+          <div class="modal-header bg-white border-bottom py-3">
+            <h6 class="modal-title fw-bold text-primary text-uppercase" style="font-size: 13.5px;">
+              <i class="fas fa-user-check text-primary me-2"></i>PHÊ DUYỆT THÔNG TIN ĐƯƠNG SỰ TỪ TÀI LIỆU
+            </h6>
+            <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body p-3 bg-light">
+            ${alertBannerHtml}
+            ${existingRowsHtml}
+            ${newRowsHtml}
+          </div>
+          <div class="modal-footer bg-white border-top justify-content-between p-3 flex-wrap gap-2">
+            <button type="button" class="btn btn-action-outline btn-action-tool text-secondary" data-bs-dismiss="modal" onclick="window.executeApplyEvidenceCanvas('STATEMENT_ONLY', [], [])">
+              <i class="fas fa-file-lines me-1"></i> Chỉ nạp nội dung (Bỏ qua đương sự)
+            </button>
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-action-outline btn-action-tool" data-bs-dismiss="modal">Hủy bỏ</button>
+              <button type="button" class="btn btn-action-primary btn-action-tool shadow-sm" id="btn_confirm_evidence_unified">
+                <i class="fas fa-check-circle me-1"></i> Xác nhận cập nhật
+              </button>
             </div>
           </div>
         </div>
       </div>
-    `;
+    </div>
+  `;
 
-    var oldM = document.getElementById('modalReviewNewParties');
-    if (oldM) oldM.remove();
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  var oldModal = document.getElementById('modalReviewEvidenceUnified');
+  if (oldModal) oldModal.remove();
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
 
-    document.getElementById('btn_confirm_new_parties').onclick = function() {
-      var selectedParties = [];
-      newParties.forEach(function(p, i) {
-        var cb = document.getElementById('check_party_' + i);
-        var roleSel = document.getElementById('select_role_' + i);
-        if (cb && cb.checked) {
-          p.tuCach = roleSel ? roleSel.value : p.tuCach;
-          selectedParties.push(p);
-        }
-      });
-      var mInst = bootstrap.Modal.getInstance(document.getElementById('modalReviewNewParties'));
-      if (mInst) mInst.hide();
-      window.executeApplyEvidenceCanvas('FULL', selectedParties);
-    };
+  document.getElementById('btn_confirm_evidence_unified').onclick = function() {
+    // Lấy danh sách đương sự cũ được duyệt cập nhật
+    var approvedExisting = [];
+    document.querySelectorAll('.check-update-existing:checked').forEach(function(cb) {
+      var idx = parseInt(cb.getAttribute('data-idx'), 10);
+      if (existingPartyUpdates[idx]) approvedExisting.push(existingPartyUpdates[idx]);
+    });
 
-    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalReviewNewParties')).show();
+    // Lấy danh sách đương sự mới được duyệt thêm
+    var approvedNew = [];
+    document.querySelectorAll('.check-add-new-party:checked').forEach(function(cb) {
+      var idx = parseInt(cb.getAttribute('data-idx'), 10);
+      var roleSel = document.getElementById('select_role_' + idx);
+      var p = newParties[idx];
+      if (p) {
+        p.tuCach = roleSel ? roleSel.value : (p.tuCach || "Người có quyền lợi, nghĩa vụ liên quan");
+        approvedNew.push(p);
+      }
+    });
 
-  } else {
-    window.executeApplyEvidenceCanvas('FULL', []);
-  }
+    var mInst = bootstrap.Modal.getInstance(document.getElementById('modalReviewEvidenceUnified'));
+    if (mInst) mInst.hide();
+
+    window.executeApplyEvidenceCanvas('FULL', approvedNew, approvedExisting);
+  };
+
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalReviewEvidenceUnified')).show();
 };
+
+// =========================================================================
+// 2. HÀM THỰC THI NẠP ĐƯƠNG SỰ VÀO A4 STATE & LƯU CƠ SỞ DỮ LIỆU
+// =========================================================================
+
+window.executeApplyEvidenceCanvas = function(mode, newPartiesToInsert, existingPartiesToUpdate) {
+  var res = window.currentPendingEvidence;
+  if (!res) return;
+
+  var extractedVars = res.extractedVariables || {};
+  var extractedNars = res.extractedNarratives || {};
+
+  function isBlankField(val) {
+    if (!val) return true;
+    var s = String(val).trim().toLowerCase();
+    return s === "" || s === "---" || s === "19xx" || s.includes("chưa có") || s.includes("nhập địa chỉ");
+  }
+
+  // 1. ÁP DỤNG CẬP NHẬT CHO CÁC ĐƯƠNG SỰ ĐÃ CÓ TRÊN A4
+  if (mode === 'FULL' && existingPartiesToUpdate && existingPartiesToUpdate.length > 0) {
+    existingPartiesToUpdate.forEach(function(item) {
+      var raw = item.rawUpdate;
+      window.a4State.forEach(function(group) {
+        group.members.forEach(function(m) {
+          if (m.id === item.memberId) {
+            if (raw.namSinh && isBlankField(m.year)) m.year = raw.namSinh;
+            if (raw.diaChi && isBlankField(m.address)) m.address = raw.diaChi;
+            if (raw.sdt && isBlankField(m.phone)) m.phone = window.formatPhoneNumber ? window.formatPhoneNumber(raw.sdt) : raw.sdt;
+            if (raw.cccd && isBlankField(m.idCard)) m.idCard = raw.cccd;
+            if (raw.xungHo && raw.xungHo !== "Ông/Bà" && (isBlankField(m.title) || m.title === "Ông/Bà")) m.title = raw.xungHo;
+          }
+        });
+      });
+    });
+  }
+
+  // 2. BỔ SUNG CÁC ĐƯƠNG SỰ MỚI ĐÃ ĐƯỢC PHÊ DUYỆT VÀO KHỐI TƯƠNG ỨNG
+  if (mode === 'FULL' && newPartiesToInsert && newPartiesToInsert.length > 0) {
+    newPartiesToInsert.forEach(function(p) {
+      var tcLower = String(p.tuCach || "").toLowerCase();
+      var rKey = 'lq'; 
+      if (tcLower.includes('làm chứng')) rKey = 'lc';
+      else if (tcLower.includes('nguyên đơn') || tcLower.includes('khởi kiện') || (tcLower.includes('yêu cầu') && !tcLower.includes('bị'))) rKey = 'nd';
+      else if (tcLower.includes('bị đơn') || tcLower.includes('bị kiện') || tcLower.includes('bị cáo') || tcLower.includes('bị yêu cầu')) rKey = 'bd';
+
+      var targetGroup = window.a4State.find(g => g.roleKey === rKey);
+      if (targetGroup) {
+        var cleanNewName = window.toTitleCase ? window.toTitleCase(window.cleanHonorificFromName(p.hoTen)) : p.hoTen;
+        targetGroup.members.push({
+          id: 'm_' + Math.random().toString(36).substr(2, 9),
+          title: p.xungHo || 'Ông/Bà',
+          name: cleanNewName,
+          year: p.namSinh || '',
+          address: p.diaChi || '',
+          phone: p.sdt ? (window.formatPhoneNumber ? window.formatPhoneNumber(p.sdt) : p.sdt) : '',
+          idCard: p.cccd || '',
+          reps: []
+        });
+      }
+    });
+  }
+
+  // Vẽ lại bảng A4 và tự động lưu vào CSDL máy chủ
+  if (mode === 'FULL' && ((existingPartiesToUpdate && existingPartiesToUpdate.length > 0) || (newPartiesToInsert && newPartiesToInsert.length > 0))) {
+    window.renderA4Editor();
+    window.saveA4StateToServer();
+  }
+
+  // 3. CẬP NHẬT BIẾN MASTER VÀO RAM VÀ VÙNG DỮ LIỆU CANVAS
+  window.currentCaseVariables = Object.assign({}, window.currentCaseVariables || {}, extractedVars);
+  window.currentCaseNarratives = Object.assign({}, window.currentCaseNarratives || {}, extractedNars);
+
+  var textarea = document.getElementById('case_free_narrative_text');
+  if (textarea) {
+    var compiled = [];
+
+    if (extractedVars["{Biên lai tạm ứng án phí}"]) {
+      compiled.push("[TẠM ỨNG ÁN PHÍ - NQ 326]:\n" + extractedVars["{Biên lai tạm ứng án phí}"]);
+    }
+    if (extractedVars["{Tài liệu kèm theo đơn khởi kiện}"]) {
+      compiled.push("[DANH MỤC TÀI LIỆU, CHỨNG CỨ KÈM THEO ĐƠN]:\n" + extractedVars["{Tài liệu kèm theo đơn khởi kiện}"]);
+    }
+    var lk = extractedVars["{Lời khai đương sự}"] || extractedVars["{Nội dung vụ án}"];
+    if (lk) {
+      compiled.push("[TRÍCH LỤC LỜI KHAI ĐƯƠNG SỰ]:\n" + lk);
+    }
+    var assetSec = [];
+    if (extractedVars["{Vị trí tài sản tranh chấp}"]) assetSec.push("- Vị trí tài sản tranh chấp: " + extractedVars["{Vị trí tài sản tranh chấp}"]);
+    if (extractedVars["{Tài sản tranh chấp}"] && extractedVars["{Tài sản tranh chấp}"] !== extractedVars["{Vị trí tài sản tranh chấp}"]) assetSec.push("- Tài sản tranh chấp: " + extractedVars["{Tài sản tranh chấp}"]);
+    if (extractedVars["{Hợp đồng tín dụng}"]) assetSec.push("- Hợp đồng tín dụng: " + extractedVars["{Hợp đồng tín dụng}"]);
+    if (extractedVars["{Dư nợ tín dụng}"]) assetSec.push("- Dư nợ tín dụng: " + extractedVars["{Dư nợ tín dụng}"]);
+    if (extractedVars["{Di sản thừa kế}"]) assetSec.push("- Di sản thừa kế: " + extractedVars["{Di sản thừa kế}"]);
+    if (assetSec.length > 0) compiled.push("[THÔNG TIN TÀI SẢN / HỢP ĐỒNG / DI SẢN]:\n" + assetSec.join("\n"));
+
+    if (extractedVars["{Nội dung thỏa thuận}"]) {
+      compiled.push("[NỘI DUNG THỎA THUẬN HÒA GIẢI]:\n" + extractedVars["{Nội dung thỏa thuận}"]);
+    }
+
+    var newContent = compiled.join("\n\n");
+    if (newContent) {
+      textarea.value = textarea.value.trim() ? (textarea.value.trim() + "\n\n" + newContent) : newContent;
+      if (typeof window.saveOpenCanvasText === 'function') window.saveOpenCanvasText();
+    }
+  }
+
+  var msg = (mode === 'STATEMENT_ONLY') 
+    ? "Đã nạp nội dung lời khai vào vùng dữ liệu vụ án!" 
+    : "Đã cập nhật thông tin đương sự và lưu vào CSDL thành công!";
+  AppUI.showToast(msg, "success");
+};
+
+// =========================================================================
+// 3. CÁC HÀM XỬ LÝ TỆP TIN, TẢI LÊN VÀ QUÉT TÀI LIỆU
+// =========================================================================
 
 window.extractDataFromSingleDriveFile = function(fileId, fileName) {
   var idVuAn = window.currentCaseId;
@@ -745,7 +942,6 @@ window.deleteTimelineEvent = function(idLich) {
       .api_XoaLichCongTac(idLich);
   });
 };
-
 // =========================================================================
 // 5. TRÌNH SOẠN THẢO TRANG PHẲNG A4 ĐƯƠNG SỰ
 // =========================================================================
@@ -962,9 +1158,9 @@ window.renderA4Editor = function() {
 };
 
 window.a4RenderTitleSelect = function(roleKey, memberId, selectedTitle) {
-  var titles = ['Ông/Bà', 'Ông', 'Bà', 'Anh', 'Chị', 'Pháp nhân'];
+  var titles = ['Ông/Bà', 'Ông', 'Bà', 'Anh', 'Chị', 'Tổ chức', 'Pháp nhân'];
   var optionsHtml = titles.map(function(t) {
-    var sel = (t === selectedTitle) ? 'selected' : '';
+    var sel = (t === selectedTitle || (t === 'Tổ chức' && selectedTitle === 'Pháp nhân')) ? 'selected' : '';
     return '<option value="' + t + '" ' + sel + '>' + t + '</option>';
   }).join('');
   return '<select class="word-select select-title" onchange="window.a4UpdateTitle(\'' + roleKey + '\',\'' + memberId + '\',this.value)">' + optionsHtml + '</select>';
@@ -1771,9 +1967,9 @@ window.doActualMailMergePostflight = function() {
   window.forceCleanupModals();
 
   var taskId = "task_merge_an_" + new Date().getTime();
-  var anInfo = (window.G_Cases || []).find(function(c) { return c.id === payload.idVuAn; });
-  var caseName = anInfo ? anInfo.soTL : "Hồ sơ án";
-  AppUI.addBackgroundTask(taskId, "Văn bản Án: " + caseName);
+  var anInfo = (window.G_Cases || window.G_An || []).find(c => c.id === payload.idVuAn) || {};
+  var caseName = anInfo.soTL || "Hồ sơ vụ án";
+  AppUI.addBackgroundTask(taskId, "Văn bản: " + caseName);
 
   setTimeout(function() {
     google.script.run
@@ -1781,33 +1977,43 @@ window.doActualMailMergePostflight = function() {
         isMergingDocument = false;
         if (res && res.success) {
           
+          // 1. Tự động ghi Lịch công tác nếu có mốc
           if (payload.trieuTapDate && payload.trieuTapTime) {
-            var tenDs = "Đương sự";
-            if (payload.partiesOverride && payload.partiesOverride.length > 0) {
-              var ndNames = payload.partiesOverride.filter(p => String(p.tuCach).toLowerCase().includes("nguyên đơn") || String(p.tuCach).toLowerCase().includes("yêu cầu")).map(p => p.hoTen);
-              var bdNames = payload.partiesOverride.filter(p => String(p.tuCach).toLowerCase().includes("bị đơn")).map(p => p.hoTen);
-              if (ndNames.length > 0) { tenDs = ndNames[0] + (bdNames.length > 0 ? " & " + bdNames[0] : ""); } 
-              else if (bdNames.length > 0) { tenDs = bdNames[0]; }
-            }
-            var cleanNo = anInfo ? anInfo.soTL.split('/')[0].trim() : "Hồ sơ";
-            var lichNoiDung = `[${cleanNo}] Triệu tập: ${tenDs} - (${payload.noiDungThem || "Làm việc"})`;
-
-            google.script.run.api_LuuLichMoi_Logic({ idVuAn: payload.idVuAn, ngay: payload.trieuTapDate, gio: payload.trieuTapTime, noiDung: lichNoiDung });
+            var evTitle = payload.autoEventTitle || `[${anInfo.soTL || ''}] Triệu tập làm việc: ${payload.noiDungThem || ''}`;
+            google.script.run.api_LuuLichMoi_Logic({
+              idVuAn: payload.idVuAn,
+              soTL: anInfo.soTL,
+              ngay: payload.trieuTapDate,
+              gio: payload.trieuTapTime,
+              noiDung: evTitle,
+              ghiChu: payload.diaDiemLamViec || "Trụ sở Tòa án"
+            });
           }
 
+          // 2. Tự động đặt lịch nhắc hạn 24h
           if (payload.reminderDays > 0) {
-            google.script.run.api_LuuLichNhacNho({ idVuAn: payload.idVuAn, ngayBatDau: payload.ngayBanHanh, days: payload.reminderDays, noiDung: payload.reminderText });
+            google.script.run.api_LuuLichNhacNho_Logic({
+              idVuAn: payload.idVuAn,
+              ngayBatDau: payload.ngayBanHanh,
+              days: payload.reminderDays,
+              noiDung: payload.reminderText
+            });
           }
 
+          // 3. Tự động cập nhật Kết quả giải quyết nếu ban hành phán quyết
           if (payload.isFormalPromulgation) {
-            var payloadRes = { idVuAn: payload.idVuAn, resultType: payload.changerType, resultNo: payload.soPhatHanh, resultDate: payload.ngayBanHanh };
+            var payloadRes = {
+              idVuAn: payload.idVuAn,
+              resultType: payload.changerType,
+              resultNo: payload.soPhatHanh,
+              resultDate: payload.ngayBanHanh
+            };
             google.script.run.withSuccessHandler(function(resUpdate) {
-              var an = (window.G_Cases || window.G_An || []).find(function(c) { return c.id === payload.idVuAn; });
+              var an = (window.G_Cases || window.G_An || []).find(c => c.id === payload.idVuAn);
               var pParts = String(payload.ngayBanHanh || "").split('-');
-              var dateVnFormat = pParts.length === 3 ? (pParts[2]+"/"+pParts[1]+"/"+pParts[0]) : payload.ngayBanHanh;
-              
-              var isProcedural = payload.changerType.toLowerCase().includes("tạm đình chỉ") || payload.changerType.toLowerCase().includes("gia hạn") || payload.changerType.toLowerCase().includes("tiếp tục");
+              var dateVnFormat = pParts.length === 3 ? (pParts[2] + "/" + pParts[1] + "/" + pParts[0]) : payload.ngayBanHanh;
               var abbrType = window.standardizeResolutionAbbr(payload.changerType);
+              var isProcedural = payload.changerType.toLowerCase().includes("tạm đình chỉ") || payload.changerType.toLowerCase().includes("gia hạn") || payload.changerType.toLowerCase().includes("tiếp tục");
               var resStr = isProcedural ? "" : (abbrType + "\n" + payload.soPhatHanh + "\n" + dateVnFormat);
 
               if (an) {
@@ -1818,40 +2024,49 @@ window.doActualMailMergePostflight = function() {
                 if (resUpdate && resUpdate.hanGQ) an.hanGQ = resUpdate.hanGQ;
                 if (typeof calculateLiveStatus === 'function') calculateLiveStatus(an);
               }
-
               if (window.currentCaseData && window.currentCaseData.info && window.currentCaseData.info.id === payload.idVuAn) {
                 window.currentCaseData.info.ketQuaGiaiQuyet = resStr;
-                window.currentCaseData.info.trangThai = (an ? an.trangThai : "Đã giải quyết");
+                window.currentCaseData.info.trangThai = an ? an.trangThai : "Đã giải quyết";
                 if (resUpdate && resUpdate.hanGQ) window.currentCaseData.info.hanGQ = resUpdate.hanGQ;
               }
-
               if (typeof window.runFilterEngine === 'function') window.runFilterEngine();
-              if (document.getElementById('view-detail').style.display === 'block') window.moChiTiet(payload.idVuAn);
             }).api_UpdateCaseResolution(payloadRes);
           }
 
-          if (payload.isThongBaoThuLy && anInfo) {
-            var reversePayload = { idVuAn: payload.idVuAn, loaiAn: anInfo.loaiAn, quanHe: anInfo.quanHe, parties: payload.partiesOverride };
-            google.script.run.api_CapNhatNguocTuThongBaoThuLy(reversePayload);
-          }
-
+          // 4. Rút gọn tên văn bản chỉ còn [STT. Tên biểu mẫu] trên đúng 1 dòng duy nhất, dòng mỏng mảnh
           var linksHtml = (res.files || []).map(function(f) {
-            var docxBtn = f.docxUrl ? `<a href="${f.docxUrl}" target="_blank" class="btn btn-sm btn-outline-secondary shadow-sm ms-1" title="Tải file Word (.docx)"><i class="fas fa-download"></i> .docx</a>` : "";
-            return `<div class="d-flex align-items-center mb-1 w-100 animate-fadeIn"><a href="${f.url}" target="_blank" class="btn btn-outline-primary btn-sm text-truncate flex-grow-1" style="text-align: left;"><i class="fas fa-file-word me-1"></i>${f.name}</a>${docxBtn}</div>`;
+            var rawName = (f.name || "").replace(/\.(docx|doc|gdoc)$/i, '').trim();
+            
+            // Cắt bỏ phần đuôi "- [Số thụ lý]" hoặc "- [Số] - [Ngày]"
+            rawName = rawName.replace(/\s*-\s*[\w\d\/]+(\s*-\s*\d{1,2}\.\d{1,2}\.\d{2,4})?$/i, '').trim();
+            var dashIdx = rawName.indexOf(' - ');
+            var shortTitle = (dashIdx !== -1) ? rawName.substring(0, dashIdx).trim() : rawName;
+
+            var docxBtn = f.docxUrl 
+              ? `<a href="${f.docxUrl}" target="_blank" style="font-size: 9px; font-weight: 700; color: #475569; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; padding: 1px 5px; height: 19px; line-height: 17px; text-decoration: none; display: inline-flex; align-items: center; flex-shrink: 0;" title="Tải file Word (.docx)"><i class="fas fa-download" style="font-size: 8px; margin-right: 3px;"></i>.docx</a>` 
+              : "";
+
+            return `
+              <div style="display: flex; align-items: center; justify-content: space-between; padding: 2px 6px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 2px; min-width: 0; width: 100%; gap: 6px;">
+                <a href="${f.url}" target="_blank" style="font-size: 11px; font-weight: 700; color: #2563eb; text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1; min-width: 0; line-height: 1.3;" title="${f.name}">
+                  <i class="far fa-file-word text-primary" style="margin-right: 4px; font-size: 11px;"></i>${shortTitle}
+                </a>
+                ${docxBtn}
+              </div>`;
           }).join('');
-          
+
           AppUI.completeBackgroundTask(taskId, true, linksHtml);
 
           setTimeout(function() {
             if (document.getElementById('view-detail').style.display === 'block') window.moChiTiet(payload.idVuAn);
           }, 1500);
 
-        } else { 
-          AppUI.completeBackgroundTask(taskId, false, res.error); 
+        } else {
+          AppUI.completeBackgroundTask(taskId, false, res ? res.error : "Lỗi không xác định khi xuất file");
         }
       })
       .withFailureHandler(function(err) {
-        isMergingDocument = false; 
+        isMergingDocument = false;
         AppUI.completeBackgroundTask(taskId, false, err.message);
       })
       .api_RunMailMergeV3_Logic(payload);

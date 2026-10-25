@@ -379,9 +379,12 @@
               <i class="fas fa-file-signature"></i> Soạn văn bản
             </button>
             
-            <button class="btn btn-sm btn-action-outline btn-action-tool" onclick="window.openWizardCapNhatDuongSu()" title="Rà soát các trường thông tin còn thiếu">
-              <i class="fas fa-wand-magic-sparkles text-success"></i> Bổ sung thông tin
+              <button type="button" class="btn btn-sm btn-action-outline btn-action-tool shadow-sm text-primary fw-bold" onclick="document.getElementById('input_scan_parties_pure').click()" title="Quét tài liệu chuyên trách: Cập nhật thông tin người cũ, tách dính chùm và thêm người mới">
+              <i class="fas fa-users-viewfinder text-primary"></i> Quét đương sự
             </button>
+            <input type="file" id="input_scan_parties_pure" class="d-none" accept=".pdf,.doc,.docx,image/*" onchange="window.handleScanPartiesOnly(this)">
+
+            <input type="file" id="input_upload_parties_evidence" class="d-none" accept=".pdf,.doc,.docx,image/*" onchange="window.handleUploadDetailFile(this)">
           </div>
         </div>
 

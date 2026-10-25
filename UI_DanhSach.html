@@ -1,10 +1,12 @@
 <!--
   =========================================================================
-  HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.0 - SỔ THỤ LÝ ĐIỆN TỬ & DASHBOARD VĨ MÔ
+  HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.5 - SỔ THỤ LÝ ĐIỆN TỬ & DASHBOARD VĨ MÔ
   TỆP: UI_DanhSach.html - SỔ THỤ LÝ, 8 THẺ STATS CO GIÃN & LỌC ĐA TIÊU CHÍ
-  - TUÂN THỦ 100% QUY CHUẨN V8.0 PRODUCTION MASTER
+  - TUÂN THỦ 100% QUY CHUẨN V8.5 PRODUCTION MASTER
   - BẢNG DỮ LIỆU HIGH-DPI SẮC NÉT, STICKY HEADER & DÒNG PHÂN TÁCH ĐƯƠNG SỰ
   - PHẢN HỒI LỌC TỨC THÌ 0MS TRÊN BỘ NHỚ RAM CLIENT
+  - BỔ SUNG NÚT LÀM MỚI (1-CLICK SYNC) TRÊN THANH CÔNG CỤ PC
+  - TỐI ƯU HÓA HOÀN HẢO GIAO DIỆN MOBILE CHỐNG LỆCH HÀNG
   =========================================================================
 -->
 
@@ -110,9 +112,9 @@
 
   .search-wrapper {
     position: relative;
-    flex-grow: 1;
-    min-width: 220px;
-    max-width: 320px;
+    flex: 1 1 240px;
+    min-width: 200px;
+    max-width: 340px;
   }
   .search-wrapper .fa-search {
     position: absolute;
@@ -131,6 +133,7 @@
     font-weight: 600 !important;
     color: #0f172a !important;
     transition: all 0.15s ease;
+    height: 35px;
   }
   .search-wrapper input:focus {
     background-color: #ffffff !important;
@@ -147,6 +150,7 @@
     font-weight: 600;
     color: #1e293b;
     padding: 0.38rem 0.6rem;
+    height: 35px;
     transition: all 0.15s ease;
   }
   .toolbar-container .form-control:focus, 
@@ -155,6 +159,41 @@
     border-color: #2563eb;
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
     outline: none;
+  }
+
+  .btn-action-tool {
+    border-radius: 8px !important;
+    font-weight: 700 !important;
+    font-size: 12px !important;
+    height: 35px !important;
+    padding: 0 0.85rem !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+  .btn-action-primary {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+    border-color: #2563eb !important;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+  }
+  .btn-action-primary:hover { 
+    background-color: #1d4ed8 !important; 
+  }
+  .btn-action-outline {
+    background-color: #ffffff !important;
+    color: #475569 !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  }
+  .btn-action-outline:hover { 
+    background-color: #f8fafc !important; 
+    color: #0f172a !important; 
   }
 
   /* =========================================================================
@@ -204,7 +243,7 @@
   }
 
   /* =========================================================================
-     4. RESPONSIVE BREAKPOINTS (LAPTOP 1366PX & MOBILE)
+     4. TỐI ƯU HÓA MOBILE & RESPONSIVE CHỐNG LỆCH HÀNG
      ========================================================================= */
   @media (max-width: 1440px) {
     .stat-grid-8 {
@@ -219,7 +258,7 @@
       overflow-x: auto !important;
       gap: 8px !important;
       padding-bottom: 4px !important;
-      margin-bottom: 10px !important;
+      margin-bottom: 8px !important;
       scrollbar-width: none !important;
       -ms-overflow-style: none !important;
     }
@@ -250,6 +289,39 @@
     }
     #notification-hub {
       min-width: 180px !important;
+    }
+
+    .toolbar-container {
+      padding: 8px;
+      gap: 6px;
+    }
+    .search-wrapper {
+      min-width: 100% !important;
+      max-width: 100% !important;
+      margin-bottom: 2px;
+    }
+    .filter-date-group {
+      width: 100% !important;
+      display: flex !important;
+      gap: 4px !important;
+    }
+    .filter-date-group div {
+      flex: 1 1 50% !important;
+      width: 50% !important;
+    }
+    .filter-select-group {
+      width: 100% !important;
+      display: flex !important;
+      gap: 4px !important;
+    }
+    .filter-select-group select {
+      flex: 1 1 50% !important;
+      width: 50% !important;
+    }
+    .toolbar-action-group {
+      width: 100% !important;
+      justify-content: flex-end !important;
+      margin-top: 4px;
     }
   }
 </style>
@@ -333,68 +405,83 @@
   <div class="toolbar-container">
     
     <!-- Cụm Tìm kiếm & Bộ lọc -->
-    <div class="d-flex flex-wrap gap-2 align-items-center flex-grow-1">
+    <div class="d-flex flex-wrap gap-2 align-items-center flex-grow-1 w-100 w-md-auto">
       
       <!-- Ô Tìm kiếm nhanh -->
       <div class="search-wrapper">
         <i class="fas fa-search"></i>
-        <input type="text" id="txtSearchMain" class="form-control" placeholder="Tìm số thụ lý, đương sự, tội danh..." oninput="window.runFilterEngine()">
+        <input type="text" id="txtSearchMain" class="form-control" placeholder="Tìm số thụ lý, đương sự, tội danh..." oninput="window.runFilterEngine()" autocomplete="off">
       </div>
 
-      <!-- Khoảng ngày thụ lý -->
-      <div style="width: 125px;">
-        <input type="date" id="filter-start" class="form-control" title="Từ ngày thụ lý" onchange="window.runFilterEngine()">
+      <!-- Khoảng ngày thụ lý (co giãn chuẩn trên mobile) -->
+      <div class="d-flex gap-1 filter-date-group">
+        <div style="width: 125px;">
+          <input type="date" id="filter-start" class="form-control" title="Từ ngày thụ lý" onchange="window.runFilterEngine()">
+        </div>
+
+        <div style="width: 125px;">
+          <input type="date" id="filter-end" class="form-control" title="Đến ngày thụ lý" onchange="window.runFilterEngine()">
+        </div>
       </div>
 
-      <div style="width: 125px;">
-        <input type="date" id="filter-end" class="form-control" title="Đến ngày thụ lý" onchange="window.runFilterEngine()">
-      </div>
+      <!-- Dropdown Loại án & Kết quả (co giãn chuẩn trên mobile) -->
+      <div class="d-flex gap-1 filter-select-group">
+        <!-- Dropdown Loại án 1 đến 8 chuẩn TANDTC -->
+        <div style="width: 165px;">
+          <select id="filter-loaiAn" class="form-select fw-bold" onchange="window.setFilter('loaiAn', this.value, event)">
+            <option value="ALL">-- Tất cả loại án --</option>
+            <option value="1. Hình sự">1. Hình sự</option>
+            <option value="2. Dân sự">2. Dân sự</option>
+            <option value="3. Hôn nhân">3. Hôn nhân & Gia đình</option>
+            <option value="4. Kinh doanh">4. Kinh doanh Thương mại</option>
+            <option value="5. Lao động">5. Lao động</option>
+            <option value="6. Hành chính">6. Hành chính</option>
+            <option value="7. Việc dân sự">7. Việc dân sự</option>
+            <option value="8. Hòa giải đối thoại">8. Hòa giải đối thoại</option>
+          </select>
+        </div>
 
-      <!-- Dropdown Loại án 1 đến 8 chuẩn TANDTC -->
-      <div style="width: 170px;">
-        <select id="filter-loaiAn" class="form-select fw-bold" onchange="window.setFilter('loaiAn', this.value, event)">
-          <option value="ALL">-- Tất cả loại án --</option>
-          <option value="1. Hình sự">1. Hình sự</option>
-          <option value="2. Dân sự">2. Dân sự</option>
-          <option value="3. Hôn nhân">3. Hôn nhân & Gia đình</option>
-          <option value="4. Kinh doanh">4. Kinh doanh Thương mại</option>
-          <option value="5. Lao động">5. Lao động</option>
-          <option value="6. Hành chính">6. Hành chính</option>
-          <option value="7. Việc dân sự">7. Việc dân sự</option>
-          <option value="8. Hòa giải đối thoại">8. Hòa giải đối thoại</option>
-        </select>
-      </div>
-
-      <!-- DROPDOWN LỌC KẾT QUẢ THỰC CHẤT -->
-      <div style="width: 180px;">
-        <select id="filter-ketQua" class="form-select fw-bold text-primary" onchange="window.setFilter('ketQua', this.value, event)">
-          <option value="ALL">-- Tất cả kết quả --</option>
-          <option value="BAN_AN">Bản án sơ thẩm</option>
-          <option value="THOA_THUAN">Công nhận sự thỏa thuận</option>
-          <option value="THUAN_TINH">Thuận tình ly hôn</option>
-          <option value="DINH_CHI">Đình chỉ giải quyết vụ án</option>
-          <option value="TRA_HO_SO">Trả hồ sơ ĐTBS (Hình sự)</option>
-          <option value="VIEC_DAN_SU">Quyết định giải quyết việc DS</option>
-          <option value="CHUYEN_DI">Chuyển hồ sơ vụ án</option>
-          <option value="NHAP_VU">Nhập vụ án / vụ việc</option>
-        </select>
+        <!-- DROPDOWN LỌC KẾT QUẢ THỰC CHẤT -->
+        <div style="width: 175px;">
+          <select id="filter-ketQua" class="form-select fw-bold text-primary" onchange="window.setFilter('ketQua', this.value, event)">
+            <option value="ALL">-- Tất cả kết quả --</option>
+            <option value="BAN_AN">Bản án sơ thẩm</option>
+            <option value="THOA_THUAN">Công nhận sự thỏa thuận</option>
+            <option value="THUAN_TINH">Thuận tình ly hôn</option>
+            <option value="DINH_CHI">Đình chỉ giải quyết vụ án</option>
+            <option value="TRA_HO_SO">Trả hồ sơ ĐTBS (Hình sự)</option>
+            <option value="VIEC_DAN_SU">Quyết định giải quyết việc DS</option>
+            <option value="CHUYEN_DI">Chuyển hồ sơ vụ án</option>
+            <option value="NHAP_VU">Nhập vụ án / vụ việc</option>
+          </select>
+        </div>
       </div>
 
       <!-- Nút Reset Lọc -->
-      <button class="btn btn-outline-secondary px-2 py-1" onclick="window.clearAllFilters()" title="Xóa toàn bộ bộ lọc">
+      <button class="btn btn-outline-secondary px-2 py-1" style="height: 35px; border-radius: 8px;" onclick="window.clearAllFilters()" title="Xóa toàn bộ bộ lọc">
         <i class="fas fa-filter-circle-xmark"></i>
       </button>
     </div>
 
-    <!-- Cụm Nút Hành Động bên phải -->
-    <div class="d-flex align-items-center gap-2">
+    <!-- Cụm Nút Hành Động bên phải (Đầy đủ Làm mới, Xuất Excel, Thụ lý mới) -->
+    <div class="d-flex align-items-center gap-2 toolbar-action-group">
       <!-- Nút Xóa Hàng Loạt (Ẩn mặc định) -->
-      <button id="btn-bulk-delete-case" class="btn btn-danger d-none shadow-sm" onclick="deleteSelectedCases()">
+      <button id="btn-bulk-delete-case" class="btn btn-danger d-none shadow-sm btn-action-tool" onclick="deleteSelectedCases()">
         <i class="fas fa-trash-alt me-1"></i> XÓA CHỌN (<span id="bulk-case-count">0</span>)
       </button>
 
+      <!-- NÚT LÀM MỚI DANH SÁCH ÁN (1-CLICK SYNC TRÊN PC) -->
+      <button class="btn btn-action-outline btn-action-tool shadow-sm" onclick="window.loadCaseList(true)" title="Làm mới danh sách & Kéo số liệu mới tức thì từ máy chủ">
+        <i class="fas fa-sync-alt text-primary"></i> <span class="d-none d-sm-inline">Làm mới</span>
+      </button>
+
+      <!-- NÚT XUẤT EXCEL THEO HIỆN TRẠNG ĐANG LỌC -->
+      <button class="btn btn-action-outline btn-action-tool shadow-sm text-success" onclick="window.xuatExcelDanhSachAn()" title="Xuất danh sách đang lọc trên màn hình ra file Excel">
+        <i class="fas fa-file-excel text-success me-1"></i> <span class="d-none d-sm-inline">Xuất Excel</span>
+      </button>
+
       <!-- Nút Thụ lý mới -->
-      <button class="btn btn-primary px-3 shadow-sm" onclick="moModalThemMoi()">
+      <button class="btn btn-primary px-3 shadow-sm btn-action-tool" onclick="moModalThemMoi()">
         <i class="fas fa-plus me-1"></i> THỤ LÝ
       </button>
     </div>

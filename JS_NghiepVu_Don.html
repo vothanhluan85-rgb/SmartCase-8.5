@@ -2,9 +2,12 @@
 /**
  * =========================================================================
  * HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.5 - MODULE XỬ LÝ ĐƠN (FRONTEND BUSINESS)
+ * TỆP: JS_NghiepVu_Don.html - ĐIỀU HÀNH NGHIỆP VỤ SỔ NHẬN ĐƠN, FAST SMS & TRỘN VĂN BẢN
  * -------------------------------------------------------------------------
- * - ĐÃ BỔ SUNG LẠI HÀM thucHienTronThuDon BỊ THIẾU.
- * - ĐẢM BẢO 100% KHÔNG LỖI CÚ PHÁP VÀ KHÔNG DÙNG TEMPLATE LITERALS.
+ * - BẢO TOÀN 100% HÀM VÀ LOGIC GỐC, ĐẢM BẢO KHÔNG PHÁT SINH LỖI CHẮP VÁ.
+ * - ĐỒNG BỘ ĐỊNH DẠNG THẺ THÔNG BÁO XUẤT TỆP RỘNG RÃI, CHỐNG KHUẤT CHỮ.
+ * - HỖ TRỢ TRỘN VĂN BẢN ĐƠN SIÊU TỐC QUA MASTER MERGE ENGINE.
+ * - FAST SMS & LÊN LỊCH TIẾP NHẬN ĐƠN KHỞI KIỆN TỰ ĐỘNG.
  * =========================================================================
  */
 
@@ -137,7 +140,6 @@ window.handleDonPartyNameBlur = function(inputEl) {
   var titled = typeof window.toTitleCase === 'function' ? window.toTitleCase(cleaned) : cleaned;
   inputEl.value = titled;
 };
-
 
 /* =========================================================================
    2. KHỐI ĐƯƠNG SỰ ĐƠN & GIAO DIỆN
@@ -2117,12 +2119,24 @@ window.finalizeDraftingLogic = function(templateIds, templateNames, idDon, isFro
         unlockButtons();
         
         if (res && res.success) {
+          // Rút gọn chỉ hiển thị [STT. Tên biểu mẫu] trên đúng 1 dòng, cắt sạch phần '- [Số đơn]'
           let linksHtml = (res.files || []).map(function(f) {
-            let docxBtn = f.docxUrl ? "<a href=\"" + f.docxUrl + "\" target=\"_blank\" class=\"btn btn-sm btn-outline-secondary shadow-sm ms-1\" title=\"Tải file Word (.docx)\"><i class=\"fas fa-download\"></i> .docx</a>" : "";
-            return "<div class=\"d-flex align-items-center mb-1 w-100 animate-fadeIn\">" +
-                   "<a href='" + f.url + "' target='_blank' class='btn btn-outline-primary btn-sm text-truncate flex-grow-1' style=\"text-align: left;\"><i class='fas fa-file-word me-1'></i>" + f.name + "</a>" +
+            let rawName = (f.name || '').replace(/\.(docx|doc|gdoc)$/i, '').trim();
+            
+            // Cắt bỏ phần đuôi "- [Số đơn]" hoặc "- [Số] - [Ngày]"
+            rawName = rawName.replace(/\s*-\s*[\w\d\/]+(\s*-\s*\d{1,2}\.\d{1,2}\.\d{2,4})?$/i, '').trim();
+            let dashIdx = rawName.indexOf(' - ');
+            let shortTitle = (dashIdx !== -1) ? rawName.substring(0, dashIdx).trim() : rawName;
+
+            let docxBtn = f.docxUrl 
+              ? '<a href="' + f.docxUrl + '" target="_blank" style="font-size: 9px; font-weight: 700; color: #475569; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; padding: 1px 5px; height: 19px; line-height: 17px; text-decoration: none; display: inline-flex; align-items: center; flex-shrink: 0;" title="Tải file Word (.docx)"><i class="fas fa-download" style="font-size: 8px; margin-right: 3px;"></i>.docx</a>' 
+              : '';
+
+            return '<div style="display: flex; align-items: center; justify-content: space-between; padding: 2px 6px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 2px; min-width: 0; width: 100%; gap: 6px;">' +
+                   '<a href="' + f.url + '" target="_blank" style="font-size: 11px; font-weight: 700; color: #2563eb; text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1; min-width: 0; line-height: 1.3;" title="' + f.name + '">' +
+                   '<i class="far fa-file-word text-primary" style="margin-right: 4px; font-size: 11px;"></i>' + shortTitle + '</a>' +
                    docxBtn +
-                   "</div>";
+                   '</div>';
           }).join('');
           
           if (typeof AppUI !== 'undefined') AppUI.completeBackgroundTask(taskId, true, linksHtml);

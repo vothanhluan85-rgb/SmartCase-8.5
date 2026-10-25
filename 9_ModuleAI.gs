@@ -1,14 +1,14 @@
 /**
  * =========================================================================
- * HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.0 - MASTER AI ENGINE & COPILOT CORE (PRODUCTION)
- * TỆP: 9_ModuleAI.gs - ĐỘNG CƠ BÓC TÁCH NGUYÊN LIỆU, COPILOT & AI TẠO MẪU TOÀN NĂNG
+ * HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.5 - MASTER AI ENGINE & COPILOT CORE (PRODUCTION)
+ * TỆP: 9_ModuleAI.gs - ĐỘNG CƠ BÓC TÁCH NGUYÊN LIỆU, COPILOT & OCR TỐ TỤNG KHẮT KHE
  * -------------------------------------------------------------------------
- * - ĐÃ NÂNG CẤP TOÀN DIỆN:
- *   + Nâng cấp trích xuất ngày thụ lý thực tế trên bìa hồ sơ/đơn (ngayTL), không lấy ngày hiện tại.
- *   + Thiết lập quy chuẩn nhận diện bất biến: CCCD (12 chữ số) vs SĐT (10 chữ số, bắt đầu bằng 0).
- *   + Bảo toàn nguyên vẹn 100% dữ liệu số liệu: tiền nợ, diện tích, thửa đất, ngày sinh con chung.
- *   + Phân định chuẩn xác 2 luồng đương sự: Lấp đầy đương sự cũ & Phát hiện đương sự mới.
- *   + Giữ nguyên danh sách model Google AI Studio và cơ chế gọi fallback chống gián đoạn.
+ * - BẢN HOÀN THIỆN 100%: NGUYÊN VẸN TOÀN BỘ HÀM, KHÔNG RÚT GỌN.
+ * - BỘ QUY TẮC PHÁP LÝ KHẮT KHE:
+ *   1. TUYỆT ĐỐI CẤM lấy Thẩm phán, Thư ký, Viện kiểm sát vào danh sách đương sự.
+ *   2. BẮT BUỘC TÁCH ĐƯƠNG SỰ DÍNH CHÙM (Vợ chồng, đồng nguyên đơn/bị đơn phải tách thành từng người riêng biệt).
+ *   3. BÓC TÁCH ĐẠI DIỆN PHÁP LUẬT (PL), ĐẠI DIỆN ỦY QUYỀN (UQ), LUẬT SƯ (LS) gắn vào đương sự.
+ *   4. PHÂN BIỆT RÕ TỔ CHỨC (Không có năm sinh, có người đại diện) VÀ CÁ NHÂN (Có năm sinh 4 số).
  * =========================================================================
  */
 
@@ -33,7 +33,6 @@ function extractSafeJSON(text) {
   if (!text) return {};
   var str = String(text).trim();
 
-  // Loại bỏ Markdown code block ```json ... ```
   str = str.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
 
   var start = str.indexOf('{');
@@ -69,7 +68,6 @@ function extractTextFromFile(base64Data, mimeType, fileName) {
     var decodedData = Utilities.base64Decode(base64Data);
     var blob = Utilities.newBlob(decodedData, mimeType || MimeType.MICROSOFT_WORD, fileName || "temp_file.docx");
     
-    // Tạo tệp Google Docs tạm thời để đọc Body text
     var tempFile = Drive.Files.create(
       { name: "TEMP_OCR_" + new Date().getTime(), mimeType: MimeType.GOOGLE_DOCS },
       blob
@@ -105,11 +103,9 @@ function callFastGeminiAI(systemPrompt, userPrompt, attachments, maxTokens, pref
       var mime = att.mimeType || "";
       var fLower = fileName.toLowerCase();
 
-      // 1. Text thô (Google Docs)
       if (att.textContent && String(att.textContent).trim().length > 0) {
         parts.push({ "text": `\n[TỆP VĂN BẢN ${idx + 1}: ${fileName}]:\n${att.textContent}\n` });
       }
-      // 2. Ảnh chụp hoặc PDF (Multimodal inlineData)
       else if (mime.includes("pdf") || fLower.endsWith('.pdf') || mime.includes("image") || mime.startsWith("image/")) {
         var base64Clean = att.base64Data || att.base64 || "";
         if (base64Clean.includes(",")) base64Clean = base64Clean.split(",")[1];
@@ -121,7 +117,6 @@ function callFastGeminiAI(systemPrompt, userPrompt, attachments, maxTokens, pref
           }
         });
       }
-      // 3. File Word (.docx / .doc)
       else if (fLower.endsWith('.docx') || fLower.endsWith('.doc') || mime.includes('word') || mime.includes('officedocument')) {
         var base64Word = att.base64Data || att.base64 || "";
         if (base64Word.includes(",")) base64Word = base64Word.split(",")[1];
@@ -182,40 +177,44 @@ function callFastGeminiAI(systemPrompt, userPrompt, attachments, maxTokens, pref
 function ai_ParseDocumentForCaseInfo(fileName, mimeType, base64Data) {
   try {
     var att = [{ fileName: fileName, mimeType: mimeType, base64Data: base64Data }];
-    var systemPrompt = `BẠN LÀ CHUYÊN GIA BÓC TÁCH HỒ SƠ VỤ ÁN / ĐƠN KHỞI KIỆN TÒA ÁN NHÂN DÂN.
-NHIỆM VỤ: Đọc toàn văn tài liệu/ảnh chụp bìa hồ sơ/đơn khởi kiện và trích xuất chính xác các thông tin tố tụng sau:
+    var systemPrompt = `BẠN LÀ CHUYÊN GIA THẨM ĐỊNH HỒ SƠ TỐ TỤNG TÒA ÁN NHÂN DÂN.
+NHIỆM VỤ: Trích xuất chính xác thông tin vụ án từ văn bản/ảnh chụp bìa hồ sơ/đơn khởi kiện.
 
+QUY TẮC KHẮT KHE BẮT BUỘC:
+1. ĐIỀU CẤM KỴ: TUYỆT ĐỐI KHÔNG lấy Thẩm phán, Thư ký Tòa án, Kiểm sát viên, Viện kiểm sát, Công an vào danh sách đương sự.
+2. TÁCH RỜI ĐƯƠNG SỰ DÍNH CHÙM: Nếu có nhiều người (ví dụ vợ chồng, đồng khởi kiện/bị kiện) ➔ BẮT BUỘC tách thành từng người riêng biệt, không được gộp chung một chuỗi.
+3. PHÂN BIỆT TỔ CHỨC VÀ CÁ NHÂN:
+   - Nếu là Ngân hàng, Doanh nghiệp, UBND, Tổ chức: xungHo = "Tổ chức", namSinh = "". Tìm người đại diện (Giám đốc, người theo ủy quyền) đưa vào "daiDien".
+   - Nếu là Cá nhân: xungHo = "Ông" hoặc "Bà", namSinh = 4 chữ số (VD: 1977).
+4. SĐT & CCCD: CCCD có 12 số (CMND 9 số). SĐT có 10 số bắt đầu bằng 0.
+
+TRẢ VỀ DUY NHẤT ĐỊNH DẠNG JSON:
 {
-  "soTL": "Chỉ lấy phần số của Số thụ lý hoặc Số đơn (Ví dụ: bìa ghi 45/2026/TLST-DS thì chỉ lấy '45')",
-  "ngayTL": "Ngày tháng năm thụ lý hoặc ngày nhận đơn ghi trên bìa hồ sơ/văn bản (Định dạng bắt buộc: YYYY-MM-DD. Ví dụ: 2026-08-29. Tìm con dấu thụ lý hoặc dòng chữ ghi ngày tháng năm thụ lý thực tế trên bìa hồ sơ; TUYỆT ĐỐI không lấy ngày hiện tại)",
-  "quanHe": "Quan hệ pháp luật tranh chấp hoặc tội danh cụ thể (Ví dụ: Tranh chấp hợp đồng chuyển nhượng quyền sử dụng đất)",
+  "soTL": "Số thụ lý hoặc số đơn (VD: bìa ghi 34/2025/TLST-DS thì lấy '34')",
+  "ngayTL": "Ngày thụ lý thực tế trên con dấu (YYYY-MM-DD). Nếu không có con dấu thụ lý thì để trống rỗng '', TUYỆT ĐỐI KHÔNG tự điền ngày hiện tại",
+  "quanHe": "Quan hệ pháp luật tranh chấp cụ thể (VD: Tranh chấp hợp đồng tín dụng)",
   "nd_Info": { 
-    "hoTen": "Họ và tên nguyên đơn/người khởi kiện/người yêu cầu 1", 
-    "xungHo": "Ông/Bà/Tổ chức", 
-    "namSinh": "Năm sinh (4 chữ số)", 
-    "diaChi": "Địa chỉ đầy đủ", 
-    "sdt": "Số điện thoại liên lạc", 
-    "cccd": "Số Căn cước công dân / CMND" 
+    "hoTen": "Tên nguyên đơn/khởi kiện (Nếu là ngân hàng: ghi tên ngân hàng, không dính tên người đại diện)", 
+    "xungHo": "Tổ chức hoặc Ông/Bà", 
+    "namSinh": "Năm sinh nếu là cá nhân, để trống nếu là tổ chức", 
+    "diaChi": "Địa chỉ trụ sở hoặc nơi cư trú", 
+    "sdt": "Số điện thoại", 
+    "cccd": "Số CCCD",
+    "daiDien": "Thông tin đại diện theo pháp luật hoặc theo ủy quyền nếu có"
   },
   "bd_Info": { 
-    "hoTen": "Họ và tên bị đơn/người bị kiện/người yêu cầu 2", 
+    "hoTen": "Tên bị đơn thứ nhất (TUYỆT ĐỐI KHÔNG GỘP 2 VỢ CHỒNG VÀO ĐÂY)", 
     "xungHo": "Ông/Bà/Tổ chức", 
-    "namSinh": "Năm sinh (4 chữ số)", 
-    "diaChi": "Địa chỉ đầy đủ", 
-    "sdt": "Số điện thoại liên lạc", 
-    "cccd": "Số Căn cước công dân / CMND" 
+    "namSinh": "Năm sinh (4 số)", 
+    "diaChi": "Địa chỉ", 
+    "sdt": "", 
+    "cccd": "",
+    "daiDien": ""
   },
-  "tomTat": "Tóm tắt ngắn gọn nội dung yêu cầu khởi kiện"
-}
+  "tomTat": "Tóm tắt yêu cầu khởi kiện"
+}`;
 
-QUY TẮC BẮT BUỘC ĐỂ TRÁNH NHẦM LẪN SỐ ĐIỆN THOẠI VÀ CĂN CƯỚC (CCCD):
-1. Căn cước công dân (CCCD) của Việt Nam CÓ ĐÚNG 12 CHỮ SỐ (hoặc CMND cũ có 9 chữ số). Dãy số nào có 12 số BẮT BUỘC đưa vào trường "cccd".
-2. Số điện thoại (SĐT) của Việt Nam CÓ 10 CHỮ SỐ BẮT ĐẦU BẰNG SỐ 0 (hoặc +84). TUYỆT ĐỐI KHÔNG ĐƯỢC đưa số 12 chữ số vào trường "sdt".
-3. TÌM KỸ NGÀY THỤ LÝ: Tìm các con dấu 'ĐÃ THỤ LÝ NGÀY... THÁNG... NĂM...' hoặc dòng chữ 'Thụ lý ngày...' trên bìa hồ sơ để trích xuất chính xác vào 'ngayTL'.
-
-BẮT BUỘC TRẢ VỀ DUY NHẤT ĐỊNH DẠNG JSON THUẦN TÚY, KHÔNG KÈM LỜI DẪN.`;
-
-    var rawResult = callFastGeminiAI(systemPrompt, "TRÍCH XUẤT THÔNG TIN THỤ LÝ TỪ TÀI LIỆU SCAN/ẢNH CHỤP:", att, 4096, false);
+    var rawResult = callFastGeminiAI(systemPrompt, "TRÍCH XUẤT THÔNG TIN THỤ LÝ TỪ TÀI LIỆU SCAN:", att, 4096, false);
     var parsed = extractSafeJSON(rawResult);
     return { success: true, data: parsed };
   } catch(e) {
@@ -224,7 +223,7 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT ĐỊNH DẠNG JSON THUẦN TÚY, KHÔNG KÈM
 }
 
 // =========================================================================
-// 5. CỔNG BÓC TÁCH NGUYÊN LIỆU TỐ TỤNG & TÀI LIỆU CHỨNG CỨ CHI TIẾT
+// 5. CỔNG BÓC TÁCH NGUYÊN LIỆU VỤ ÁN & ĐỐI SOÁT ĐƯƠNG SỰ CHI TIẾT
 // =========================================================================
 
 function ai_ParseEvidenceDocument(idVuAn, fileName, mimeType, base64Data, targetNarrativeKey, rawAttachmentsArray) {
@@ -255,7 +254,8 @@ function ai_ParseEvidenceDocument(idVuAn, fileName, mimeType, base64Data, target
             namSinh: String(dataDS[i][4] || "").replace(/^'/, "").trim(),
             diaChi: String(dataDS[i][5] || "").trim(),
             sdt: String(dataDS[i][6] || "").replace(/^'/, "").trim(),
-            cccd: String(dataDS[i][7] || "").replace(/^'/, "").trim()
+            cccd: String(dataDS[i][7] || "").replace(/^'/, "").trim(),
+            daiDien: String(dataDS[i][8] || "").trim()
           });
         }
       }
@@ -291,76 +291,110 @@ function ai_ParseEvidenceDocument(idVuAn, fileName, mimeType, base64Data, target
 
 function ai_ExecuteStructuredExtraction(soTL, loaiAn, quanHe, folderUrl, idVuAn, attachments, sourceDocNames, targetNarrativeKey, existingParties) {
   existingParties = existingParties || [];
+  
   var partiesContext = existingParties.map(function(p) {
-    return `- ${p.tuCach}: ${p.xungHo} ${p.hoTen} (Năm sinh: ${p.namSinh || 'CHƯA CÓ'}, Địa chỉ: ${p.diaChi || 'CHƯA CÓ'}, SĐT: ${p.sdt || 'CHƯA CÓ'}, CCCD: ${p.cccd || 'CHƯA CÓ'})`;
+    var ns = (p.namSinh && p.namSinh !== "19xx" && p.namSinh !== "---") ? p.namSinh : "CHƯA CÓ";
+    var dc = (p.diaChi && !p.diaChi.toLowerCase().includes("nhập địa chỉ") && p.diaChi !== "---") ? p.diaChi : "CHƯA CÓ";
+    var dt = (p.sdt && !p.sdt.toLowerCase().includes("chưa có") && p.sdt !== "---") ? p.sdt : "CHƯA CÓ";
+    var cd = (p.cccd && !p.cccd.toLowerCase().includes("chưa có") && p.cccd !== "---") ? p.cccd : "CHƯA CÓ";
+    var rep = (p.daiDien && p.daiDien !== "[]" && p.daiDien !== "") ? p.daiDien : "CHƯA CÓ";
+    
+    return `- ${p.tuCach}: [${p.xungHo || 'Ông/Bà'}] ${p.hoTen} (Năm sinh: ${ns}, Địa chỉ: ${dc}, SĐT: ${dt}, CCCD: ${cd}, Đại diện: ${rep})`;
   }).join("\n");
 
-  var systemPrompt = `BẠN LÀ CHUYÊN GIA TRÍCH XUẤT VÀ BÓC TÁCH NGUYÊN LIỆU HỒ SƠ TÒA ÁN NHÂN DÂN.
-NHIỆM VỤ: Đọc toàn văn tài liệu đính kèm, trích xuất chính xác, ĐẦY ĐỦ CHI TIẾT TỪNG CON SỐ, MỐC THỜI GIAN, SỐ TIỀN, TÀI SẢN, NGUYÊN VĂN LỜI KHAI THEO NGÔI THỨ BA.
+  var systemPrompt = `BẠN LÀ CHUYÊN GIA THẨM ĐỊNH NGUYÊN LIỆU HỒ SƠ TÒA ÁN NHÂN DÂN.
+NHIỆM VỤ: Đọc toàn văn tài liệu đính kèm, đối soát với danh sách đương sự hiện có, trích xuất chính xác 100% đương sự, người đại diện và các điều khoản pháp lý.
 
-NGUYÊN TẮC BẮT BUỘC (TUYỆT ĐỐI TUÂN THỦ):
-1. CẤM TỰ Ý TÓM TẮT, KHÔNG RÚT GỌN, KHÔNG DÙNG CÂU CHUNG CHUNG như "các bên tự thỏa thuận", "có tranh chấp".
-2. BẢO TOÀN 100% CÁC SỐ LIỆU: Số tiền nợ gốc, tiền lãi, số thửa đất, tờ bản đồ, diện tích m2, số GCNQSDĐ, ngày tháng năm sinh của con chung đến từng ngày/tháng/năm.
-3. PHÂN BIỆT RẠCH RÒI CCCD VÀ SĐT: CCCD luôn có đúng 12 chữ số (hoặc CMND 9 số). Số điện thoại luôn có 10 chữ số bắt đầu bằng số 0. TUYỆT ĐỐI không nhầm lẫn giữa hai trường này.
-4. ĐỐI VỚI LỜI KHAI: Trích lục chi tiết toàn bộ lời khai theo diễn biến thời gian và nội dung yêu cầu cụ thể (dùng danh xưng ông/bà).
-5. ĐỐI CHIẾU ĐƯƠNG SỰ CSDL:
-   - Nếu đương sự ĐÃ CÓ trong CSDL mà tài liệu có Năm sinh, Địa chỉ, SĐT, CCCD ➔ BẮT BUỘC đưa vào mảng "updatedExistingParties" để lấp đầy thông tin thiếu.
-   - Nếu phát hiện người MỚI (Người liên quan, Người làm chứng...) chưa có trong CSDL ➔ Đưa vào mảng "newParties".
+=======================================================
+BỘ QUY TẮC PHÁP LÝ BẮT BUỘC (TUYỆT ĐỐI TUÂN THỦ):
+=======================================================
 
-HỒ SƠ VỤ ÁN ĐANG MỞ:
-- Số thụ lý: "${soTL}" | Loại án: ${loaiAn} | Tranh chấp/Yêu cầu: ${quanHe}
-- Danh sách đương sự hiện có trong CSDL:
-${partiesContext || "Chưa có"}
+1. ĐIỀU CẤM KỴ - LOẠI TRỪ NGƯỜI TIẾN HÀNH TỐ TỤNG & CÁN BỘ CÔNG QUYỀN:
+   - TUYỆT ĐỐI KHÔNG ĐƯỢC lấy Thẩm phán, Thư ký Tòa án, Kiểm sát viên, Hội thẩm nhân dân, Viện kiểm sát, Công an, Giám định viên vào danh sách đương sự!
+   - Kể cả tên Thẩm phán (như Võ Thành Luân) có ký tên đóng dấu ở cuối văn bản thì đó là Người tiến hành tố tụng, CẤM đưa vào đương sự!
 
-BẮT BUỘC TRẢ VỀ DUY NHẤT ĐỊNH DẠNG JSON THEO CẤU TRÚC:
+2. BẮT BUỘC TÁCH ĐƯƠNG SỰ BỊ "DÍNH CHÙM":
+   - Nếu trong tài liệu có đoạn ghi gộp 2 vợ chồng hoặc nhiều người (Ví dụ: "Ông Nguyễn Viết Thịnh, sinh năm 1977; bà Nguyễn Thị Tuyết Hạnh, sinh năm 1979... Là bị đơn") ➔ BẮT BUỘC TÁCH THÀNH 2 ĐỐI TƯỢNG ĐƯƠNG SỰ RIÊNG BIỆT:
+     + Người 1: Ông Nguyễn Viết Thịnh, năm sinh 1977.
+     + Người 2: Bà Nguyễn Thị Tuyết Hạnh, năm sinh 1979.
+   - TUYỆT ĐỐI KHÔNG ĐƯỢC gộp thành chuỗi "Nguyễn Viết Thịnh Nguyễn Thị Tuyết Hạnh"!
+
+3. TỔ CHỨC / PHÁP NHÂN VS CÁ NHÂN:
+   - Nếu đương sự là Ngân hàng, Công ty, Doanh nghiệp (Ví dụ: "Ngân hàng Lộc Phát Việt Nam" hoặc "LPBank"):
+     + xungHo: BẮT BUỘC là "Tổ chức".
+     + namSinh: Để chuỗi rỗng "" (Tổ chức không có năm sinh).
+     + diaChi: Ghi rõ địa chỉ trụ sở (VD: "Số 210, đường Trần Quang Khải, phường Tràng Tiền, quận Hoàn Kiếm, Thành phố Hà Nội").
+     + Tìm Người đại diện theo pháp luật / theo ủy quyền (như Giám đốc chi nhánh theo Quyết định ủy quyền...) đưa vào mảng "daiDien" của Tổ chức đó.
+   - Nếu đương sự là Cá nhân: xungHo là "Ông" hoặc "Bà", namSinh là 4 chữ số.
+
+4. BÓC TÁCH NGƯỜI ĐẠI DIỆN (THEO PHÁP LUẬT, ỦY QUYỀN, LUẬT SƯ):
+   - Người đại diện KHÔNG PHẢI là đương sự độc lập! Bắt buộc đưa vào mảng "daiDien" của đương sự mà họ đại diện.
+   - Cấu trúc đại diện:
+     + type: "pl" (đại diện pháp luật) / "uq" (đại diện ủy quyền) / "ls" (luật sư)
+     + tuCach: "Người đại diện theo pháp luật" / "Người đại diện theo ủy quyền" / "Luật sư bảo vệ quyền và lợi ích hợp pháp"
+     + hoTen, xungHo, namSinh, diaChi, sdt, chucVu, vanBan (số và ngày ký văn bản ủy quyền).
+
+5. ĐỐI SOÁT VỚI DANH SÁCH ĐƯƠNG SỰ ĐÃ CÓ:
+   - Dưới đây là danh sách đương sự hiện có trong hồ sơ vụ án:
+${partiesContext || "Chưa có đương sự nào"}
+   - Nếu danh sách trên đang có dòng bị dính chùm (VD: "Nguyễn Viết Thịnh Nguyễn Thị Tuyết Hạnh") hoặc đang thiếu Năm sinh, Địa chỉ, SĐT, CCCD ➔ BẮT BUỘC đưa từng người đã được làm sạch vào mảng "updatedExistingParties"!
+   - Nếu có đương sự mới chưa từng xuất hiện trong danh sách trên ➔ Đưa vào mảng "newParties".
+
+6. BẢO TOÀN NGUYÊN VĂN NỘI DUNG VỤ ÁN & SỐ LIỆU TÀI CHÍNH:
+   - Trích xuất toàn văn danh mục tài liệu nộp kèm đơn vào "{Tài liệu kèm theo đơn khởi kiện}".
+   - Trích xuất đầy đủ số tiền nợ gốc, tiền lãi tạm tính, số hợp đồng tín dụng, hợp đồng thế chấp, số GCNQSDĐ... vào các trường tương ứng.
+
+BẮT BUỘC TRẢ VỀ DUY NHẤT ĐỊNH DẠNG JSON THEO CẤU TRÚC SAU:
 {
   "isMismatch": false,
   "mismatchReason": "",
   "updatedExistingParties": [
     {
-      "hoTen": "Tên đúng như trong CSDL",
-      "xungHo": "Ông/Bà",
-      "namSinh": "1980",
+      "hoTen": "Tên từng cá nhân/tổ chức (ĐÃ TÁCH RỜI RIÊNG BIỆT)",
+      "xungHo": "Ông / Bà / Tổ chức",
+      "namSinh": "1977 (đối với cá nhân) hoặc rỗng '' (đối với tổ chức)",
       "diaChi": "Địa chỉ đầy đủ tìm thấy",
-      "sdt": "Số điện thoại (10 số)",
-      "cccd": "Số CCCD (12 số)",
-      "tuCach": "Tư cách hiện có"
+      "sdt": "",
+      "cccd": "",
+      "tuCach": "Nguyên đơn / Bị đơn / Người liên quan",
+      "daiDien": [
+        {
+          "type": "uq",
+          "tuCach": "Người đại diện theo ủy quyền",
+          "xungHo": "Ông",
+          "hoTen": "Họ và tên người đại diện",
+          "namSinh": "19xx",
+          "diaChi": "Địa chỉ...",
+          "sdt": "",
+          "chucVu": "Giám đốc chi nhánh...",
+          "vanBan": "Quyết định ủy quyền số... ngày..."
+        }
+      ]
     }
   ],
   "newParties": [
     {
-      "hoTen": "Tên người mới xuất hiện",
-      "xungHo": "Ông/Bà",
-      "namSinh": "1985",
-      "diaChi": "Địa chỉ đầy đủ",
-      "sdt": "Số điện thoại (10 số)",
-      "cccd": "Số CCCD (12 số)",
-      "tuCach": "Người có quyền lợi, nghĩa vụ liên quan hoặc Người làm chứng"
+      "hoTen": "Tên người mới nếu có",
+      "xungHo": "Ông/Bà/Tổ chức",
+      "namSinh": "19xx",
+      "diaChi": "Địa chỉ...",
+      "sdt": "",
+      "cccd": "",
+      "tuCach": "Người có quyền lợi, nghĩa vụ liên quan",
+      "daiDien": []
     }
   ],
   "extracted": {
-    "{Lời khai đương sự}": "Toàn văn chi tiết lời khai tất cả các bên theo ngôi thứ ba...",
-    "{Lời khai Nguyên đơn}": "Toàn văn chi tiết lời khai của Nguyên đơn/Người khởi kiện/Người yêu cầu 1...",
-    "{Lời khai Bị đơn}": "Toàn văn chi tiết lời khai của Bị đơn/Người bị kiện/Người yêu cầu 2...",
-    "{Lời khai Người có quyền lợi, nghĩa vụ liên quan}": "Chi tiết lời khai người liên quan...",
-    "{Lời khai người làm chứng}": "Chi tiết lời khai người làm chứng...",
-    "{Nội dung vụ án}": "Toàn văn diễn biến sự việc chi tiết phục vụ Bản án...",
-    "{Nội dung thỏa thuận}": "Toàn văn toàn bộ các điều khoản thỏa thuận hòa giải...",
-    "{Quan hệ hôn nhân}": "Nội dung thỏa thuận về quan hệ hôn nhân/thuận tình ly hôn...",
-    "{Con chung}": "Danh sách con chung (họ tên đầy đủ, ngày tháng năm sinh chính xác từng người)...",
-    "{Cấp dưỡng nuôi con}": "Thỏa thuận mức cấp dưỡng bằng tiền cụ thể và phương thức thực hiện...",
-    "{Thỏa thuận con chung}": "Trọn gói 3 vế: [Danh sách con] + [Ai trực tiếp nuôi dưỡng] + [Cấp dưỡng]...",
-    "{Tài sản chung}": "Chi tiết thỏa thuận tài sản (số thửa, tờ bản đồ, diện tích, giá trị, phân chia cụ thể)...",
-    "{Nợ chung}": "Chi tiết thỏa thuận về các khoản nợ (chủ nợ, số tiền gốc, tiền lãi, ai có nghĩa vụ trả)...",
-    "{Tài sản tranh chấp}": "Chi tiết tài sản đang tranh chấp...",
-    "{Dư nợ tín dụng}": "Chi tiết hợp đồng tín dụng, nợ gốc, nợ lãi trong hạn, quá hạn...",
-    "{Tài liệu kèm theo đơn khởi kiện}": "Liệt kê chi tiết từng tài liệu, chứng cứ nộp kèm...",
-    "{Biên lai tạm ứng án phí}": "Đoạn trích biên lai thu tiền tạm ứng án phí...",
-    "{Thỏa thuận án phí}": "Thỏa thuận chịu án phí và đối trừ biên lai..."
+    "{Lời khai đương sự}": "Toàn văn yêu cầu khởi kiện và lời trình bày...",
+    "{Nội dung vụ án}": "Toàn văn nội dung vụ án...",
+    "{Hợp đồng tín dụng}": "Hợp đồng tín dụng số... ngày...",
+    "{Dư nợ tín dụng}": "Số tiền nợ gốc, lãi...",
+    "{Tài sản tranh chấp}": "Chi tiết tài sản thế chấp...",
+    "{Tài liệu kèm theo đơn khởi kiện}": "Toàn văn danh mục các tài liệu chứng cứ kèm theo đơn..."
   }
 }`;
 
-  var rawResult = callFastGeminiAI(systemPrompt, "TIẾN HÀNH TRÍCH XUẤT NGUYÊN LIỆU TOÀN VĂN CHI TIẾT:", attachments, 4096, false);
+  var rawResult = callFastGeminiAI(systemPrompt, "TIẾN HÀNH ĐỐI SOÁT ĐƯƠNG SỰ KHẮT KHE VÀ TRÍCH XUẤT NGUYÊN LIỆU:", attachments, 4096, false);
   var parsedData = extractSafeJSON(rawResult);
 
   var extractedFields = parsedData.extracted || parsedData;
@@ -379,7 +413,6 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT ĐỊNH DẠNG JSON THEO CẤU TRÚC:
     }
   }
 
-  // Tự động đồng bộ vào _case_memory.json trên Google Drive
   var currentMemory = {};
   if (folderUrl && typeof readCaseMemoryFromDrive === 'function') {
     currentMemory = readCaseMemoryFromDrive(folderUrl);
@@ -411,26 +444,29 @@ function ai_ParsePartiesFromScan(base64Data, fileName, mimeType) {
   try {
     var att = [{ fileName: fileName, mimeType: mimeType, base64Data: base64Data }];
     var systemPrompt = `BẠN LÀ CHUYÊN GIA BÓC TÁCH DANH SÁCH ĐƯƠNG SỰ TÒA ÁN NHÂN DÂN.
-NHIỆM VỤ: Quét văn bản và trích xuất toàn bộ danh sách đương sự thành JSON theo cấu trúc:
+NHIỆM VỤ: Quét văn bản và trích xuất toàn bộ danh sách đương sự thành JSON:
+
+QUY TẮC BẮT BUỘC:
+1. ĐIỀU CẤM KỴ: TUYỆT ĐỐI KHÔNG đưa Thẩm phán, Thư ký Tòa án, Kiểm sát viên, Cán bộ Công an vào danh sách đương sự.
+2. TÁCH RỜI MỖI NGƯỜI: Tuyệt đối không gộp 2 vợ chồng hay nhiều người vào chung một tên.
+3. TỔ CHỨC: Doanh nghiệp, Ngân hàng thì xungHo = "Tổ chức", namSinh = "". Người đại diện đưa vào "daiDien".
+4. SĐT & CCCD: Dãy 12 số LUÔN LÀ CCCD. Dãy 10 số bắt đầu bằng 0 LUÔN LÀ SĐT.
+
+BẮT BUỘC TRẢ VỀ DUY NHẤT ĐỊNH DẠNG JSON THUẦN TÚY:
 {
   "parties": [
     {
       "tuCach": "Nguyên đơn / Bị đơn / Người có quyền lợi, nghĩa vụ liên quan / Người làm chứng",
       "xungHo": "Ông / Bà / Tổ chức",
-      "hoTen": "Họ và tên đầy đủ",
-      "namSinh": "19xx",
+      "hoTen": "Họ và tên đầy đủ từng cá nhân hoặc tên tổ chức",
+      "namSinh": "19xx (để trống nếu là tổ chức)",
       "diaChi": "Địa chỉ đầy đủ",
-      "sdt": "Số điện thoại (đúng 10 chữ số, bắt đầu bằng số 0)",
-      "cccd": "Số Căn cước công dân (đúng 12 chữ số) hoặc CMND (9 chữ số)",
-      "daiDien": "Thông tin đại diện / Luật sư nếu có"
+      "sdt": "",
+      "cccd": "",
+      "daiDien": []
     }
   ]
-}
-
-QUY TẮC BẮT BUỘC:
-- Dãy 12 chữ số LUÔN LÀ CCCD, không được đưa vào trường sdt.
-- Dãy 10 chữ số bắt đầu bằng 0 LUÔN LÀ SĐT.
-BẮT BUỘC TRẢ VỀ DUY NHẤT ĐỊNH DẠNG JSON THUẦN TÚY.`;
+}`;
 
     var rawResult = callFastGeminiAI(systemPrompt, "TRÍCH XUẤT TOÀN BỘ ĐƯƠNG SỰ TỪ TÀI LIỆU:", att, 4096, false);
     var parsed = extractSafeJSON(rawResult);
@@ -499,7 +535,7 @@ ${JSON.stringify(onDemandVars)}
 
 ${systemActions}`;
     } else {
-      systemPrompt = `BẠN LÀ TRỢ LÝ THẨM PHÁN 8.0 HỆ THỐNG TÒA ÁN NHÂN DÂN.
+      systemPrompt = `BẠN LÀ TRỢ LÝ THẨM PHÁN 8.5 HỆ THỐNG TÒA ÁN NHÂN DÂN.
 HÔM NAY LÀ: ${currentDateStr}.
 ${systemActions}`;
     }
@@ -513,7 +549,7 @@ ${systemActions}`;
 }
 
 // =========================================================================
-// 8. WIZARD AI TẠO PHÔI MẪU & CẤY PLACEHOLDER (BODY + HEADER + FOOTER)
+// 8. WIZARD AI TẠO PHÔI MẪU & CẤY PLACEHOLDER (TỪ FILE WORD UPLOAD)
 // =========================================================================
 
 function backend_CreateTemplateFromDoc(fileName, mimeType, base64Data, targetFileId, newFileName) {
@@ -616,5 +652,120 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT ĐỊNH DẠNG JSON:
   } catch(e) {
     if (tempDocFile && tempDocFile.id) try { Drive.Files.remove(tempDocFile.id); } catch(ex) {}
     return { success: false, error: "Lỗi AI tạo mẫu: " + e.message };
+  }
+}
+
+// =========================================================================
+// 9. AI TỰ ĐỘNG SOẠN THẢO BIỂU MẪU RỖNG TỪ TÊN GỌI (NO-UPLOAD MODE)
+// =========================================================================
+
+function backend_AutoGenerateEmptyTemplate(templateId, templateName) {
+  try {
+    var placeholderDefs = (typeof backend_GetAllPlaceholders === 'function') ? backend_GetAllPlaceholders() : [];
+    var listPlaceholdersText = placeholderDefs.map(p => `- ${p.name}: ${p.description}`).join("\n");
+
+    var systemPrompt = `BẠN LÀ CHUYÊN VIÊN SOẠN THẢO VĂN BẢN TÒA ÁN NHÂN DÂN.
+Nhiệm vụ: Soạn nội dung pháp lý cho biểu mẫu mang tên: "${templateName}".
+
+YÊU CẦU NGHIỆP VỤ BẮT BUỘC:
+1. KHÔNG VIẾT Quốc hiệu, Tên Tòa án, Số ký hiệu, hay phần Chữ ký Thẩm phán vì hệ thống sẽ tự động in cứng bằng cấu trúc bảng chuẩn mực.
+2. Bạn CHỈ cung cấp Tiêu đề văn bản (in hoa), Ký hiệu rút gọn và Mảng các đoạn văn bản nội dung chính (từ đoạn "Kính gửi..." hoặc phần mở đầu căn cứ pháp luật).
+3. Tuyệt đối tuân thủ thể thức văn bản tố tụng theo các Nghị quyết của Hội đồng Thẩm phán TANDTC (Nghị quyết số 01/2017/NQ-HĐTP, 02/2017/NQ-HĐTP...).
+4. Lời văn trang trọng, chuẩn mực pháp lý, đúng ngữ pháp tiếng Việt.
+5. Tự động lồng ghép chính xác các mã {Placeholder} chuẩn sau đây vào văn bản:
+${listPlaceholdersText}
+
+TRẢ VỀ ĐÚNG CẤU TRÚC JSON SAU:
+{
+  "symbol": "Ký hiệu văn bản (Ví dụ: TB-TLVA, QĐXXST-DS, GTT-DS, QĐCNTT-DS...)",
+  "title": "TIÊU ĐỀ VĂN BẢN IN HOA (Ví dụ: THÔNG BÁO\\nVỀ VIỆC THỤ LÝ VỤ ÁN)",
+  "paragraphs": [
+    { "text": "Kính gửi: {Đương sự thông báo}", "bold": false, "italic": false, "align": "left" },
+    { "text": "{Ngày thụ lý}, Tòa án nhân dân {tòa án} đã thụ lý vụ án {loại án} sơ thẩm...", "bold": false, "italic": false, "align": "justify" }
+  ]
+}`;
+
+    var rawResult = callFastGeminiAI(systemPrompt, "Hãy soạn thảo nội dung biểu mẫu: " + templateName, [], 8192, true);
+    var parsedAI = extractSafeJSON(rawResult);
+
+    if (!parsedAI.paragraphs || !Array.isArray(parsedAI.paragraphs)) {
+      throw new Error("Phản hồi của AI không đúng định dạng mảng đoạn văn.");
+    }
+
+    var doc = DocumentApp.openById(templateId);
+    var body = doc.getBody();
+    body.clear();
+
+    body.setMarginLeft(85.04).setMarginRight(56.69).setMarginTop(56.69).setMarginBottom(56.69);
+
+    var headerTable = body.appendTable();
+    headerTable.setBorderWidth(0);
+    var tr = headerTable.appendTableRow();
+    var tdLeft = tr.appendTableCell();
+    var tdRight = tr.appendTableCell();
+
+    var pL1 = tdLeft.appendParagraph("TÒA ÁN NHÂN DÂN\nKHU VỰC 2 - LÂM ĐỒNG").setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+    pL1.editAsText().setFontFamily('Times New Roman').setFontSize(12).setBold(true);
+    tdLeft.appendParagraph("───────────────").setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+    var pL2 = tdLeft.appendParagraph("Số: {Số văn bản}/" + new Date().getFullYear() + "/" + (parsedAI.symbol || "TB-TA")).setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+    pL2.editAsText().setFontFamily('Times New Roman').setFontSize(13).setBold(false);
+
+    var pR1 = tdRight.appendParagraph("CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM").setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+    pR1.editAsText().setFontFamily('Times New Roman').setFontSize(12).setBold(true);
+    var pR2 = tdRight.appendParagraph("Độc lập - Tự do - Hạnh phúc").setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+    pR2.editAsText().setFontFamily('Times New Roman').setFontSize(14).setBold(true);
+    tdRight.appendParagraph("────────────────────").setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+    var pR3 = tdRight.appendParagraph("Lâm Đồng, {ngày ban hành}").setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+    pR3.editAsText().setFontFamily('Times New Roman').setFontSize(13).setItalic(true);
+
+    body.appendParagraph("").setSpacingAfter(10);
+
+    var pTitle = body.appendParagraph(parsedAI.title || templateName.toUpperCase()).setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+    pTitle.editAsText().setFontFamily('Times New Roman').setFontSize(16).setBold(true);
+    body.appendParagraph("").setSpacingAfter(10);
+
+    var styleBody = {};
+    styleBody[DocumentApp.Attribute.FONT_FAMILY] = 'Times New Roman';
+    styleBody[DocumentApp.Attribute.FONT_SIZE] = 13.5;
+    styleBody[DocumentApp.Attribute.LINE_SPACING] = 1.2;
+    styleBody[DocumentApp.Attribute.SPACING_AFTER] = 2;
+
+    parsedAI.paragraphs.forEach(function(p) {
+      var para = body.appendParagraph(p.text || "");
+      para.setAttributes(styleBody);
+      
+      if (p.bold) para.editAsText().setBold(true);
+      if (p.italic) para.editAsText().setItalic(true);
+      
+      if (p.align === "center") para.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+      else if (p.align === "right") para.setAlignment(DocumentApp.HorizontalAlignment.RIGHT);
+      else para.setAlignment(DocumentApp.HorizontalAlignment.JUSTIFY);
+    });
+
+    body.appendParagraph("").setSpacingAfter(10);
+
+    var footerTable = body.appendTable();
+    footerTable.setBorderWidth(0);
+    var trF = footerTable.appendTableRow();
+    var tdF1 = trF.appendTableCell();
+    var tdF2 = trF.appendTableCell();
+
+    var pNhan = tdF1.appendParagraph("Nơi nhận:\n- Như trên;\n- Lưu hồ sơ.").setAlignment(DocumentApp.HorizontalAlignment.LEFT);
+    pNhan.editAsText().setFontFamily('Times New Roman').setFontSize(11);
+    pNhan.editAsText().setItalic(0, 8, true).setBold(0, 8, true);
+
+    var pKy = tdF2.appendParagraph("THẨM PHÁN\n\n\n\n{THẨM PHÁN}").setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+    pKy.editAsText().setFontFamily('Times New Roman').setFontSize(13.5).setBold(true);
+
+    if (body.getNumChildren() > 1 && body.getChild(0).asParagraph().getText() === "") {
+      body.removeChild(body.getChild(0));
+    }
+
+    doc.saveAndClose();
+
+    return { success: true, count: parsedAI.paragraphs.length };
+
+  } catch(e) {
+    return { success: false, error: "Lỗi sinh nội dung biểu mẫu: " + e.message };
   }
 }

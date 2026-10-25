@@ -1,6 +1,6 @@
 <style>
   /* =========================================================================
-   * HỆ THỐNG TRỢ LÝ THẨM PHÁN V8.0 - MASTER DESIGN SYSTEM & TOKENS
+   * HỆ THỐNG TRỢ LÝ THẨM PHÁN V8.5 - MASTER DESIGN SYSTEM & TOKENS
    * TỆP: CSS_DinhDang.html - CHUẨN MỰC THIẾT KẾ EXECUTIVE SLATE & HIGH-DPI TACTILE
    * ========================================================================= */
 
@@ -459,32 +459,35 @@
     overflow-y: auto;
   }
 
-  /* =========================================================================
-   * HỆ THỐNG TOAST, DIALOG & BACKGROUND TASK QUEUE
+/* =========================================================================
+   * HỆ THỐNG TOAST, DIALOG & BACKGROUND TASK QUEUE (TINH GỌN 320PX)
    * ========================================================================= */
   #background-task-queue {
     position: fixed;
-    top: 15px;
-    right: 15px;
+    top: 12px;
+    right: 12px;
     z-index: 9999999;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    max-width: calc(100vw - 30px);
+    gap: 6px;
+    max-width: calc(100vw - 24px);
     align-items: flex-end;
     pointer-events: none;
   }
+  
+  /* Thẻ thông báo nhỏ gọn 320px, bóng đổ thanh mảnh, không che khuất thao tác */
   .bg-task-card {
     pointer-events: auto;
-    width: 340px;
-    max-width: 100%;
+    width: 320px;
+    max-width: calc(100vw - 24px);
     background-color: #ffffff;
-    border-radius: 10px;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
-    border: 1px solid #e2e8f0;
-    border-left: 5px solid #2563eb !important;
+    border-radius: 9px;
+    box-shadow: 0 8px 20px -4px rgba(15, 23, 42, 0.15), 0 0 0 1px rgba(15, 23, 42, 0.05);
+    border: 1px solid #cbd5e1;
+    border-left: 4px solid #2563eb !important;
     position: relative;
     overflow: hidden;
+    transition: all 0.25s ease;
   }
 
   #global-toast-container {
@@ -600,7 +603,7 @@
      }
    }
 
-   /* 3. Tách tầng hiển thị khi mở Modal lồng nhau (Modal Tiền kiểm trên Modal Soạn thảo) */
+   /* 3. Tách tầng hiển thị khi mở Modal lồng nhau */
    #modalPreflightWarning {
      z-index: 1070 !important;
    }
