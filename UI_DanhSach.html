@@ -402,87 +402,83 @@
   <!-- ========================================================= -->
   <!-- 2. THANH CÔNG CỤ (TÌM KIẾM, LỌC LOẠI ÁN, LỌC KẾT QUẢ)     -->
   <!-- ========================================================= -->
-  <div class="toolbar-container">
+  <div class="toolbar-container d-flex align-items-center justify-content-between gap-1 flex-nowrap" style="padding: 6px 10px; overflow-x: auto;">
     
-    <!-- Cụm Tìm kiếm & Bộ lọc -->
-    <div class="d-flex flex-wrap gap-2 align-items-center flex-grow-1 w-100 w-md-auto">
+    <!-- Cụm Tìm kiếm & Lọc (Tự động co giãn theo màn hình) -->
+    <div class="d-flex align-items-center gap-1 flex-grow-1 flex-nowrap" style="min-width: 0;">
       
-      <!-- Ô Tìm kiếm nhanh -->
-      <div class="search-wrapper">
-        <i class="fas fa-search"></i>
-        <input type="text" id="txtSearchMain" class="form-control" placeholder="Tìm số thụ lý, đương sự, tội danh..." oninput="window.runFilterEngine()" autocomplete="off">
+      <!-- 1. Ô Tìm kiếm nhanh -->
+      <div class="search-wrapper" style="min-width: 150px; flex: 1 1 200px; max-width: 280px;">
+        <i class="fas fa-search" style="left: 11px; font-size: 11px;"></i>
+        <input type="text" id="txtSearchMain" class="form-control form-control-sm" style="padding-left: 28px !important; height: 32px; font-size: 12px !important;" placeholder="Tìm số thụ lý, đương sự, tội danh..." oninput="window.runFilterEngine()" autocomplete="off">
       </div>
 
-      <!-- Khoảng ngày thụ lý (co giãn chuẩn trên mobile) -->
-      <div class="d-flex gap-1 filter-date-group">
-        <div style="width: 125px;">
-          <input type="date" id="filter-start" class="form-control" title="Từ ngày thụ lý" onchange="window.runFilterEngine()">
+      <!-- 2. Khoảng ngày thụ lý -->
+      <div class="d-flex gap-1 align-items-center flex-shrink-0">
+        <div style="width: 108px;">
+          <input type="date" id="filter-start" class="form-control form-control-sm px-1 fw-bold text-center" style="height: 32px; font-size: 11px !important;" title="Từ ngày thụ lý" onchange="window.runFilterEngine()">
         </div>
-
-        <div style="width: 125px;">
-          <input type="date" id="filter-end" class="form-control" title="Đến ngày thụ lý" onchange="window.runFilterEngine()">
-        </div>
-      </div>
-
-      <!-- Dropdown Loại án & Kết quả (co giãn chuẩn trên mobile) -->
-      <div class="d-flex gap-1 filter-select-group">
-        <!-- Dropdown Loại án 1 đến 8 chuẩn TANDTC -->
-        <div style="width: 165px;">
-          <select id="filter-loaiAn" class="form-select fw-bold" onchange="window.setFilter('loaiAn', this.value, event)">
-            <option value="ALL">-- Tất cả loại án --</option>
-            <option value="1. Hình sự">1. Hình sự</option>
-            <option value="2. Dân sự">2. Dân sự</option>
-            <option value="3. Hôn nhân">3. Hôn nhân & Gia đình</option>
-            <option value="4. Kinh doanh">4. Kinh doanh Thương mại</option>
-            <option value="5. Lao động">5. Lao động</option>
-            <option value="6. Hành chính">6. Hành chính</option>
-            <option value="7. Việc dân sự">7. Việc dân sự</option>
-            <option value="8. Hòa giải đối thoại">8. Hòa giải đối thoại</option>
-          </select>
-        </div>
-
-        <!-- DROPDOWN LỌC KẾT QUẢ THỰC CHẤT -->
-        <div style="width: 175px;">
-          <select id="filter-ketQua" class="form-select fw-bold text-primary" onchange="window.setFilter('ketQua', this.value, event)">
-            <option value="ALL">-- Tất cả kết quả --</option>
-            <option value="BAN_AN">Bản án sơ thẩm</option>
-            <option value="THOA_THUAN">Công nhận sự thỏa thuận</option>
-            <option value="THUAN_TINH">Thuận tình ly hôn</option>
-            <option value="DINH_CHI">Đình chỉ giải quyết vụ án</option>
-            <option value="TRA_HO_SO">Trả hồ sơ ĐTBS (Hình sự)</option>
-            <option value="VIEC_DAN_SU">Quyết định giải quyết việc DS</option>
-            <option value="CHUYEN_DI">Chuyển hồ sơ vụ án</option>
-            <option value="NHAP_VU">Nhập vụ án / vụ việc</option>
-          </select>
+        <span class="text-muted small" style="font-size: 11px;">–</span>
+        <div style="width: 108px;">
+          <input type="date" id="filter-end" class="form-control form-control-sm px-1 fw-bold text-center" style="height: 32px; font-size: 11px !important;" title="Đến ngày thụ lý" onchange="window.runFilterEngine()">
         </div>
       </div>
 
-      <!-- Nút Reset Lọc -->
-      <button class="btn btn-outline-secondary px-2 py-1" style="height: 35px; border-radius: 8px;" onclick="window.clearAllFilters()" title="Xóa toàn bộ bộ lọc">
-        <i class="fas fa-filter-circle-xmark"></i>
+      <!-- 3. Dropdown Loại án -->
+      <div class="flex-shrink-0" style="width: 130px;">
+        <select id="filter-loaiAn" class="form-select form-select-sm fw-bold px-2 text-truncate" style="height: 32px; font-size: 11.5px !important;" onchange="window.setFilter('loaiAn', this.value, event)">
+          <option value="ALL">-- Loại án --</option>
+          <option value="1. Hình sự">1. Hình sự</option>
+          <option value="2. Dân sự">2. Dân sự</option>
+          <option value="3. Hôn nhân">3. Hôn nhân</option>
+          <option value="4. Kinh doanh">4. Kinh doanh</option>
+          <option value="5. Lao động">5. Lao động</option>
+          <option value="6. Hành chính">6. Hành chính</option>
+          <option value="7. Việc dân sự">7. Việc dân sự</option>
+          <option value="8. Hòa giải đối thoại">8. HGĐT</option>
+        </select>
+      </div>
+
+      <!-- 4. Dropdown Kết quả -->
+      <div class="flex-shrink-0" style="width: 135px;">
+        <select id="filter-ketQua" class="form-select form-select-sm fw-bold text-primary px-2 text-truncate" style="height: 32px; font-size: 11.5px !important;" onchange="window.setFilter('ketQua', this.value, event)">
+          <option value="ALL">-- Kết quả --</option>
+          <option value="BAN_AN">Bản án sơ thẩm</option>
+          <option value="THOA_THUAN">CN sự thỏa thuận</option>
+          <option value="THUAN_TINH">Thuận tình ly hôn</option>
+          <option value="DINH_CHI">Đình chỉ vụ án</option>
+          <option value="TRA_HO_SO">Trả hồ sơ ĐTBS</option>
+          <option value="VIEC_DAN_SU">Giải quyết việc DS</option>
+          <option value="CHUYEN_DI">Chuyển hồ sơ</option>
+          <option value="NHAP_VU">Nhập vụ án</option>
+        </select>
+      </div>
+
+      <!-- 5. Nút Reset Lọc -->
+      <button class="btn btn-outline-secondary px-2 py-0 flex-shrink-0 d-flex align-items-center justify-content-center" style="height: 32px; width: 32px; border-radius: 7px;" onclick="window.clearAllFilters()" title="Đặt lại bộ lọc">
+        <i class="fas fa-filter-circle-xmark" style="font-size: 12px;"></i>
       </button>
     </div>
 
-    <!-- Cụm Nút Hành Động bên phải (Đầy đủ Làm mới, Xuất Excel, Thụ lý mới) -->
-    <div class="d-flex align-items-center gap-2 toolbar-action-group">
-      <!-- Nút Xóa Hàng Loạt (Ẩn mặc định) -->
-      <button id="btn-bulk-delete-case" class="btn btn-danger d-none shadow-sm btn-action-tool" onclick="deleteSelectedCases()">
-        <i class="fas fa-trash-alt me-1"></i> XÓA CHỌN (<span id="bulk-case-count">0</span>)
+    <!-- Cụm Nút Hành Động Bên Phải (Cố định không ngắt dòng) -->
+    <div class="d-flex align-items-center gap-1 flex-shrink-0 ms-1">
+      <button id="btn-bulk-delete-case" class="btn btn-danger d-none shadow-sm btn-action-tool py-0 px-2" style="height: 32px !important; font-size: 11.5px !important;" onclick="deleteSelectedCases()">
+        <i class="fas fa-trash-alt me-1"></i> Xóa (<span id="bulk-case-count">0</span>)
       </button>
 
-      <!-- NÚT LÀM MỚI DANH SÁCH ÁN (1-CLICK SYNC TRÊN PC) -->
-      <button class="btn btn-action-outline btn-action-tool shadow-sm" onclick="window.loadCaseList(true)" title="Làm mới danh sách & Kéo số liệu mới tức thì từ máy chủ">
-        <i class="fas fa-sync-alt text-primary"></i> <span class="d-none d-sm-inline">Làm mới</span>
+      <!-- Làm mới -->
+      <button class="btn btn-action-outline btn-action-tool py-0 px-2" style="height: 32px !important; font-size: 11.5px !important;" onclick="window.loadCaseList(true)" title="Đồng bộ số liệu">
+        <i class="fas fa-sync-alt text-primary"></i> <span>Làm mới</span>
       </button>
 
-      <!-- NÚT XUẤT EXCEL THEO HIỆN TRẠNG ĐANG LỌC -->
-      <button class="btn btn-action-outline btn-action-tool shadow-sm text-success" onclick="window.xuatExcelDanhSachAn()" title="Xuất danh sách đang lọc trên màn hình ra file Excel">
-        <i class="fas fa-file-excel text-success me-1"></i> <span class="d-none d-sm-inline">Xuất Excel</span>
+      <!-- Xuất Excel -->
+      <button class="btn btn-action-outline btn-action-tool py-0 px-2 text-success" style="height: 32px !important; font-size: 11.5px !important;" onclick="window.xuatExcelDanhSachAn()" title="Xuất Excel danh sách đang lọc">
+        <i class="fas fa-file-excel text-success me-1"></i> <span>Xuất Excel</span>
       </button>
 
-      <!-- Nút Thụ lý mới -->
-      <button class="btn btn-primary px-3 shadow-sm btn-action-tool" onclick="moModalThemMoi()">
-        <i class="fas fa-plus me-1"></i> THỤ LÝ
+      <!-- Thụ lý mới -->
+      <button class="btn btn-primary shadow-sm btn-action-tool py-0 px-2.5" style="height: 32px !important; font-size: 11.5px !important;" onclick="moModalThemMoi()">
+        <i class="fas fa-plus me-1"></i> <span>THỤ LÝ</span>
       </button>
     </div>
   </div>

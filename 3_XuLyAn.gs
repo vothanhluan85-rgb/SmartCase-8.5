@@ -391,6 +391,7 @@ function backend_LuuThongSoNghiepVuAn(payload) {
     var idVuAn = payload.idVuAn;
     var vars = payload.variables || {};
     var narratives = payload.narratives || {};
+    var deletedKeys = payload.deletedKeys || [];
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheetAn = ss.getSheetByName("1_SoThuLy");
     if (!sheetAn) return { success: false, error: "Không tìm thấy bảng 1_SoThuLy." };
@@ -402,26 +403,35 @@ function backend_LuuThongSoNghiepVuAn(payload) {
     var folderUrl = sheetAn.getRange(row, 8).getValue();
 
     if (!folderUrl || !folderUrl.includes("http")) {
-      var soTL = sheetAn.getRange(row, 2).getValue();
-      var ngayTL = sheetAn.getRange(row, 3).getValue();
-      var loaiAn = sheetAn.getRange(row, 4).getValue();
-      
-      var sheetDS = ss.getSheetByName("2_DuongSu");
-      var dsData = sheetDS ? sheetDS.getDataRange().getValues() : [];
-      var parties = [];
-      for (var i = 1; i < dsData.length; i++) {
-        if (dsData[i][0] && dsData[i][0].toString() === idVuAn) {
-          parties.push({ tuCach: dsData[i][1], hoTen: dsData[i][3] });
-        }
-      }
-      folderUrl = taoThuMucHoSoMoi(soTL, loaiAn, LibDate.parse(ngayTL) || new Date(), parties);
-      sheetAn.getRange(row, 8).setValue(folderUrl);
+      return { success: false, error: "Hồ sơ chưa có thư mục Drive." };
     }
 
     var currentMemory = readCaseMemoryFromDrive(folderUrl);
-    
-    currentMemory.variables = Object.assign({}, currentMemory.placeholders || {}, currentMemory.variables || {}, vars);
-    currentMemory.narratives = Object.assign({}, currentMemory.narratives || {}, narratives);
+    currentMemory.variables = currentMemory.variables || {};
+    currentMemory.narratives = currentMemory.narratives || {};
+    currentMemory.placeholders = currentMemory.placeholders || {};
+
+    // 1. XÓA VĨNH VIỄN CÁC KEY ĐÃ BẤM NÚT X KHỎI BỘ NHỚ DRIVE
+    if (deletedKeys && Array.isArray(deletedKeys)) {
+      deletedKeys.forEach(function(k) {
+        delete currentMemory.variables[k];
+        delete currentMemory.narratives[k];
+        delete currentMemory.placeholders[k];
+      });
+    }
+
+    // 2. Cập nhật các biến còn lại
+    currentMemory.variables = Object.assign({}, currentMemory.variables, vars);
+    currentMemory.narratives = Object.assign({}, currentMemory.narratives, narratives);
+
+    // 3. Quét lại lần cuối để đảm bảo biến đã xóa không bị dính lại
+    if (deletedKeys && Array.isArray(deletedKeys)) {
+      deletedKeys.forEach(function(k) {
+        delete currentMemory.variables[k];
+        delete currentMemory.narratives[k];
+      });
+    }
+
     currentMemory.lastUpdated = new Date().toISOString();
 
     saveCaseMemoryToDrive(folderUrl, currentMemory);

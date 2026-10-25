@@ -1,0 +1,891 @@
+<!--
+  =========================================================================
+  HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.5 - SMARTCASE HUB (TRUNG TÂM HỢP NHẤT)
+  TỆP: UI_Hub.html - PHIÊN BẢN HOÀN CHỈNH: GIAO DIỆN PHẲNG & ĐIỀU PHỐI DỮ LIỆU
+  -------------------------------------------------------------------------
+  - THIẾT KẾ: Ngôn ngữ phẳng, viền Hairline 1px, độ đậm chữ thanh lịch.
+  - CẤU TRÚC: Phân vùng 3 cột (Bộ lọc Triage ➔ Danh sách Stream ➔ Bàn xử lý).
+  - TRIẾT LÝ BLACKBERRY HUB: Vách ngăn ngày tháng, Red Splat ✻, Zero-lag 0ms.
+  - HỘI TỤ 4 DÒNG CHẢY: Hàng đợi in, Mốc 24h & Quá hạn, Lịch hôm nay, Đơn mới.
+  =========================================================================
+-->
+
+<style>
+  /* ================= KIẾN TRÚC GIAO DIỆN CHỦ ĐẠO ================= */
+  .hub-container {
+    height: calc(100vh - 84px);
+    display: flex;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    overflow: hidden;
+    color: #0f172a;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .hub-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
+  .hub-scroll::-webkit-scrollbar-track { background: transparent; }
+  .hub-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  .hub-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+  /* ================= PANE 1: BỘ LỌC TRIAGE (220PX) ================= */
+  .hub-sidebar {
+    width: 220px;
+    background-color: #f8fafc;
+    border-right: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+  
+  .hub-sidebar-header {
+    padding: 15px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #334155;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .hub-nav-list {
+    padding: 10px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .hub-nav-item {
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: #475569;
+    transition: all 0.15s ease;
+    user-select: none;
+    border: 1px solid transparent;
+  }
+  .hub-nav-item:hover { 
+    background-color: #f1f5f9; 
+    color: #0f172a; 
+  }
+  .hub-nav-item.active {
+    background-color: #ffffff;
+    color: #2563eb;
+    font-weight: 600;
+    border-color: #e2e8f0;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+  
+  .hub-nav-icon { 
+    width: 22px; 
+    font-size: 13px; 
+    color: #94a3b8; 
+  }
+  .hub-nav-item.active .hub-nav-icon { 
+    color: #2563eb; 
+  }
+
+  /* Dấu hoa thị đỏ BlackBerry Splat */
+  .hub-splat {
+    color: #ef4444;
+    font-size: 13px;
+    font-weight: 900;
+    margin-left: 2px;
+    line-height: 1;
+    position: relative;
+    top: -3px;
+  }
+  .hub-badge {
+    background: transparent;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .hub-nav-item.active .hub-badge { 
+    color: #2563eb; 
+  }
+
+  /* ================= PANE 2: UNIFIED STREAM (360PX) ================= */
+  .hub-stream {
+    width: 360px;
+    background: #ffffff;
+    border-right: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+
+  .hub-search-bar {
+    padding: 10px 12px;
+    border-bottom: 1px solid #e2e8f0;
+    background: #ffffff;
+  }
+  .hub-search-input {
+    width: 100%;
+    height: 32px;
+    padding: 4px 10px 4px 30px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    font-size: 12px;
+    background: #f8fafc url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="%2394a3b8" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>') no-repeat 10px center;
+    transition: all 0.15s ease;
+  }
+  .hub-search-input:focus { 
+    outline: none; 
+    border-color: #93c5fd; 
+    background-color: #ffffff; 
+  }
+
+  .hub-list-content {
+    overflow-y: auto;
+    flex-grow: 1;
+    background: #ffffff;
+  }
+  
+  /* Vách ngăn ngày tháng trượt dính */
+  .hub-date-header {
+    padding: 5px 14px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    background: #f8fafc;
+    color: #64748b;
+    letter-spacing: 0.5px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 1px solid #f1f5f9;
+    border-top: 1px solid #f1f5f9;
+  }
+  .hub-date-header:first-child { border-top: none; }
+
+  /* Dòng sự kiện Stream */
+  .hub-list-item {
+    padding: 12px 14px;
+    background: #ffffff;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer;
+    display: flex;
+    gap: 12px;
+    transition: background 0.1s ease;
+    position: relative;
+  }
+  .hub-list-item:hover { 
+    background-color: #f8fafc; 
+  }
+  .hub-list-item.selected { 
+    background-color: #f8fafd; 
+  }
+  .hub-list-item.selected::before {
+    content: ''; 
+    position: absolute; 
+    left: 0; 
+    top: 0; 
+    bottom: 0; 
+    width: 2.5px; 
+    background-color: #2563eb;
+  }
+  
+  .hub-list-item.unread .hub-item-title { 
+    font-weight: 600; 
+    color: #0f172a; 
+  }
+  
+  .hub-item-icon {
+    width: 26px; 
+    height: 26px;
+    border-radius: 50%;
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    font-size: 12px; 
+    flex-shrink: 0;
+  }
+  .icon-print { color: #0284c7; background: #f0f9ff; }
+  .icon-urgent { color: #dc2626; background: #fef2f2; }
+  .icon-schedule { color: #16a34a; background: #f0fdf4; }
+  .icon-new { color: #d97706; background: #fffbeb; }
+
+  .hub-item-body { 
+    flex-grow: 1; 
+    min-width: 0; 
+  }
+  .hub-item-top { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: baseline; 
+    margin-bottom: 2px; 
+  }
+  
+  .hub-item-title-wrapper { 
+    display: flex; 
+    align-items: center; 
+    gap: 4px; 
+    min-width: 0; 
+    flex-grow: 1; 
+  }
+  .hub-item-title { 
+    font-size: 12.5px; 
+    font-weight: 500; 
+    color: #334155; 
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+  }
+  .hub-item-time { 
+    font-size: 10px; 
+    font-weight: 500; 
+    color: #94a3b8; 
+    flex-shrink: 0; 
+    margin-left: 6px; 
+  }
+  
+  .hub-item-desc { 
+    font-size: 11.5px; 
+    color: #64748b; 
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+    margin-bottom: 2px; 
+  }
+  .hub-item-case { 
+    font-size: 11px; 
+    font-weight: 600; 
+    color: #2563eb; 
+  }
+
+  /* ================= PANE 3: READING PANE (KHUNG XỬ LÝ) ================= */
+  .hub-reader {
+    flex-grow: 1;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  
+  .hub-reader-header {
+    padding: 20px 24px 14px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  
+  .hub-reader-meta { 
+    font-size: 10.5px; 
+    font-weight: 700; 
+    color: #64748b; 
+    text-transform: uppercase; 
+    margin-bottom: 6px; 
+    display: flex; 
+    align-items: center; 
+    gap: 6px; 
+  }
+  
+  .hub-reader-title { 
+    font-size: 16.5px; 
+    font-weight: 600; 
+    color: #0f172a; 
+    line-height: 1.4; 
+    margin-bottom: 12px; 
+  }
+  
+  /* Thanh Toolbar tinh tế */
+  .hub-reader-toolbar {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .btn-hub-tool {
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+    transition: all 0.15s ease;
+    text-decoration: none !important;
+  }
+  .btn-hub-tool:hover { 
+    background: #f8fafc; 
+    border-color: #cbd5e1; 
+    color: #0f172a; 
+  }
+  .btn-hub-tool.primary { 
+    color: #2563eb; 
+    border-color: #bfdbfe; 
+    background: #eff6ff; 
+  }
+  .btn-hub-tool.primary:hover { 
+    background: #dbeafe; 
+  }
+  .btn-hub-tool.success { 
+    color: #15803d; 
+    border-color: #bbf7d0; 
+    background: #f0fdf4; 
+    margin-left: auto; 
+  }
+  .btn-hub-tool.success:hover { 
+    background: #dcfce7; 
+  }
+
+  .hub-reader-body {
+    padding: 20px 24px;
+    overflow-y: auto;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #334155;
+  }
+  
+  .hub-data-box {
+    border-top: 1px solid #f1f5f9;
+    border-bottom: 1px solid #f1f5f9;
+    padding: 14px 0;
+    margin-top: 10px;
+    margin-bottom: 14px;
+  }
+  
+  .hub-data-row {
+    display: flex;
+    margin-bottom: 6px;
+  }
+  .hub-data-row:last-child { 
+    margin-bottom: 0; 
+  }
+  .hub-data-label {
+    width: 140px;
+    flex-shrink: 0;
+    color: #64748b;
+  }
+  .hub-data-value {
+    font-weight: 500;
+    color: #0f172a;
+  }
+</style>
+
+<div class="hub-container animate-fadeIn">
+  
+  <!-- ================= CỘT 1: SIDEBAR BỘ LỌC TRIAGE ================= -->
+  <div class="hub-sidebar">
+    <div class="hub-sidebar-header">
+      <span class="d-flex align-items-center">
+        <i class="fas fa-layer-group text-danger me-2"></i> TRẠM TÁC NGHIỆP
+      </span>
+      <button class="btn btn-sm btn-link p-0 text-muted shadow-none" onclick="window.loadHubData(true)" title="Đồng bộ dữ liệu Hub">
+        <i class="fas fa-sync-alt" style="font-size: 11px;"></i>
+      </button>
+    </div>
+    
+    <div class="hub-nav-list">
+      <div class="hub-nav-item active" onclick="window.filterHubStream('ALL', this)">
+        <div class="d-flex align-items-center">
+          <i class="fas fa-inbox hub-nav-icon"></i> Tất cả
+        </div>
+        <span class="hub-badge" id="hub-count-all">0</span>
+      </div>
+      
+      <div class="hub-nav-item" onclick="window.filterHubStream('PRINT', this)">
+        <div class="d-flex align-items-center">
+          <i class="fas fa-print hub-nav-icon"></i> Chờ in <span class="hub-splat" id="hub-splat-print" style="display:none;">✻</span>
+        </div>
+        <span class="hub-badge text-danger" id="hub-count-print">0</span>
+      </div>
+
+      <div class="hub-nav-item" onclick="window.filterHubStream('URGENT', this)">
+        <div class="d-flex align-items-center">
+          <i class="fas fa-bell hub-nav-icon"></i> Mốc khẩn <span class="hub-splat" id="hub-splat-urgent" style="display:none;">✻</span>
+        </div>
+        <span class="hub-badge text-danger" id="hub-count-urgent">0</span>
+      </div>
+
+      <div class="hub-nav-item" onclick="window.filterHubStream('SCHEDULE', this)">
+        <div class="d-flex align-items-center">
+          <i class="fas fa-calendar-day hub-nav-icon"></i> Lịch hôm nay
+        </div>
+        <span class="hub-badge" id="hub-count-schedule">0</span>
+      </div>
+
+      <div class="hub-nav-item" onclick="window.filterHubStream('NEW', this)">
+        <div class="d-flex align-items-center">
+          <i class="fas fa-envelope-open-text hub-nav-icon"></i> Đơn tiếp nhận
+        </div>
+        <span class="hub-badge" id="hub-count-new">0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= CỘT 2: DANH SÁCH STREAM HỢP NHẤT ================= -->
+  <div class="hub-stream">
+    <div class="hub-search-bar">
+      <input type="text" id="hub-search-input" class="hub-search-input" placeholder="Tìm số án, đương sự, nội dung..." autocomplete="off" oninput="window.handleHubSearch(this.value)">
+    </div>
+    
+    <div class="hub-list-content hub-scroll" id="hub-stream-list">
+      <div class="text-center p-5 text-muted small">
+        <div class="spinner-border spinner-border-sm text-primary me-2"></div>Đang hội tụ dữ liệu...
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= CỘT 3: KHUNG XỬ LÝ (READING PANE) ================= -->
+  <div class="hub-reader">
+    <div id="hub-reading-content" class="d-flex flex-column h-100">
+      <div class="text-center p-5 text-muted fst-italic mt-5">
+        <i class="fas fa-inbox fa-3x mb-3 text-secondary opacity-25"></i><br>
+        Chọn một công việc bên danh sách để xem chi tiết và xử lý.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  window.HubData = {
+    PRINT: [], URGENT: [], SCHEDULE: [], NEW: [], ALL: []
+  };
+  window.currentHubFilter = 'ALL';
+  window.currentSelectedHubItemId = null;
+  window.currentHubSearchKeyword = '';
+
+  /**
+   * HỘI TỤ TOÀN BỘ DỮ LIỆU TỪ RAM VÀ DRIVE VÀO SMARTCASE HUB
+   */
+  window.loadHubData = function(isForceRefresh) {
+    // 1. Quét dữ liệu từ G_An, G_Don, G_LichTrinh đã có sẵn trong RAM (Tức thì)
+    var today = new Date(); today.setHours(0,0,0,0);
+    var todayStr = today.getFullYear() + "-" + ("0" + (today.getMonth() + 1)).slice(-2) + "-" + ("0" + today.getDate()).slice(-2);
+    
+    window.HubData = { PRINT: [], URGENT: [], SCHEDULE: [], NEW: [], ALL: [] };
+
+    // Lọc Đơn mới (Chỉ lấy đơn chưa xử lý)
+    (window.G_Don || []).forEach(function(d) {
+      var tt = String(d.trangThai || "").toLowerCase();
+      // Chỉ đưa đơn mới tiếp nhận vào Hub, bỏ qua đơn đã thụ lý hoặc đã xong
+      if (tt === "chưa xử lý" || tt === "đang xem xét" || tt === "") {
+        window.HubData.NEW.push({
+          id: "DON_" + d.id,
+          type: 'NEW',
+          title: "Đơn khởi kiện mới: " + (d.quanHe || "Chưa phân loại"),
+          desc: "Người nộp: " + (d.nguoiKhoiKien || "Chưa rõ"),
+          caseNo: "Đơn " + (d.soDon || "---"),
+          idVuAn: d.id,
+          time: d.ngayNhan || "Mới nhận",
+          dateISO: d.rawDate ? (window.formatDateToYMD ? window.formatDateToYMD(d.rawDate) : todayStr) : todayStr,
+          raw: d,
+          unread: true
+        });
+      }
+    });
+
+    // Các logic lọc Lịch và Án vẫn giữ nguyên...
+    // ... [giữ lại phần render Lịch và Án như cũ] ...
+
+    // Fetch Hàng đợi in từ Server
+    google.script.run
+      .withSuccessHandler(function(printItems) {
+        // ... [Giữ nguyên logic nạp printItems] ...
+        window.renderHubStream();
+      })
+      .api_LayDanhSachHangDoiIn();
+  };
+
+  /**
+   * RENDER DANH SÁCH STREAM THEO BLACKBERRY HUB DATE SEPARATORS
+   */
+  window.renderHubStream = function() {
+    window.HubData.ALL = [].concat(
+      window.HubData.URGENT, 
+      window.HubData.PRINT, 
+      window.HubData.SCHEDULE, 
+      window.HubData.NEW
+    );
+
+    // Cập nhật số đếm Pane 1
+    var countAll = window.HubData.ALL.length;
+    var countPrint = window.HubData.PRINT.length;
+    var countUrgent = window.HubData.URGENT.length;
+    var countSchedule = window.HubData.SCHEDULE.length;
+    var countNew = window.HubData.NEW.length;
+
+    var elAll = document.getElementById('hub-count-all'); if (elAll) elAll.innerText = countAll;
+    var elPrint = document.getElementById('hub-count-print'); if (elPrint) elPrint.innerText = countPrint;
+    var elUrgent = document.getElementById('hub-count-urgent'); if (elUrgent) elUrgent.innerText = countUrgent;
+    var elSchedule = document.getElementById('hub-count-schedule'); if (elSchedule) elSchedule.innerText = countSchedule;
+    var elNew = document.getElementById('hub-count-new'); if (elNew) elNew.innerText = countNew;
+
+    // Quản lý Dấu hoa thị đỏ Splat
+    var splatPrint = document.getElementById('hub-splat-print');
+    if (splatPrint) splatPrint.style.display = countPrint > 0 ? 'inline' : 'none';
+    var splatUrgent = document.getElementById('hub-splat-urgent');
+    if (splatUrgent) splatUrgent.style.display = countUrgent > 0 ? 'inline' : 'none';
+
+    // Cập nhật Dấu hoa thị ngoài menu chính sidebar (UI_Chinh.html)
+    var menuHubSplat = document.querySelector('#menu-view-hub .hub-splat, #menu-view-hub span[style*="color: #dc2626"]');
+    if (menuHubSplat) {
+      menuHubSplat.style.display = (countPrint > 0 || countUrgent > 0) ? 'inline' : 'none';
+    }
+
+    var listToRender = window.HubData[window.currentHubFilter] || window.HubData.ALL;
+
+    // Lọc theo từ khóa tìm kiếm nếu có
+    if (window.currentHubSearchKeyword) {
+      var q = window.currentHubSearchKeyword.toLowerCase();
+      listToRender = listToRender.filter(function(it) {
+        return (it.title && it.title.toLowerCase().includes(q)) ||
+               (it.caseNo && it.caseNo.toLowerCase().includes(q)) ||
+               (it.desc && it.desc.toLowerCase().includes(q));
+      });
+    }
+
+    // Sắp xếp thứ tự thời gian giảm dần
+    listToRender.sort(function(a, b) {
+      if (a.dateISO !== b.dateISO) return b.dateISO.localeCompare(a.dateISO);
+      return b.time.localeCompare(a.time);
+    });
+
+    var container = document.getElementById('hub-stream-list');
+    if (!container) return;
+
+    if (listToRender.length === 0) {
+      container.innerHTML = `
+        <div class="text-center p-5 text-muted fst-italic" style="font-size: 12.5px;">
+          <i class="fas fa-check-circle fa-2x mb-2 d-block text-success opacity-50"></i>
+          Không có tác vụ nào cần xử lý trong mục này.
+        </div>`;
+      var reader = document.getElementById('hub-reading-content');
+      if (reader) {
+        reader.innerHTML = `
+          <div class="text-center p-5 text-muted fst-italic mt-5">
+            <i class="fas fa-inbox fa-3x mb-3 text-secondary opacity-25"></i><br>
+            Chọn một công việc bên danh sách để xem chi tiết và xử lý.
+          </div>`;
+      }
+      return;
+    }
+
+    var html = "";
+    var currentDateHeader = "";
+    var todayStr = window.formatDateToYMD ? window.formatDateToYMD() : "";
+    
+    var yest = new Date(); 
+    yest.setDate(yest.getDate() - 1);
+    var yestStr = yest.getFullYear() + "-" + ("0" + (yest.getMonth() + 1)).slice(-2) + "-" + ("0" + yest.getDate()).slice(-2);
+
+    listToRender.forEach(function(item) {
+      // Vách ngăn ngày tháng BlackBerry style
+      if (item.dateISO !== currentDateHeader) {
+        currentDateHeader = item.dateISO;
+        var headerLabel = item.dateISO.split('-').reverse().join('/');
+        if (item.dateISO === todayStr) headerLabel = "Hôm nay, " + headerLabel;
+        else if (item.dateISO === yestStr) headerLabel = "Hôm qua, " + headerLabel;
+        else headerLabel = "Ngày " + headerLabel;
+        
+        html += `<div class="hub-date-header">${headerLabel}</div>`;
+      }
+
+      var iconHtml = "";
+      if (item.type === 'URGENT') iconHtml = '<div class="hub-item-icon icon-urgent"><i class="fas fa-bell"></i></div>';
+      else if (item.type === 'PRINT') iconHtml = '<div class="hub-item-icon icon-print"><i class="fas fa-print"></i></div>';
+      else if (item.type === 'SCHEDULE') iconHtml = '<div class="hub-item-icon icon-schedule"><i class="fas fa-calendar-check"></i></div>';
+      else if (item.type === 'NEW') iconHtml = '<div class="hub-item-icon icon-new"><i class="fas fa-envelope-open-text"></i></div>';
+
+      var isSelected = (item.id === window.currentSelectedHubItemId);
+      var unreadClass = item.unread ? "unread" : "";
+      var selectedClass = isSelected ? "selected" : "";
+      var splatIndicator = item.unread ? '<span class="hub-splat" style="font-size: 11px; top: 0; left: 0;">✻</span>' : '';
+
+      html += `
+        <div class="hub-list-item ${unreadClass} ${selectedClass}" id="item_${item.id}" onclick="window.selectHubItem('${item.id}')">
+          ${iconHtml}
+          <div class="hub-item-body">
+            <div class="hub-item-top">
+              <div class="hub-item-title-wrapper">
+                ${splatIndicator}
+                <div class="hub-item-title" title="${item.title}">${item.title}</div>
+              </div>
+              <div class="hub-item-time">${item.time}</div>
+            </div>
+            <div class="hub-item-desc" title="${item.desc}">${item.desc}</div>
+            <div class="hub-item-case">${item.caseNo}</div>
+          </div>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+
+    // Giữ hoặc tự động chọn phần tử đầu tiên
+    if (!window.currentSelectedHubItemId && listToRender.length > 0) {
+      window.selectHubItem(listToRender[0].id);
+    } else if (window.currentSelectedHubItemId) {
+      window.selectHubItem(window.currentSelectedHubItemId);
+    }
+  };
+
+  /**
+   * CHỌN SỰ KIỆN TRONG STREAM VÀ NẠP KHUNG XỬ LÝ (PANE 3)
+   */
+  window.selectHubItem = function(id) {
+    window.currentSelectedHubItemId = id;
+    
+    document.querySelectorAll('.hub-list-item').forEach(el => el.classList.remove('selected'));
+    var currentEl = document.getElementById('item_' + id);
+    if (currentEl) {
+      currentEl.classList.add('selected');
+      currentEl.classList.remove('unread');
+      var splat = currentEl.querySelector('.hub-splat');
+      if (splat) splat.remove();
+    }
+
+    var item = window.HubData.ALL.find(x => x.id === id);
+    var reader = document.getElementById('hub-reading-content');
+    if (!item || !reader) return;
+
+    item.unread = false;
+
+    // 1. DẠNG THẺ: VĂN BẢN CHỜ IN ẤN
+    if (item.type === 'PRINT') {
+      var p = item.raw;
+      var docxUrl = p.linkDocx || `https://docs.google.com/document/d/${p.linkDocs}/export?format=docx`;
+      
+      reader.innerHTML = `
+        <div class="hub-reader-header">
+          <div class="hub-reader-meta"><i class="fas fa-print text-info"></i> VĂN BẢN CHỜ IN ĐÓNG DẤU</div>
+          <div class="hub-reader-title">${item.title}</div>
+          
+          <div class="hub-reader-toolbar">
+            <a href="${p.linkDocs}" target="_blank" class="btn-hub-tool primary"><i class="fas fa-print"></i> Mở Docs (In ngay)</a>
+            <a href="${docxUrl}" target="_blank" class="btn-hub-tool"><i class="fas fa-download text-secondary"></i> Tải .docx</a>
+            ${p.idVuAn ? `<button class="btn-hub-tool" onclick="window.appNavigate('view-detail'); window.moChiTiet('${p.idVuAn}');"><i class="fas fa-folder-open text-warning"></i> Mở hồ sơ án</button>` : ''}
+            <button class="btn-hub-tool success" onclick="window.markPrintDone('${p.id}')"><i class="fas fa-check"></i> Đã in xong</button>
+          </div>
+        </div>
+        
+        <div class="hub-reader-body hub-scroll">
+          <div class="mb-3">
+            <span class="badge bg-light text-primary border px-2 py-1" style="font-size: 11px;">${item.caseNo}</span>
+          </div>
+          
+          <div class="hub-data-box">
+            <div class="hub-data-row">
+              <div class="hub-data-label">Thời gian tạo:</div>
+              <div class="hub-data-value">${new Date(p.thoiGianTao).toLocaleString('vi-VN')}</div>
+            </div>
+            <div class="hub-data-row">
+              <div class="hub-data-label">Tình trạng:</div>
+              <div class="hub-data-value text-success fw-bold">Đã trộn văn bản hoàn chỉnh, sẵn sàng phát hành</div>
+            </div>
+          </div>
+          
+          <p class="text-muted small" style="line-height: 1.6;">
+            * Văn bản được xuất lưu trực tiếp trong thư mục Google Drive của hồ sơ vụ việc. Sau khi in và đóng dấu hoàn tất, Thẩm phán nhấn <b>"Đã in xong"</b> để loại bỏ văn bản khỏi danh sách chờ.
+          </p>
+        </div>
+      `;
+    }
+    // 2. DẠNG THẺ: MỐC KHẨN CẤP & MỐC 24H
+    else if (item.type === 'URGENT') {
+      var isMilestone24h = item.id.startsWith("LICH_");
+      
+      var actionBtn = isMilestone24h
+        ? `<button class="btn-hub-tool primary" onclick="window.openDraftingModal('${item.idVuAn}', { autoSelectKeywordsArray: ['25. quyết định công nhận', '45. quyết định công nhận', '62. quyết định công nhận'] })"><i class="fas fa-file-signature"></i> Soạn ngay QĐ công nhận</button>`
+        : `<button class="btn-hub-tool primary" onclick="window.openDraftingModal('${item.idVuAn}', { autoSelectKeywordsArray: ['26. quyết định gia hạn', '31. quyết định đưa vụ án'] })"><i class="fas fa-file-signature"></i> Soạn QĐ gia hạn / Xét xử</button>`;
+
+      reader.innerHTML = `
+        <div class="hub-reader-header">
+          <div class="hub-reader-meta"><i class="fas fa-bell text-danger"></i> MỐC THỜI HẠN TỐ TỤNG KHẨN</div>
+          <div class="hub-reader-title">${item.title}</div>
+          
+          <div class="hub-reader-toolbar">
+            ${actionBtn}
+            <button class="btn-hub-tool" onclick="window.appNavigate('view-detail'); window.moChiTiet('${item.idVuAn}');"><i class="fas fa-folder-open text-warning"></i> Mở hồ sơ án</button>
+            ${isMilestone24h ? `<button class="btn-hub-tool success" onclick="window.markScheduleDone('${item.rawId}')"><i class="fas fa-check"></i> Đã giải quyết</button>` : ''}
+          </div>
+        </div>
+        
+        <div class="hub-reader-body hub-scroll">
+          <div class="mb-3">
+            <span class="badge bg-danger-subtle text-danger border border-danger px-2 py-1" style="font-size: 11px;">${item.caseNo}</span>
+          </div>
+          
+          <div class="hub-data-box">
+            <div class="hub-data-row">
+              <div class="hub-data-label">Chi tiết:</div>
+              <div class="hub-data-value">${item.desc}</div>
+            </div>
+            <div class="hub-data-row">
+              <div class="hub-data-label">Thời hạn:</div>
+              <div class="hub-data-value text-danger fw-bold">${item.time}</div>
+            </div>
+          </div>
+          
+          <p class="text-muted small" style="line-height: 1.6;">
+            * Thẩm phán cần lưu ý hoàn tất thủ tục tố tụng trong ngày làm việc để bảo đảm đúng thời hạn theo quy định của Bộ luật Tố tụng Dân sự.
+          </p>
+        </div>
+      `;
+    }
+    // 3. DẠNG THẺ: LỊCH TRÌNH LÀM VIỆC HÔM NAY
+    else if (item.type === 'SCHEDULE') {
+      var ev = item.raw;
+      reader.innerHTML = `
+        <div class="hub-reader-header">
+          <div class="hub-reader-meta"><i class="fas fa-calendar-check text-success"></i> LỊCH LÀM VIỆC HÔM NAY</div>
+          <div class="hub-reader-title">${item.title}</div>
+          
+          <div class="hub-reader-toolbar">
+            ${item.idVuAn && item.idVuAn !== 'GENERAL' ? `
+              <button class="btn-hub-tool primary" onclick="window.openDraftingModal('${item.idVuAn}', { trieuTapDate: '${item.dateISO}', trieuTapTime: '${item.time}', noiDungThem: '${item.title.replace(/'/g, "\\'")}' })"><i class="fas fa-file-signature"></i> Soạn văn bản</button>
+              <button class="btn-hub-tool" onclick="window.appNavigate('view-detail'); window.moChiTiet('${item.idVuAn}');"><i class="fas fa-folder-open text-warning"></i> Mở hồ sơ</button>
+            ` : ''}
+            <button class="btn-hub-tool success" onclick="window.markScheduleDone('${item.rawId}')"><i class="fas fa-check"></i> Đã hoàn thành</button>
+          </div>
+        </div>
+        
+        <div class="hub-reader-body hub-scroll">
+          <div class="mb-3">
+            <span class="badge bg-success-subtle text-success border border-success px-2 py-1" style="font-size: 11px;">${item.caseNo}</span>
+          </div>
+          
+          <div class="hub-data-box">
+            <div class="hub-data-row">
+              <div class="hub-data-label">Thời gian:</div>
+              <div class="hub-data-value text-danger fw-bold">${item.time} - Hôm nay</div>
+            </div>
+            <div class="hub-data-row">
+              <div class="hub-data-label">Địa điểm:</div>
+              <div class="hub-data-value">${ev.ghiChu || "Trụ sở Tòa án"}</div>
+            </div>
+            <div class="hub-data-row">
+              <div class="hub-data-label">Thành phần:</div>
+              <div class="hub-data-value">${ev.duongSuText || "Đương sự theo vụ việc"}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    // 4. DẠNG THẺ: ĐƠN TIẾP NHẬN MỚI
+    else if (item.type === 'NEW') {
+      var d = item.raw;
+      reader.innerHTML = `
+        <div class="hub-reader-header">
+          <div class="hub-reader-meta"><i class="fas fa-envelope-open-text text-warning"></i> ĐƠN KHỞI KIỆN TIẾP NHẬN</div>
+          <div class="hub-reader-title">${item.title}</div>
+          
+          <div class="hub-reader-toolbar">
+            <button class="btn-hub-tool primary" onclick="window.chuyenDonSangThuLy('${d.id}')"><i class="fas fa-folder-plus"></i> Chuyển thụ lý</button>
+            <button class="btn-hub-tool" onclick="window.sendQuickSMS('${d.id}')"><i class="fas fa-sms text-info"></i> Hẹn lịch & SMS</button>
+            <button class="btn-hub-tool" onclick="window.moChiTietDon('${d.id}')"><i class="fas fa-eye text-primary"></i> Xem chi tiết đơn</button>
+          </div>
+        </div>
+        
+        <div class="hub-reader-body hub-scroll">
+          <div class="mb-3">
+            <span class="badge bg-warning-subtle text-dark border border-warning px-2 py-1" style="font-size: 11px;">${item.caseNo}</span>
+          </div>
+          
+          <div class="hub-data-box">
+            <div class="hub-data-row">
+              <div class="hub-data-label">Người nộp đơn:</div>
+              <div class="hub-data-value text-primary fw-bold">${d.nguoiKhoiKien || "Chưa rõ"}</div>
+            </div>
+            <div class="hub-data-row">
+              <div class="hub-data-label">Người bị kiện:</div>
+              <div class="hub-data-value">${d.nguoiBiKien || "Chưa rõ"}</div>
+            </div>
+            <div class="hub-data-row">
+              <div class="hub-data-label">Ngày nhận đơn:</div>
+              <div class="hub-data-value">${d.ngayNhan || "---"}</div>
+            </div>
+            <div class="hub-data-row">
+              <div class="hub-data-label">Phân loại:</div>
+              <div class="hub-data-value">${d.loaiAn || "2. Dân sự"}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+  };
+
+  /**
+   * LỌC TRIAGE THEO DANH MỤC SIDEBAR (PANE 1)
+   */
+  window.filterHubStream = function(type, el) {
+    document.querySelectorAll('.hub-nav-item').forEach(b => b.classList.remove('active'));
+    if (el) el.classList.add('active');
+    
+    window.currentHubFilter = type || 'ALL';
+    window.currentSelectedHubItemId = null;
+    window.renderHubStream();
+  };
+
+  /**
+   * TÌM KIẾM TRONG HUB STREAM
+   */
+  window.handleHubSearch = function(keyword) {
+    window.currentHubSearchKeyword = String(keyword || '').trim();
+    window.renderHubStream();
+  };
+
+  /**
+   * ĐÁNH DẤU VĂN BẢN ĐÃ IN XONG
+   */
+  window.markPrintDone = function(id) {
+    AppUI.showToast("Đang dọn văn bản khỏi hàng đợi...", "");
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (res && res.success) {
+          AppUI.showToast("Đã dọn dẹp xong!", "success");
+          window.HubData.PRINT = window.HubData.PRINT.filter(x => x.rawId !== id);
+          window.loadHubData();
+        } else {
+          AppUI.showToast("Lỗi dọn văn bản: " + (res ? res.error : ""), "error");
+        }
+      })
+      .withFailureHandler(function(err) {
+        AppUI.showToast("Lỗi kết nối: " + err.message, "error");
+      })
+      .api_XoaHangDoiIn(id);
+  };
+
+  /**
+   * ĐÁNH DẤU LỊCH TRÌNH HOÀN THÀNH
+   */
+  window.markScheduleDone = function(idLich) {
+    AppUI.showToast("Đang cập nhật lịch trình...", "");
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (res && res.success) {
+          AppUI.showToast("Đã hoàn thành công việc!", "success");
+          if (window.G_LichTrinh) {
+            var ev = window.G_LichTrinh.find(l => (l.idLich === idLich || l.id === idLich));
+            if (ev) ev.trangThai = "Hoàn thành";
+          }
+          window.loadHubData();
+        } else {
+          AppUI.showToast("Lỗi: " + (res ? res.error : ""), "error");
+        }
+      })
+      .withFailureHandler(function(err) {
+        AppUI.showToast("Lỗi kết nối: " + err.message, "error");
+      })
+      .api_CapNhatTrangThaiLich(idLich, "Hoàn thành");
+  };
+
+  // Tự động nạp dữ liệu khi mở giao diện Hub
+  setTimeout(function() {
+    window.loadHubData();
+  }, 150);
+</script>

@@ -4,11 +4,12 @@
  * HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.5 - MASTER CASE PARAMETERS & OCR ENGINE
  * TỆP: JS_ThongSoNghiepVu.html - ĐIỀU HÀNH BỘ NHỚ VỤ ÁN, CANVAS & MULTI-PHOTO OCR
  * -------------------------------------------------------------------------
- * - BẢO TỒN MASTER DATA: BIẾN DO AI BÓC TÁCH ĐƯỢC LƯU VĨNH VIỄN VÀO _case_memory.json.
- * - BÓC TÁCH CHUẨN XÁC: Vị trí tài sản, Hợp đồng tín dụng, Dư nợ, Di sản thừa kế.
- * - MULTI-PHOTO OCR: Nén Client-side, chụp đa trang và bóc tách liền mạch.
- * - [ĐÃ KHẮC PHỤC LỖI NGHIÊM TRỌNG]: Đã xóa bỏ hoàn toàn hàm executeApplyEvidenceCanvas
- *   khỏi tệp này để không ghi đè lên luồng xử lý chính trong JS_NghiepVu.html.
+ * - QUẢN LÝ DỮ LIỆU ĐỘNG: Chỉ hiển thị các khối dữ liệu thực tế có thông tin.
+ * - CHÚ THÍCH SIZE 8PT IN NGHIÊNG: Ghi rõ trường tương ứng {Placeholder} chuẩn.
+ * - NÚT XÓA THẺ TỨC THÌ (0ms): Xóa ngay khỏi giao diện, làm sạch mọi biến thể
+ *   (chữ hoa, chữ thường, từ đồng nghĩa) và đồng bộ dọn sạch trên Google Drive.
+ * - BẢO VỆ MASTER DATA: Chấm dứt lỗi nối chuỗi lặp lại và lỗi tự hồi sinh thẻ.
+ * - MULTI-PHOTO OCR: Bóc tách chứng cứ nhiều trang mượt mà qua Trợ lý thẩm phán.
  * =========================================================================
  */
 
@@ -18,114 +19,403 @@ window.openCanvasAutoSaveTimer = null;
 window.stagedOcrPhotos = [];
 
 // =========================================================================
-// 1. NẠP VÀ HIỂN THỊ DỮ LIỆU TỪ BỘ NHỚ DRIVE LÊN VÙNG CANVAS
+// 1. DANH MỤC ĐỊNH NGHĨA KHỐI DỮ LIỆU & RENDER THẺ (IN-PLACE CARDS)
 // =========================================================================
 
+/**
+ * Danh mục chuẩn hóa các khối dữ liệu nghiệp vụ của Tòa án nhân dân
+ */
+window.allFieldDefinitions = [
+  // 1. Nhóm chứng cứ, biên lai và lời khai (Chung cho mọi loại án)
+  {
+    key: "{Biên lai tạm ứng án phí}",
+    altKeys: ["{Thông tin biên lai án phí}"],
+    title: "Biên lai thu tiền tạm ứng án phí",
+    icon: "fas fa-receipt text-success",
+    placeholderTag: "{Biên lai tạm ứng án phí}",
+    allowed: true
+  },
+  {
+    key: "{Tài liệu kèm theo đơn khởi kiện}",
+    altKeys: ["{Tài liệu kèm đơn khởi kiện}", "{Tài liệu chứng cứ kèm theo}", "{Danh mục chứng cứ}"],
+    title: "Danh mục tài liệu chứng cứ kèm theo đơn",
+    icon: "fas fa-folder-open text-primary",
+    placeholderTag: "{Tài liệu kèm theo đơn khởi kiện}",
+    allowed: true
+  },
+  {
+    key: "{Lời khai đương sự}",
+    altKeys: [],
+    title: "Lời khai và yêu cầu khởi kiện của đương sự",
+    icon: "fas fa-comments text-info",
+    placeholderTag: "{Lời khai đương sự}",
+    allowed: true
+  },
+  {
+    key: "{Lời khai Nguyên đơn}",
+    altKeys: ["{Lời khai Người khởi kiện}"],
+    title: "Lời khai của bên khởi kiện / yêu cầu",
+    icon: "fas fa-user text-primary",
+    placeholderTag: "{Lời khai Nguyên đơn}",
+    allowed: true
+  },
+  {
+    key: "{Lời khai Bị đơn}",
+    altKeys: ["{Lời khai Người bị kiện}"],
+    title: "Lời khai của bên bị kiện / bị yêu cầu",
+    icon: "fas fa-user text-danger",
+    placeholderTag: "{Lời khai Bị đơn}",
+    allowed: true
+  },
+  {
+    key: "{Lời khai Người có quyền lợi, nghĩa vụ liên quan}",
+    altKeys: ["{Lời khai Người liên quan}"],
+    title: "Lời khai của người có quyền lợi, nghĩa vụ liên quan",
+    icon: "fas fa-user-group text-warning",
+    placeholderTag: "{Lời khai Người có quyền lợi, nghĩa vụ liên quan}",
+    allowed: true
+  },
+  {
+    key: "{Lời khai người làm chứng}",
+    altKeys: [],
+    title: "Lời khai của người làm chứng",
+    icon: "fas fa-eye text-success",
+    placeholderTag: "{Lời khai người làm chứng}",
+    allowed: true
+  },
+  {
+    key: "{Nội dung thỏa thuận}",
+    altKeys: ["{Nội dung hòa giải thành}"],
+    title: "Nội dung thỏa thuận hòa giải toàn bộ vụ án",
+    icon: "fas fa-handshake text-success",
+    placeholderTag: "{Nội dung thỏa thuận}",
+    allowed: true
+  },
+
+  // 2. Nhóm chuyên biệt Hôn nhân & Gia đình (Ẩn khi không phải án HNGĐ)
+  {
+    key: "{Quan hệ hôn nhân}",
+    altKeys: ["{Thỏa thuận ly hôn}"],
+    title: "Thỏa thuận về quan hệ hôn nhân",
+    icon: "fas fa-ring text-danger",
+    placeholderTag: "{Quan hệ hôn nhân}, {Thỏa thuận ly hôn}",
+    isHNGDOnly: true
+  },
+  {
+    key: "{Thỏa thuận con chung}",
+    altKeys: ["{Con chung}"],
+    title: "Thỏa thuận về con chung và người nuôi dưỡng",
+    icon: "fas fa-children text-primary",
+    placeholderTag: "{Thỏa thuận con chung}, {Con chung}",
+    isHNGDOnly: true
+  },
+  {
+    key: "{Cấp dưỡng nuôi con}",
+    altKeys: ["{Cấp dưỡng con chung}"],
+    title: "Mức và phương thức cấp dưỡng nuôi con",
+    icon: "fas fa-hand-holding-dollar text-success",
+    placeholderTag: "{Cấp dưỡng nuôi con}",
+    isHNGDOnly: true
+  },
+  {
+    key: "{Tài sản chung}",
+    altKeys: [],
+    title: "Thỏa thuận về tài sản chung",
+    icon: "fas fa-house-chimney text-warning",
+    placeholderTag: "{Tài sản chung}",
+    isHNGDOnly: true
+  },
+  {
+    key: "{Nợ chung}",
+    altKeys: [],
+    title: "Thỏa thuận về nghĩa vụ nợ chung",
+    icon: "fas fa-credit-card text-danger",
+    placeholderTag: "{Nợ chung}",
+    isHNGDOnly: true
+  },
+  {
+    key: "{Thỏa thuận án phí}",
+    altKeys: ["{Án phí}"],
+    title: "Thỏa thuận về nghĩa vụ chịu án phí",
+    icon: "fas fa-scale-balanced text-secondary",
+    placeholderTag: "{Thỏa thuận án phí}, {Án phí}",
+    allowed: true
+  },
+
+  // 3. Nhóm chuyên biệt Kinh doanh thương mại / Tín dụng ngân hàng (Ẩn trong ly hôn)
+  {
+    key: "{Hợp đồng tín dụng}",
+    altKeys: [],
+    title: "Thông tin hợp đồng tín dụng và thế chấp",
+    icon: "fas fa-file-contract text-primary",
+    placeholderTag: "{Hợp đồng tín dụng}",
+    isNonHNGD: true
+  },
+  {
+    key: "{Dư nợ tín dụng}",
+    altKeys: [],
+    title: "Tổng dư nợ gốc và lãi vay ngân hàng",
+    icon: "fas fa-money-bill-wave text-success",
+    placeholderTag: "{Dư nợ tín dụng}",
+    isNonHNGD: true
+  },
+
+  // 4. Nhóm chuyên biệt Đất đai / Bất động sản (Ẩn trong ly hôn)
+  {
+    key: "{Vị trí tài sản tranh chấp}",
+    altKeys: [],
+    title: "Vị trí thực địa tài sản tranh chấp",
+    icon: "fas fa-map-location-dot text-danger",
+    placeholderTag: "{Vị trí tài sản tranh chấp}",
+    isNonHNGD: true
+  },
+  {
+    key: "{Tài sản tranh chấp}",
+    altKeys: [],
+    title: "Mô tả chi tiết tài sản tranh chấp",
+    icon: "fas fa-tree-city text-warning",
+    placeholderTag: "{Tài sản tranh chấp}",
+    isNonHNGD: true
+  },
+  {
+    key: "{Di sản thừa kế}",
+    altKeys: [],
+    title: "Danh mục di sản thừa kế yêu cầu phân chia",
+    icon: "fas fa-monument text-secondary",
+    placeholderTag: "{Di sản thừa kế}",
+    isNonHNGD: true
+  },
+  {
+    key: "{Thiệt hại bồi thường}",
+    altKeys: [],
+    title: "Yêu cầu bồi thường thiệt hại ngoài hợp đồng",
+    icon: "fas fa-triangle-exclamation text-danger",
+    placeholderTag: "{Thiệt hại bồi thường}",
+    isNonHNGD: true
+  },
+  {
+    key: "{Tranh chấp lao động}",
+    altKeys: [],
+    title: "Yêu cầu giải quyết tranh chấp lao động",
+    icon: "fas fa-briefcase text-info",
+    placeholderTag: "{Tranh chấp lao động}",
+    isNonHNGD: true
+  },
+
+  // 5. Tóm tắt diễn biến tố tụng (Chỉ hiện khi có diễn biến thực tế, không chứa thẻ con)
+  {
+    key: "{Nội dung vụ án}",
+    altKeys: [],
+    title: "Tóm tắt diễn biến vụ án",
+    icon: "fas fa-file-lines text-primary",
+    placeholderTag: "{Nội dung vụ án}",
+    allowed: true
+  }
+];
+
+/**
+ * Hiển thị các khối dữ liệu:
+ * - Khối nào có dữ liệu mới hiển thị tiêu đề và nội dung.
+ * - Khối nào chưa có thì tạm thời ẩn hoàn toàn.
+ * - Chú thích size 8pt in nghiêng chỉ rõ placeholder tương ứng.
+ */
 window.renderAllSavedVariableCards = function(v, loaiAn, narratives) {
   v = v || window.currentCaseVariables || {};
   narratives = narratives || window.currentCaseNarratives || {};
 
-  var textarea = document.getElementById('case_free_narrative_text');
-  if (!textarea) return;
+  var wrapper = document.getElementById('case_open_canvas_wrapper');
+  if (!wrapper) return;
 
-  // Nếu đã có văn bản toàn văn nội dung vụ án do người dùng gõ
-  if (v["{Nội dung vụ án}"] && String(v["{Nội dung vụ án}"]).trim() !== "") {
-    textarea.value = v["{Nội dung vụ án}"];
+  var loaiAnStr = String(loaiAn || (window.currentCaseData && window.currentCaseData.info ? window.currentCaseData.info.loaiAn : "")).toLowerCase();
+  var isHNGD = loaiAnStr.includes("hôn nhân") || loaiAnStr.includes("3.");
+
+  var htmlCards = [];
+  var hasAnyData = false;
+
+  window.allFieldDefinitions.forEach(function(field) {
+    // Lọc theo tính chất ngành án
+    if (field.isHNGDOnly && !isHNGD) return;
+    if (field.isNonHNGD && isHNGD) return;
+
+    // Tìm dữ liệu trong biến hoặc narrative
+    var val = v[field.key] || narratives[field.key] || "";
+    if (!val && field.altKeys && field.altKeys.length > 0) {
+      for (var i = 0; i < field.altKeys.length; i++) {
+        var altVal = v[field.altKeys[i]] || narratives[field.altKeys[i]] || "";
+        if (altVal) { val = altVal; break; }
+      }
+    }
+
+    var cleanVal = String(val || "").trim();
+
+    // Loại bỏ nội dung gộp lỗi lặp lại từ trước
+    if (field.key === "{Nội dung vụ án}" && cleanVal.includes("[BIÊN LAI")) {
+      return;
+    }
+
+    // NGUYÊN TẮC: Khối nào CHƯA CÓ dữ liệu thì tuyệt đối KHÔNG hiển thị tiêu đề
+    if (!cleanVal || cleanVal === "---" || cleanVal === "..." || cleanVal === "undefined" || cleanVal === "null" || cleanVal === "Không nhắc tới cụ thể.") {
+      return;
+    }
+
+    hasAnyData = true;
+    var safeFieldKey = field.key.replace(/"/g, '&quot;');
+
+    htmlCards.push(`
+      <div class="data-variable-card p-3 mb-2 bg-white rounded-3 border shadow-sm animate-fadeIn" style="border-color: #cbd5e1 !important;" data-variable-key="${safeFieldKey}">
+        <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom flex-wrap gap-1">
+          <div class="d-flex align-items-baseline flex-wrap gap-2">
+            <span class="fw-bold text-dark text-uppercase" style="font-size: 11.5px; letter-spacing: 0.3px;">
+              <i class="${field.icon} me-1"></i> ${field.title}
+            </span>
+            <!-- Chú thích size 8pt in nghiêng chỉ rõ trường placeholder tương ứng -->
+            <span style="font-size: 8pt; font-style: italic; color: #64748b; font-weight: 500;">
+              Tương ứng: <code class="text-primary fw-semibold" style="font-size: 8pt; background: transparent; padding: 0;">${field.placeholderTag}</code>
+            </span>
+          </div>
+          <button type="button" class="btn btn-sm btn-link text-danger p-0 text-decoration-none shadow-none" style="font-size: 13px; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;" onclick="window.removeVariableCard('${safeFieldKey}', this)" title="Xóa thẻ này">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <textarea class="form-control border-0 p-0 shadow-none text-dark fw-normal card-variable-textarea" 
+          rows="2" 
+          style="font-size: 13px; line-height: 1.6; resize: vertical; background: transparent;" 
+          oninput="window.updateVariableCardValue('${safeFieldKey}', this.value); window.autoResizeCardTextarea(this);">${cleanVal}</textarea>
+      </div>
+    `);
+  });
+
+  // Nếu hoàn toàn chưa có khối dữ liệu nào
+  if (!hasAnyData) {
+    wrapper.innerHTML = `
+      <div class="text-center p-5 text-muted fst-italic animate-fadeIn" id="case_data_empty_state" style="font-size: 13px;">
+        <i class="fas fa-folder-open fa-2x mb-2 d-block opacity-25 text-secondary"></i>
+        Vùng dữ liệu đang trống. Khi bạn bấm <b>"Nạp dữ liệu"</b> hoặc <b>"Quét ảnh tài liệu"</b>, các khối thông tin bóc tách được sẽ tự động hiển thị tại đây.
+      </div>
+      <textarea id="case_free_narrative_text" class="d-none"></textarea>
+    `;
     return;
   }
 
-  // Tự động phân đoạn và tổng hợp dữ liệu ngăn nắp theo từng khối chuẩn mực
-  var compiledSections = [];
+  wrapper.innerHTML = `
+    <div id="case_structured_cards_container" class="d-flex flex-column">
+      ${htmlCards.join('')}
+    </div>
+    <textarea id="case_free_narrative_text" class="d-none"></textarea>
+  `;
 
-  // A. Khối Biên lai Án phí NQ 326
-  var feeText = v["{Biên lai tạm ứng án phí}"] || v["{Thông tin biên lai án phí}"] || "";
-  if (feeText && String(feeText).trim() !== "") {
-    compiledSections.push("[TẠM ỨNG ÁN PHÍ - NQ 326]:\n" + feeText);
-  }
-
-  // B. Khối Danh mục tài liệu chứng cứ kèm theo đơn
-  var docsText = v["{Tài liệu kèm theo đơn khởi kiện}"] || v["{Tài liệu kèm đơn khởi kiện}"] || v["{Tài liệu chứng cứ kèm theo}"] || v["{Danh mục chứng cứ}"] || "";
-  if (docsText && String(docsText).trim() !== "") {
-    compiledSections.push("[DANH MỤC TÀI LIỆU, CHỨNG CỨ KÈM THEO ĐƠN]:\n" + docsText);
-  }
-
-  // C. Khối Trích lục lời khai đương sự (Chi tiết toàn văn, không lẫn thỏa thuận)
-  var lkParts = [];
-  [
-    "{Lời khai đương sự}",
-    "{Lời khai Nguyên đơn}",
-    "{Lời khai Bị đơn}",
-    "{Lời khai Người yêu cầu}",
-    "{Lời khai Người bị yêu cầu}",
-    "{Lời khai Người có quyền lợi, nghĩa vụ liên quan}",
-    "{Lời khai người làm chứng}"
-  ].forEach(function(key) {
-    var txt = narratives[key] || v[key];
-    if (txt && String(txt).trim() !== "" && !lkParts.includes(txt)) {
-      lkParts.push(txt.startsWith("-") ? txt : `- ${key.replace(/[{}]/g, "")}:\n${txt}`);
-    }
-  });
-
-  if (lkParts.length > 0) {
-    compiledSections.push("[TRÍCH LỤC LỜI KHAI ĐƯƠNG SỰ]:\n" + lkParts.join("\n\n"));
-  }
-
-  // D. Khối Thông tin Tài sản / Hợp đồng tín dụng / Thừa kế
-  var assetParts = [];
-  if (v["{Vị trí tài sản tranh chấp}"]) assetParts.push("- Vị trí tài sản tranh chấp: " + v["{Vị trí tài sản tranh chấp}"]);
-  if (v["{Tài sản tranh chấp}"] && v["{Tài sản tranh chấp}"] !== v["{Vị trí tài sản tranh chấp}"]) assetParts.push("- Tài sản tranh chấp: " + v["{Tài sản tranh chấp}"]);
-  if (v["{Hợp đồng tín dụng}"]) assetParts.push("- Hợp đồng tín dụng: " + v["{Hợp đồng tín dụng}"]);
-  if (v["{Dư nợ tín dụng}"]) assetParts.push("- Dư nợ tín dụng: " + v["{Dư nợ tín dụng}"]);
-  if (v["{Di sản thừa kế}"]) assetParts.push("- Di sản thừa kế: " + v["{Di sản thừa kế}"]);
-  if (v["{Thiệt hại bồi thường}"]) assetParts.push("- Thiệt hại bồi thường: " + v["{Thiệt hại bồi thường}"]);
-  if (v["{Tranh chấp lao động}"]) assetParts.push("- Tranh chấp lao động: " + v["{Tranh chấp lao động}"]);
-
-  if (assetParts.length > 0) {
-    compiledSections.push("[THÔNG TIN TÀI SẢN / HỢP ĐỒNG / DI SẢN]:\n" + assetParts.join("\n"));
-  }
-
-  // E. Khối Thỏa thuận hòa giải
-  if (v["{Nội dung thỏa thuận}"] && String(v["{Nội dung thỏa thuận}"]).trim() !== "") {
-    compiledSections.push("[NỘI DUNG THỎA THUẬN HÒA GIẢI]:\n" + v["{Nội dung thỏa thuận}"]);
-  } else {
-    var tsParts = [];
-    var isHNGD = loaiAn && (loaiAn.includes("Hôn nhân") || loaiAn.includes("3."));
-
-    if (isHNGD) {
-      if (v["{Quan hệ hôn nhân}"] || v["{Thỏa thuận ly hôn}"]) {
-        tsParts.push("1. Về quan hệ hôn nhân: " + (v["{Quan hệ hôn nhân}"] || v["{Thỏa thuận ly hôn}"]));
-      }
-      if (v["{Thỏa thuận con chung}"] || v["{Con chung}"]) {
-        tsParts.push("2. Về con chung: " + (v["{Thỏa thuận con chung}"] || v["{Con chung}"]));
-      }
-      if (v["{Tài sản chung}"]) {
-        tsParts.push("3. Về tài sản chung: " + v["{Tài sản chung}"]);
-      }
-      if (v["{Nợ chung}"]) {
-        tsParts.push("4. Về nợ chung: " + v["{Nợ chung}"]);
-      }
-      if (v["{Thỏa thuận án phí}"] || v["{Án phí}"]) {
-        tsParts.push("5. Về án phí: " + (v["{Thỏa thuận án phí}"] || v["{Án phí}"]));
-      }
-    } else {
-      if (v["{Thỏa thuận nghĩa vụ chính}"]) tsParts.push("1. " + v["{Thỏa thuận nghĩa vụ chính}"]);
-      if (v["{Thời hạn và phương thức thực hiện}"]) tsParts.push("2. Về thời hạn và phương thức thực hiện: " + v["{Thời hạn và phương thức thực hiện}"]);
-      if (v["{Thỏa thuận chi phí tố tụng}"]) tsParts.push("3. Về chi phí tố tụng: " + v["{Thỏa thuận chi phí tố tụng}"]);
-      if (v["{Thỏa thuận án phí}"] || v["{Án phí}"]) tsParts.push("4. Về án phí: " + (v["{Thỏa thuận án phí}"] || v["{Án phí}"]));
-    }
-
-    if (tsParts.length > 0) {
-      compiledSections.push("[NỘI DUNG THỎA THUẬN HÒA GIẢI]:\n" + tsParts.join("\n"));
-    }
-  }
-
-  textarea.value = compiledSections.join("\n\n");
+  // Tự động căn chỉnh chiều cao các ô văn bản
+  setTimeout(function() {
+    wrapper.querySelectorAll('.card-variable-textarea').forEach(function(ta) {
+      window.autoResizeCardTextarea(ta);
+    });
+  }, 50);
 };
 
 // =========================================================================
-// 2. TỰ ĐỘNG LƯU NGẦM CANVAS & BẢO TOÀN DỮ LIỆU MASTER
+// 2. TỰ ĐỘNG LƯU TRỰC TIẾP, XÓA THẺ TỨC THÌ (0MS) VÀ ĐỒNG BỘ DRIVE
 // =========================================================================
 
+/**
+ * Tự động mở rộng chiều cao ô nhập liệu theo độ dài văn bản
+ */
+window.autoResizeCardTextarea = function(el) {
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = (el.scrollHeight + 4) + 'px';
+};
+
+/**
+ * Cập nhật biến số khi chỉnh sửa trực tiếp trên từng thẻ
+ */
+window.updateVariableCardValue = function(fieldKey, newValue) {
+  if (!fieldKey) return;
+
+  window.currentCaseVariables = window.currentCaseVariables || {};
+  window.currentCaseVariables[fieldKey] = newValue;
+
+  if (fieldKey.includes("Lời khai") || fieldKey.includes("Nội dung")) {
+    window.currentCaseNarratives = window.currentCaseNarratives || {};
+    window.currentCaseNarratives[fieldKey] = newValue;
+  }
+
+  // Đồng bộ vào textarea ngầm phục vụ chức năng sao chép
+  var hiddenTa = document.getElementById('case_free_narrative_text');
+  if (hiddenTa) {
+    var compiledParts = [];
+    document.querySelectorAll('.data-variable-card').forEach(function(card) {
+      var k = card.getAttribute('data-variable-key');
+      var ta = card.querySelector('.card-variable-textarea');
+      if (ta && ta.value.trim()) {
+        compiledParts.push(`[${k.replace(/[{}]/g, '').toUpperCase()}]:\n${ta.value.trim()}`);
+      }
+    });
+    hiddenTa.value = compiledParts.join("\n\n");
+  }
+
+  window.saveOpenCanvasText();
+};
+
+/**
+ * XÓA THẺ TỨC THÌ (0MS TRÊN GIAO DIỆN) VÀ XÓA VĨNH VIỄN KHỎI BỘ NHỚ
+ */
+window.removeVariableCard = function(fieldKey, btnEl) {
+  if (!fieldKey) return;
+
+  // 1. XÓA NGAY LẬP TỨC THẺ TRÊN GIAO DIỆN (0ms)
+  var cardEl = btnEl ? btnEl.closest('.data-variable-card') : document.querySelector(`[data-variable-key="${fieldKey}"]`);
+  if (cardEl) {
+    cardEl.style.transition = 'all 0.2s ease';
+    cardEl.style.opacity = '0';
+    cardEl.style.transform = 'translateY(-6px)';
+    setTimeout(function() { cardEl.remove(); }, 200);
+  }
+
+  // 2. Thu thập toàn bộ các biến thể của key (chính, phụ, chữ thường, chữ hoa)
+  var keysToDelete = [fieldKey, fieldKey.toLowerCase(), fieldKey.toUpperCase()];
+  var matchDef = (window.allFieldDefinitions || []).find(function(d) {
+    return d.key.toLowerCase() === fieldKey.toLowerCase() || 
+           (d.altKeys && d.altKeys.some(function(ak) { return ak.toLowerCase() === fieldKey.toLowerCase(); }));
+  });
+
+  if (matchDef) {
+    keysToDelete.push(matchDef.key, matchDef.key.toLowerCase(), matchDef.key.toUpperCase());
+    if (matchDef.altKeys) {
+      matchDef.altKeys.forEach(function(ak) {
+        keysToDelete.push(ak, ak.toLowerCase(), ak.toUpperCase());
+      });
+    }
+  }
+
+  // 3. Xóa sạch khỏi bộ nhớ RAM
+  keysToDelete.forEach(function(k) {
+    if (window.currentCaseVariables) delete window.currentCaseVariables[k];
+    if (window.currentCaseNarratives) delete window.currentCaseNarratives[k];
+  });
+
+  // 4. Nếu xóa hết thẻ thì hiện lại thông báo trống
+  setTimeout(function() {
+    var remaining = document.querySelectorAll('.data-variable-card');
+    var wrapper = document.getElementById('case_open_canvas_wrapper');
+    if (remaining.length === 0 && wrapper) {
+      wrapper.innerHTML = `
+        <div class="text-center p-5 text-muted fst-italic animate-fadeIn" id="case_data_empty_state" style="font-size: 13px;">
+          <i class="fas fa-folder-open fa-2x mb-2 d-block opacity-25 text-secondary"></i>
+          Vùng dữ liệu đang trống. Khi bạn bấm <b>"Nạp dữ liệu"</b> hoặc <b>"Quét ảnh tài liệu"</b>, các khối thông tin bóc tách được sẽ tự động hiển thị tại đây.
+        </div>
+        <textarea id="case_free_narrative_text" class="d-none"></textarea>
+      `;
+    }
+  }, 220);
+
+  // 5. Lưu trực tiếp xuống Drive kèm danh sách keysToDelete để server dọn sạch vĩnh viễn
+  window.saveCaseVariables(true, keysToDelete);
+  AppUI.showToast("Đã xóa thẻ dữ liệu!", "info");
+};
+
+/**
+ * Hẹn giờ tự động lưu ngầm (debounce 1.2s)
+ */
 window.saveOpenCanvasText = function() {
   clearTimeout(window.openCanvasAutoSaveTimer);
   var ind = document.getElementById('open_canvas_autosave_indicator');
@@ -136,171 +426,21 @@ window.saveOpenCanvasText = function() {
   }, 1200);
 };
 
-window.saveCaseVariables = function(isAuto) {
+/**
+ * Lưu biến số vào Google Drive _case_memory.json (Tuyệt đối không tự hồi sinh thẻ)
+ */
+window.saveCaseVariables = function(isAuto, deletedKeys) {
   if (!window.currentCaseId) return;
 
-  var textarea = document.getElementById('case_free_narrative_text');
-  var fullText = textarea ? textarea.value.trim() : "";
-
-  // BẢO TOÀN DỮ LIỆU GỐC: Kế thừa toàn bộ biến đã bóc tách trước đó từ AI
   var vars = Object.assign({}, window.currentCaseVariables || {});
   var narratives = Object.assign({}, window.currentCaseNarratives || {});
 
-  vars["{Nội dung vụ án}"] = fullText;
-  vars["{nội dung vụ án}"] = fullText;
-
-  if (fullText) {
-    // 1. BÓC TÁCH KHỐI TẠM ỨNG ÁN PHÍ NQ 326
-    var mBL = fullText.match(/(?:\[TẠM ỨNG ÁN PHÍ - NQ 326\]:|\{Biên lai tạm ứng án phí\}:?)([\s\S]*?)(?=(?:\[|\{|$))/i);
-    if (mBL && mBL[1].trim()) {
-      vars["{Biên lai tạm ứng án phí}"] = mBL[1].trim();
-      vars["{biên lai tạm ứng án phí}"] = mBL[1].trim();
-      vars["{Thông tin biên lai án phí}"] = mBL[1].trim();
-    }
-
-    // 2. BÓC TÁCH DANH MỤC TÀI LIỆU CHỨNG CỨ
-    var matchTaiLieu = fullText.match(/(?:\[DANH MỤC TÀI LIỆU, CHỨNG CỨ KÈM THEO ĐƠN\]:|\{Tài liệu kèm theo đơn khởi kiện\}:?|\{Tài liệu kèm đơn khởi kiện\}:?|- Danh mục chứng cứ:)([\s\S]*?)(?=(?:\[|\{|$))/i);
-    if (matchTaiLieu && matchTaiLieu[1].trim()) {
-      var valTL = matchTaiLieu[1].trim();
-      vars["{Tài liệu kèm theo đơn khởi kiện}"] = valTL;
-      vars["{tài liệu kèm theo đơn khởi kiện}"] = valTL;
-      vars["{Tài liệu kèm đơn khởi kiện}"] = valTL;
-      vars["{Danh mục chứng cứ}"] = valTL;
-    }
-
-    // 3. BÓC TÁCH CHI TIẾT TỪNG LỜI KHAI
-    var matchFullLk = fullText.match(/\[TRÍCH LỤC LỜI KHAI ĐƯƠNG SỰ\]:([\s\S]*?)(?=(?:\[NỘI DUNG|\[THÔNG SỐ|\[TẠM ỨNG|\[DANH MỤC|\[THÔNG TIN|$))/i);
-    if (matchFullLk && matchFullLk[1].trim()) {
-      vars["{Lời khai đương sự}"] = matchFullLk[1].trim();
-      vars["{lời khai đương sự}"] = matchFullLk[1].trim();
-    }
-
-    var mLkND = fullText.match(/(?:\{Lời khai Nguyên đơn\}:?|\{Lời khai Người khởi kiện\}:?|- Lời khai Nguyên đơn:)([\s\S]*?)(?=(?:\{|- Lời khai|\[|$))/i);
-    if (mLkND && mLkND[1].trim()) {
-      vars["{Lời khai Nguyên đơn}"] = mLkND[1].trim();
-      vars["{Lời khai Người khởi kiện}"] = mLkND[1].trim();
-    }
-
-    var mLkBD = fullText.match(/(?:\{Lời khai Bị đơn\}:?|\{Lời khai Người bị kiện\}:?|- Lời khai Bị đơn:)([\s\S]*?)(?=(?:\{|- Lời khai|\[|$))/i);
-    if (mLkBD && mLkBD[1].trim()) {
-      vars["{Lời khai Bị đơn}"] = mLkBD[1].trim();
-      vars["{Lời khai Người bị kiện}"] = mLkBD[1].trim();
-    }
-
-    var mLkYC = fullText.match(/(?:\{Lời khai Người yêu cầu\}:?|- Lời khai Người yêu cầu:)([\s\S]*?)(?=(?:\{|- Lời khai|\[|$))/i);
-    if (mLkYC && mLkYC[1].trim()) vars["{Lời khai Người yêu cầu}"] = mLkYC[1].trim();
-
-    var mLkBYC = fullText.match(/(?:\{Lời khai Người bị yêu cầu\}:?|- Lời khai Người bị yêu cầu:)([\s\S]*?)(?=(?:\{|- Lời khai|\[|$))/i);
-    if (mLkBYC && mLkBYC[1].trim()) vars["{Lời khai Người bị yêu cầu}"] = mLkBYC[1].trim();
-
-    var mLkLQ = fullText.match(/(?:\{Lời khai Người có quyền lợi, nghĩa vụ liên quan\}:?|- Lời khai Người liên quan:)([\s\S]*?)(?=(?:\{|- Lời khai|\[|$))/i);
-    if (mLkLQ && mLkLQ[1].trim()) vars["{Lời khai Người có quyền lợi, nghĩa vụ liên quan}"] = mLkLQ[1].trim();
-
-    var mLkLC = fullText.match(/(?:\{Lời khai người làm chứng\}:?|- Lời khai Người làm chứng:)([\s\S]*?)(?=(?:\{|- Lời khai|\[|$))/i);
-    if (mLkLC && mLkLC[1].trim()) vars["{Lời khai người làm chứng}"] = mLkLC[1].trim();
-
-    // 4. BÓC TÁCH KHỐI VỊ TRÍ TÀI SẢN, HỢP ĐỒNG TÍN DỤNG, DƯ NỢ, DI SẢN THỪA KẾ
-    var mViTri = fullText.match(/(?:\{Vị trí tài sản tranh chấp\}:?|- Vị trí tài sản(?: tranh chấp)?:)([\s\S]*?)(?=(?:\[|\{|- |$))/i);
-    if (mViTri && mViTri[1].trim()) {
-      vars["{Vị trí tài sản tranh chấp}"] = mViTri[1].trim();
-      vars["{vị trí tài sản tranh chấp}"] = mViTri[1].trim();
-    }
-
-    var mTS = fullText.match(/(?:\{Tài sản tranh chấp\}:?|- Tài sản tranh chấp:)([\s\S]*?)(?=(?:\[|\{|- |$))/i);
-    if (mTS && mTS[1].trim()) {
-      vars["{Tài sản tranh chấp}"] = mTS[1].trim();
-      vars["{tài sản tranh chấp}"] = mTS[1].trim();
-    }
-
-    var mHDTD = fullText.match(/(?:\{Hợp đồng tín dụng\}:?|- Hợp đồng tín dụng:)([\s\S]*?)(?=(?:\[|\{|- |$))/i);
-    if (mHDTD && mHDTD[1].trim()) {
-      vars["{Hợp đồng tín dụng}"] = mHDTD[1].trim();
-      vars["{hợp đồng tín dụng}"] = mHDTD[1].trim();
-    }
-
-    var mDuNo = fullText.match(/(?:\{Dư nợ tín dụng\}:?|- Dư nợ(?: tín dụng)?:)([\s\S]*?)(?=(?:\[|\{|- |$))/i);
-    if (mDuNo && mDuNo[1].trim()) {
-      vars["{Dư nợ tín dụng}"] = mDuNo[1].trim();
-      vars["{dư nợ tín dụng}"] = mDuNo[1].trim();
-    }
-
-    var mThuaKe = fullText.match(/(?:\{Di sản thừa kế\}:?|- Di sản thừa kế:)([\s\S]*?)(?=(?:\[|\{|- |$))/i);
-    if (mThuaKe && mThuaKe[1].trim()) {
-      vars["{Di sản thừa kế}"] = mThuaKe[1].trim();
-      vars["{di sản thừa kế}"] = mThuaKe[1].trim();
-    }
-
-    var mThietHai = fullText.match(/(?:\{Thiệt hại bồi thường\}:?|- Thiệt hại bồi thường:)([\s\S]*?)(?=(?:\[|\{|- |$))/i);
-    if (mThietHai && mThietHai[1].trim()) {
-      vars["{Thiệt hại bồi thường}"] = mThietHai[1].trim();
-      vars["{thiệt hại bồi thường}"] = mThietHai[1].trim();
-    }
-
-    var mLaoDong = fullText.match(/(?:\{Tranh chấp lao động\}:?|- Tranh chấp lao động:)([\s\S]*?)(?=(?:\[|\{|- |$))/i);
-    if (mLaoDong && mLaoDong[1].trim()) {
-      vars["{Tranh chấp lao động}"] = mLaoDong[1].trim();
-      vars["{tranh chấp lao động}"] = mLaoDong[1].trim();
-    }
-
-    // 5. BÓC TÁCH NỘI DUNG THỎA THUẬN HÒA GIẢI CHUNG
-    var matchThoaThuan = fullText.match(/\[NỘI DUNG THỎA THUẬN HÒA GIẢI\]:([\s\S]*?)(?=(?:\[|$))/i);
-    if (matchThoaThuan && matchThoaThuan[1].trim()) {
-      var valTT = matchThoaThuan[1].trim();
-      vars["{Nội dung thỏa thuận}"] = valTT;
-      vars["{nội dung thỏa thuận}"] = valTT;
-      vars["{Nội dung hòa giải thành}"] = valTT;
-    }
-
-    // 6. BÓC TÁCH CÁC THẺ CON HNGĐ
-    var mHN = fullText.match(/(?:(?:1\.\s*)?(?:Về\s*)?quan hệ hôn nhân:?|- Hôn nhân:|\{Quan hệ hôn nhân\}:?|\{Thỏa thuận ly hôn\}:?)([\s\S]*?)(?=(?:(?:2\.\s*)?(?:Về\s*)?con chung:?|- Con chung:|\{Con chung\}|3\.\s*Về|4\.\s*Về|5\.\s*Về|\[|\{|$))/i);
-    if (mHN && mHN[1].trim()) {
-      vars["{Quan hệ hôn nhân}"] = mHN[1].trim();
-      vars["{quan hệ hôn nhân}"] = mHN[1].trim();
-      vars["{Thỏa thuận ly hôn}"] = mHN[1].trim();
-    }
-
-    var mCon = fullText.match(/(?:(?:2\.\s*)?(?:Về\s*)?con chung:?|- Con chung:|\{Con chung\}:?|\{Thỏa thuận con chung\}:?)([\s\S]*?)(?=(?:(?:3\.\s*)?(?:Về\s*)?tài sản|- Tài sản:|\{Tài sản chung\}|4\.\s*Về|5\.\s*Về|\[|\{|$))/i);
-    if (mCon && mCon[1].trim()) {
-      vars["{Thỏa thuận con chung}"] = mCon[1].trim();
-      vars["{thỏa thuận con chung}"] = mCon[1].trim();
-      vars["{Con chung}"] = mCon[1].trim();
-      vars["{con chung}"] = mCon[1].trim();
-    }
-
-    var mCapDuong = fullText.match(/(?:\{Cấp dưỡng nuôi con\}:?|\{Cấp dưỡng con chung\}:?|- Cấp dưỡng:)([\s\S]*?)(?=(?:\[|\{|3\.\s*Về|4\.\s*Về|$))/i);
-    if (mCapDuong && mCapDuong[1].trim()) {
-      vars["{Cấp dưỡng nuôi con}"] = mCapDuong[1].trim();
-      vars["{Cấp dưỡng con chung}"] = mCapDuong[1].trim();
-    }
-
-    var mTSC = fullText.match(/(?:(?:3\.\s*)?(?:Về\s*)?tài sản(?: chung)?:?|- Tài sản:|\{Tài sản chung\}:?)([\s\S]*?)(?=(?:(?:4\.\s*)?(?:Về\s*)?nợ(?: chung)?|- Nợ:|\{Nợ chung\}|5\.\s*Về|\[|\{|$))/i);
-    if (mTSC && mTSC[1].trim()) {
-      vars["{Tài sản chung}"] = mTSC[1].trim();
-      vars["{tài sản chung}"] = mTSC[1].trim();
-    }
-
-    var mNo = fullText.match(/(?:(?:4\.\s*)?(?:Về\s*)?nợ(?: chung| nần)?:?|- Nợ:|\{Nợ chung\}:?)([\s\S]*?)(?=(?:(?:5\.\s*)?(?:Về\s*)?án phí|- Án phí:|\{Thỏa thuận án phí\}|\[|\{|$))/i);
-    if (mNo && mNo[1].trim()) {
-      vars["{Nợ chung}"] = mNo[1].trim();
-      vars["{nợ chung}"] = mNo[1].trim();
-    }
-
-    var mAP = fullText.match(/(?:(?:5\.\s*)?(?:Về\s*)?án phí:?|- Án phí:|\{Thỏa thuận án phí\}:?|\{Án phí\}:?)([\s\S]*?)(?=(?:\[|\{|NHỮNG SỬA ĐỔI|$))/i);
-    if (mAP && mAP[1].trim()) {
-      vars["{Thỏa thuận án phí}"] = mAP[1].trim();
-      vars["{thỏa thuận án phí}"] = mAP[1].trim();
-      vars["{Án phí}"] = mAP[1].trim();
-    }
-
-    // 7. BÓC TÁCH CÁC THẺ NGHĨA VỤ DÂN SỰ
-    var mNghiaVu = fullText.match(/(?:\{Thỏa thuận nghĩa vụ chính\}:?|- Nghĩa vụ chính:)([\s\S]*?)(?=(?:\[|\{|$))/i);
-    if (mNghiaVu && mNghiaVu[1].trim()) vars["{Thỏa thuận nghĩa vụ chính}"] = mNghiaVu[1].trim();
-
-    var mPhuongThuc = fullText.match(/(?:\{Thời hạn và phương thức thực hiện\}:?|- Thời hạn và phương thức:)([\s\S]*?)(?=(?:\[|\{|$))/i);
-    if (mPhuongThuc && mPhuongThuc[1].trim()) vars["{Thời hạn và phương thức thực hiện}"] = mPhuongThuc[1].trim();
-
-    var mChiPhi = fullText.match(/(?:\{Thỏa thuận chi phí tố tụng\}:?|- Chi phí tố tụng:)([\s\S]*?)(?=(?:\[|\{|$))/i);
-    if (mChiPhi && mChiPhi[1].trim()) vars["{Thỏa thuận chi phí tố tụng}"] = mChiPhi[1].trim();
+  // Đảm bảo các key đã bị xóa không bao giờ xuất hiện lại trong mảng lưu
+  if (deletedKeys && Array.isArray(deletedKeys)) {
+    deletedKeys.forEach(function(k) {
+      delete vars[k];
+      delete narratives[k];
+    });
   }
 
   window.currentCaseVariables = vars;
@@ -322,28 +462,95 @@ window.saveCaseVariables = function(isAuto) {
     .api_LuuThongSoNghiepVuAn({
       idVuAn: window.currentCaseId,
       variables: vars,
-      narratives: narratives
+      narratives: narratives,
+      deletedKeys: deletedKeys || []
     });
 };
 
+/**
+ * Xóa sạch toàn bộ dữ liệu vụ án sau khi người dùng xác nhận
+ */
 window.clearCanvasDataWithConfirm = function() {
   AppUI.confirm(
     "XÓA TRẮNG DỮ LIỆU VỤ ÁN",
-    "⚠️ Bạn có chắc chắn muốn xóa toàn bộ lời khai và thông số đã bóc tách của vụ án này?\nThao tác này sẽ làm sạch vùng dữ liệu để bạn nhập hoặc quét lại từ đầu.",
+    "⚠️ Bạn có chắc chắn muốn xóa toàn bộ các khối thông tin đã bóc tách của vụ việc này?\nThao tác này sẽ làm sạch vùng dữ liệu để bạn nhập hoặc quét lại từ đầu.",
     "danger",
     function() {
-      var textarea = document.getElementById('case_free_narrative_text');
-      if (textarea) textarea.value = "";
+      // Lấy toàn bộ keys hiện có để gửi xóa triệt để trên Drive
+      var allKeys = Object.keys(window.currentCaseVariables || {});
+
       window.currentCaseVariables = {};
       window.currentCaseNarratives = {};
-      window.saveCaseVariables(false);
+
+      var loaiAn = window.currentCaseData && window.currentCaseData.info ? window.currentCaseData.info.loaiAn : "";
+      window.renderAllSavedVariableCards({}, loaiAn, {});
+      window.saveCaseVariables(false, allKeys);
       AppUI.showToast("Đã xóa sạch dữ liệu vụ án!", "success");
     }
   );
 };
 
+/**
+ * Sao chép toàn bộ nội dung dữ liệu của các khối vào bộ nhớ tạm
+ */
+window.copyCanvasContent = function() {
+  var cards = document.querySelectorAll('.data-variable-card');
+  if (cards.length === 0) {
+    AppUI.showToast("Dữ liệu vụ án đang trống!", "info");
+    return;
+  }
+
+  var compiledParts = [];
+  cards.forEach(function(card) {
+    var titleEl = card.querySelector('.fw-bold.text-dark');
+    var ta = card.querySelector('.card-variable-textarea');
+    var title = titleEl ? titleEl.innerText.trim() : "";
+    var content = ta ? ta.value.trim() : "";
+    if (content) {
+      compiledParts.push(`[${title}]:\n${content}`);
+    }
+  });
+
+  if (compiledParts.length === 0) {
+    AppUI.showToast("Dữ liệu vụ án đang trống!", "info");
+    return;
+  }
+
+  navigator.clipboard.writeText(compiledParts.join("\n\n")).then(function() {
+    AppUI.showToast("Đã sao chép toàn bộ dữ liệu vào bộ nhớ tạm!", "success");
+  }).catch(function() {
+    AppUI.showToast("Trình duyệt không hỗ trợ sao chép tự động", "info");
+  });
+};
+
+/**
+ * Chèn một khối dữ liệu mới từ danh sách dropdown
+ */
+window.insertPlaceholderToCanvas = function(selectEl) {
+  var tag = selectEl.value;
+  if (!tag) return;
+
+  window.currentCaseVariables = window.currentCaseVariables || {};
+  if (!window.currentCaseVariables[tag]) {
+    window.currentCaseVariables[tag] = "...";
+  }
+
+  var loaiAn = window.currentCaseData && window.currentCaseData.info ? window.currentCaseData.info.loaiAn : "";
+  window.renderAllSavedVariableCards(window.currentCaseVariables, loaiAn, window.currentCaseNarratives);
+  
+  selectEl.value = "";
+
+  setTimeout(function() {
+    var newCard = document.querySelector(`[data-variable-key="${tag.replace(/"/g, '&quot;')}"] textarea`);
+    if (newCard) {
+      newCard.focus();
+      newCard.select();
+    }
+  }, 100);
+};
+
 // =========================================================================
-// 3. ĐÓNG GÓI BIẾN ĐỘNG CHO MAIL MERGE V3
+// 3. ĐÓNG GÓI BIẾN ĐỘNG CHO ĐỘNG CƠ TRỘN THƯ V3
 // =========================================================================
 
 window.compileDynamicVariables = function(vars, currentA4Parties) {
@@ -351,16 +558,15 @@ window.compileDynamicVariables = function(vars, currentA4Parties) {
   var caseInfo = window.currentCaseData && window.currentCaseData.info ? window.currentCaseData.info : {};
   var loaiAn = String(caseInfo.loaiAn || "");
   var quanHe = String(caseInfo.quanHe || "");
-  var isHNGD = loaiAn.includes("Hôn nhân") || loaiAn.includes("3.") || quanHe.toLowerCase().includes("thuận tình") || quanHe.toLowerCase().includes("ly hôn");
 
-  // A. Biên lai án phí NQ 326
+  // A. Biên lai thu tạm ứng án phí NQ 326
   if (!vars["{Biên lai tạm ứng án phí}"]) {
     vars["{Biên lai tạm ứng án phí}"] = "Biên lai thu tạm ứng án phí, lệ phí Tòa án số............... ngày...../...../202... của Chi cục Thi hành án dân sự tỉnh Lâm Đồng.";
   }
   vars["{biên lai tạm ứng án phí}"] = vars["{Biên lai tạm ứng án phí}"];
   vars["{Thông tin biên lai án phí}"] = vars["{Biên lai tạm ứng án phí}"];
 
-  // B. Nhận diện con chung và nghĩa vụ tiền
+  // B. Nhận diện quan hệ con chung và cấp dưỡng
   var rawThoaThuanCon = vars["{Thỏa thuận con chung}"] || vars["{Con chung}"] || "";
   var rawNoiDungFull = vars["{Nội dung thỏa thuận}"] || vars["{Nội dung vụ án}"] || "";
   var checkConText = (rawThoaThuanCon + " " + rawNoiDungFull).toLowerCase();
@@ -379,7 +585,7 @@ window.compileDynamicVariables = function(vars, currentA4Parties) {
 
   var hasChiaTaiSan = checkConText.includes("tài sản") && !checkConText.includes("tự thỏa thuận, không yêu cầu") && !checkConText.includes("không có tài sản");
 
-  // C. Thiết lập Quyền thăm nom & Lãi suất chậm thi hành án
+  // C. Thiết lập điều khoản quyền thăm nom và lãi suất chậm thi hành án
   if (hasConChung) {
     vars["{Quyền thăm nom con}"] = "Quyền thăm nom, chăm sóc, nuôi dưỡng, giáo dục con; quyền thay đổi người trực tiếp nuôi con; thay đổi mức cấp dưỡng được thực hiện theo quy định của Luật hôn nhân và gia đình.";
     vars["{quyền thăm nom con}"] = vars["{Quyền thăm nom con}"];
@@ -406,7 +612,7 @@ window.compileDynamicVariables = function(vars, currentA4Parties) {
   vars["{Điều luật chậm trả}"] = "";
   vars["{điều luật chậm trả}"] = "";
 
-  // D. Chuỗi điều luật HNGĐ viện dẫn tự động
+  // D. Chuỗi điều luật viện dẫn chuẩn mực cho vụ việc Hôn nhân & Gia đình
   var dieuLuatList = ["Điều 51", "Điều 55"];
   if (hasConChung) dieuLuatList.push("Điều 57", "Điều 58", "Điều 81", "Điều 82", "Điều 83");
   if (hasCapDuongTien) dieuLuatList.push("Điều 84");
@@ -417,7 +623,7 @@ window.compileDynamicVariables = function(vars, currentA4Parties) {
   vars["{Điều luật HNGĐ}"] = dieuLuatHNGD_Str;
   vars["{điều luật hngđ}"] = dieuLuatHNGD_Str;
 
-  // E. Nhân bản bộ 3 thể thức cho toàn bộ Placeholder
+  // E. Nhân bản bộ 3 thể thức Viết hoa - Chữ thường - Viết hoa toàn bộ cho toàn bộ biến
   for (var key in vars) {
     if (vars[key] !== undefined && vars[key] !== null) {
       var valStr = String(vars[key]);
@@ -430,7 +636,7 @@ window.compileDynamicVariables = function(vars, currentA4Parties) {
 };
 
 // =========================================================================
-// 4. CHỤP / QUÉT NHIỀU ẢNH OCR (MULTI-PHOTO STAGING)
+// 4. CHỤP / QUÉT NHIỀU TRANG TÀI LIỆU (MULTI-PHOTO OCR)
 // =========================================================================
 
 window.handleMultiPhotoSelect = function(input) {
@@ -438,13 +644,13 @@ window.handleMultiPhotoSelect = function(input) {
   var files = Array.from(input.files);
   var idVuAn = window.currentCaseId;
 
-  if (!idVuAn) return AppUI.alert("Nhắc nhở", "Vui lòng mở một hồ sơ vụ án trước khi quét tài liệu!");
+  if (!idVuAn) return AppUI.alert("Nhắc nhở", "Vui lòng mở hồ sơ vụ việc trước khi quét tài liệu!");
 
-  AppUI.showToast(`Đang nén ${files.length} ảnh chụp...`, "");
+  AppUI.showToast(`Trợ lý thẩm phán đang xử lý ${files.length} ảnh chụp tài liệu...`, "");
   var processed = 0;
 
   files.forEach(function(file) {
-    window.compressImageFile(file, 1200, 0.7, function(res) {
+    window.compressImageFile(file, 1400, 0.75, function(res) {
       window.stagedOcrPhotos.push({
         id: 'ocr_' + Date.now() + Math.floor(Math.random() * 100),
         fileName: res.name,
@@ -469,27 +675,27 @@ window.renderOcrStagingModal = function() {
   var containerHtml = `
     <div class="modal fade" id="modalOcrStaging" tabindex="-1" data-bs-backdrop="static">
       <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h6 class="modal-title"><i class="fas fa-images text-primary me-2"></i>DANH SÁCH ẢNH CHỤP TÀI LIỆU (<span id="ocr_staging_count">${count}</span> TRANG)</h6>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 14px; overflow: hidden;">
+          <div class="modal-header bg-white border-bottom py-3">
+            <h6 class="modal-title fw-bold text-dark text-uppercase" style="font-size: 13.5px;">
+              <i class="fas fa-images text-primary me-2"></i>DANH SÁCH ẢNH CHỤP TÀI LIỆU (${count} TRANG)
+            </h6>
+            <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"></button>
           </div>
-          <div class="modal-body">
-            <div class="p-2 bg-light rounded border mb-3 small text-muted">
-              <i class="fas fa-info-circle text-primary me-1"></i> Bạn có thể chụp thêm các trang tiếp theo hoặc bấm <b>"Tiến hành bóc tách toàn bộ"</b> để AI đọc hiểu liền mạch nội dung tất cả các trang.
+          <div class="modal-body p-3 bg-light">
+            <div class="p-2 px-3 bg-white rounded-3 border mb-3 small text-muted">
+              <i class="fas fa-info-circle text-primary me-1"></i> Bạn có thể chụp thêm các trang tiếp theo hoặc nhấn <b>"Tiến hành bóc tách dữ liệu"</b> để Trợ lý thẩm phán phân tích và đưa thông tin vào các khối dữ liệu vụ án.
             </div>
             <div class="row g-2" id="ocr_staging_gallery"></div>
           </div>
-          <div class="modal-footer justify-content-between">
-            <div>
-              <button type="button" class="btn btn-outline-secondary px-3" onclick="document.getElementById('input_camera_multi').click()">
-                <i class="fas fa-camera text-success me-1"></i> Chụp thêm trang
-              </button>
-            </div>
+          <div class="modal-footer bg-white border-top justify-content-between p-3">
+            <button type="button" class="btn btn-action-outline btn-action-tool" onclick="document.getElementById('input_camera_multi').click()">
+              <i class="fas fa-camera text-success me-1"></i> Chụp thêm trang
+            </button>
             <div class="d-flex gap-2">
-              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" onclick="window.stagedOcrPhotos=[]">Hủy</button>
-              <button type="button" class="btn btn-primary px-4 shadow-sm" onclick="window.executeMultiPhotoExtraction()">
-                <i class="fas fa-bolt me-1"></i> Bóc tách toàn bộ (${count} ảnh)
+              <button type="button" class="btn btn-action-outline btn-action-tool" data-bs-dismiss="modal" onclick="window.stagedOcrPhotos=[]">Hủy</button>
+              <button type="button" class="btn btn-action-primary btn-action-tool shadow-sm" onclick="window.executeMultiPhotoExtraction()">
+                <i class="fas fa-bolt me-1"></i> Tiến hành bóc tách dữ liệu (${count} ảnh)
               </button>
             </div>
           </div>
@@ -506,9 +712,9 @@ window.renderOcrStagingModal = function() {
   gallery.innerHTML = window.stagedOcrPhotos.map(function(item, idx) {
     return `
       <div class="col-4 col-md-3 position-relative" id="thumb_${item.id}">
-        <div class="border rounded p-1 bg-white shadow-sm text-center">
+        <div class="border rounded-3 p-1 bg-white shadow-sm text-center">
           <img src="${item.dataUrl}" style="height: 110px; width: 100%; object-fit: cover; border-radius: 4px;">
-          <div class="small text-truncate mt-1 text-muted" style="font-size: 10.5px;">Trang ${idx + 1}</div>
+          <div class="small text-truncate mt-1 text-muted fw-bold" style="font-size: 11px;">Trang ${idx + 1}</div>
           <button type="button" class="btn btn-sm btn-danger position-absolute" style="top: 4px; right: 8px; border-radius: 50%; width: 22px; height: 22px; padding: 0; display: flex; align-items: center; justify-content: center;" onclick="window.removeStagedOcrPhoto('${item.id}')">
             <i class="fas fa-times" style="font-size: 10px;"></i>
           </button>
@@ -524,8 +730,7 @@ window.removeStagedOcrPhoto = function(id) {
   window.stagedOcrPhotos = window.stagedOcrPhotos.filter(function(p) { return p.id !== id; });
   var el = document.getElementById('thumb_' + id);
   if (el) el.remove();
-  var countEl = document.getElementById('ocr_staging_count');
-  if (countEl) countEl.innerText = window.stagedOcrPhotos.length;
+  
   if (window.stagedOcrPhotos.length === 0) {
     var modalEl = document.getElementById('modalOcrStaging');
     if (modalEl) bootstrap.Modal.getInstance(modalEl).hide();
@@ -539,7 +744,7 @@ window.executeMultiPhotoExtraction = function() {
   var modalEl = document.getElementById('modalOcrStaging');
   if (modalEl) bootstrap.Modal.getInstance(modalEl).hide();
 
-  AppUI.showToast(`AI đang đọc và bóc tách ${window.stagedOcrPhotos.length} trang tài liệu...`, "");
+  AppUI.showToast(`Trợ lý thẩm phán đang phân tích ${window.stagedOcrPhotos.length} ảnh chụp tài liệu...`, "");
 
   google.script.run
     .withSuccessHandler(function(res) {
@@ -547,17 +752,25 @@ window.executeMultiPhotoExtraction = function() {
       window.stagedOcrPhotos = [];
 
       if (res && res.success) {
-        window.handleIngestedEvidenceResult(res, "Ảnh chụp đa trang");
+        if (typeof window.applyEvidenceDirectToCanvas === 'function') {
+          window.applyEvidenceDirectToCanvas(res.extractedVariables, res.extractedNarratives);
+        } else {
+          window.currentCaseVariables = Object.assign({}, window.currentCaseVariables || {}, res.extractedVariables || {});
+          window.currentCaseNarratives = Object.assign({}, window.currentCaseNarratives || {}, res.extractedNarratives || {});
+          var loaiAn = window.currentCaseData && window.currentCaseData.info ? window.currentCaseData.info.loaiAn : "";
+          window.renderAllSavedVariableCards(window.currentCaseVariables, loaiAn, window.currentCaseNarratives);
+          window.saveCaseVariables(true);
+        }
+        AppUI.showToast("Đã trích xuất và lưu dữ liệu vụ án thành công!", "success");
       } else {
-        AppUI.alert("Lỗi bóc tách", res ? res.error : "Không thể bóc tách tài liệu.");
+        AppUI.alert("Lỗi bóc tách", res ? res.error : "Không thể nhận diện nội dung tài liệu.");
       }
     })
     .withFailureHandler(function(err) {
       AppUI.hideToast();
       window.stagedOcrPhotos = [];
-      AppUI.showToast("Lỗi mạng: " + err.message, "error");
+      AppUI.showToast("Lỗi kết nối máy chủ: " + err.message, "error");
     })
-    .api_ParseEvidenceDocument(idVuAn, "Ảnh_chụp_đa_trang.jpg", "image/jpeg", null, null, window.stagedOcrPhotos);
+    .api_ParseEvidenceDocument(idVuAn, "Anh_chup_da_trang.jpg", "image/jpeg", null, 'EVIDENCE_ONLY', window.stagedOcrPhotos);
 };
-
 </script>

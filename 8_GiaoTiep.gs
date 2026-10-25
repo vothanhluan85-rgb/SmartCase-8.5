@@ -879,3 +879,7 @@ function include(filename) {
     return "<!-- Lỗi nạp file " + filename + ": " + e.message + " -->";
   }
 }
+// CỔNG GIAO TIẾP HÀNG ĐỢI IN ẤN (HUB)
+function api_LuuHangDoiIn(payload) { return logic_LuuHangDoiIn(payload); }
+function api_LayDanhSachHangDoiIn() { return logic_LayDanhSachHangDoiIn(); }
+function api_XoaHangDoiIn(id) { return logic_XoaHangDoiIn(id); }

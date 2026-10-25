@@ -1545,3 +1545,82 @@ function api_RunMailMergeDon_Logic(input) {
     lock.releaseLock();
   }
 }
+// =========================================================================
+// MỤC 7: QUẢN TRỊ HÀNG ĐỢI IN ẤN (PRINT QUEUE - SMARTCASE HUB)
+// =========================================================================
+
+function checkAndCreatePrintQueueSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("4_HangDoiIn");
+  if (!sheet) {
+    sheet = ss.insertSheet("4_HangDoiIn");
+    sheet.appendRow(["ID_VanBan", "ID_VuAn", "SoThuLy", "TenVanBan", "LinkDocs", "LinkDocx", "ThoiGianTao"]);
+    sheet.getRange("A1:G1").setFontWeight("bold").setBackground("#1e293b").setFontColor("#ffffff");
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function logic_LuuHangDoiIn(payload) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    var sheet = checkAndCreatePrintQueueSheet();
+    var idVanBan = "DOC_" + new Date().getTime() + "_" + Math.floor(Math.random() * 1000);
+    
+    sheet.appendRow([
+      idVanBan,
+      payload.idVuAn || "",
+      payload.soTL || "",
+      payload.tenVanBan || "",
+      payload.linkDocs || "",
+      payload.linkDocx || "",
+      new Date().toISOString()
+    ]);
+    return { success: true, id: idVanBan };
+  } catch (e) {
+    return { success: false, error: e.message };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function logic_LayDanhSachHangDoiIn() {
+  try {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("4_HangDoiIn");
+    if (!sheet || sheet.getLastRow() < 2) return [];
+    
+    var data = sheet.getDataRange().getValues();
+    var list = [];
+    for (var i = 1; i < data.length; i++) {
+      list.push({
+        id: data[i][0],
+        idVuAn: data[i][1],
+        soTL: data[i][2],
+        tenVanBan: data[i][3],
+        linkDocs: data[i][4],
+        linkDocx: data[i][5],
+        thoiGianTao: data[i][6]
+      });
+    }
+    // Sắp xếp mới nhất lên đầu
+    list.sort(function(a, b) { return new Date(b.thoiGianTao) - new Date(a.thoiGianTao); });
+    return list;
+  } catch (e) { return []; }
+}
+
+function logic_XoaHangDoiIn(idVanBan) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("4_HangDoiIn");
+    if (!sheet) return { success: false };
+    
+    var finder = sheet.getRange("A:A").createTextFinder(idVanBan).matchEntireCell(true).findNext();
+    if (finder) {
+      sheet.deleteRow(finder.getRow());
+      return { success: true };
+    }
+    return { success: false, error: "Không tìm thấy văn bản." };
+  } catch (e) { return { success: false, error: e.message }; } finally { lock.releaseLock(); }
+}

@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <!-- Viewport chuẩn chống co giãn sai tỉ lệ trên mọi thiết bị & iframe -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>TRỢ LÝ THẨM PHÁN V8.0</title>
+  <title>TRỢ LÝ THẨM PHÁN V8.5</title>
 
   <!-- Google Fonts: Inter (Tối ưu hóa độ sắc nét cho văn bản Tòa án & Màn hình DPI cao) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -145,7 +145,7 @@
       background: #ffffff;
     }
 
-    /* NÚT COPILOT AI NỔI (FAB) */
+    /* NÚT TRỢ LÝ THẨM PHÁN NỔI (FAB) */
     #ai-floating-btn {
       position: fixed; 
       bottom: 24px; 
@@ -201,6 +201,42 @@
       border-color: #bfdbfe;
     }
 
+    /* =========================================================================
+       THÊM MỚI: NGĂN KÉO PEEK CỦA SMARTCASE HUB (LIẾC NHANH)
+       ========================================================================= */
+    #hub-peek-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 480px;
+      max-width: 90vw;
+      height: 100vh;
+      background: #ffffff;
+      box-shadow: -10px 0 30px rgba(15, 23, 42, 0.2);
+      z-index: 1060;
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid #cbd5e1;
+    }
+    #hub-peek-drawer.active {
+      transform: translateX(0);
+    }
+    .peek-overlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(15, 23, 42, 0.3); z-index: 1055;
+      opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    }
+    .peek-overlay.active { opacity: 1; pointer-events: auto; }
+    
+    /* Vùng kích hoạt tàng hình ở mép phải */
+    .peek-trigger-zone {
+      position: fixed; right: 0; top: 20%; height: 60%; width: 6px;
+      z-index: 1050; cursor: pointer;
+    }
+    .peek-trigger-zone:hover { background: rgba(37, 99, 235, 0.3); }
+
     /* RESPONSIVE DI ĐỘNG */
     @media (max-width: 991.98px) {
       #main-sidebar { transform: translateX(-100%); width: 280px !important; }
@@ -216,7 +252,7 @@
     <div class="p-3 bg-light rounded-circle shadow-sm mb-3 border">
       <i class="fas fa-scale-balanced fa-2x text-primary"></i>
     </div>
-    <h6 class="fw-bold text-dark m-0" style="letter-spacing: 0.5px;">TRỢ LÝ THẨM PHÁN V8.0</h6>
+    <h6 class="fw-bold text-dark m-0" style="letter-spacing: 0.5px;">TRỢ LÝ THẨM PHÁN V8.5</h6>
     <p id="splash-message" class="text-muted small mt-2">Đang kết nối hệ thống dữ liệu nghiệp vụ...</p>
     <div class="spinner-border spinner-border-sm text-primary mt-1" role="status"></div>
   </div>
@@ -233,11 +269,20 @@
           <i class="fas fa-sparkles text-warning position-absolute" style="font-size: 12px; bottom: -2px; right: -6px;"></i>
         </div>
         <div class="fw-bold text-dark mt-1" style="font-size: 14px; letter-spacing: 0.4px;">TRỢ LÝ THẨM PHÁN</div>
-        <div class="text-muted fw-semibold" style="font-size: 11px;">Phiên bản V8.0 – Master Core</div>
+        <div class="text-muted fw-semibold" style="font-size: 11px;">Phiên bản V8.5 – AI Studio</div>
       </div>
 
+       <!-- ============================================== -->
+        <!-- ĐÂY LÀ VỊ TRÍ SMARTCASE HUB MỚI -->
+        <!-- ============================================== -->
+        <a class="nav-menu-item" id="menu-view-hub" onclick="appNavigate('view-hub')" title="Trung tâm Hợp nhất Tố tụng">
+          <i class="fas fa-layer-group text-danger"></i> 
+          <span class="fw-bold text-dark" style="letter-spacing: 0.3px;">SMARTCASE HUB <span style="color: #dc2626; font-size: 14px; font-weight: 900; margin-left: 2px; text-shadow: 0 0 3px rgba(220, 38, 38, 0.4);">✻</span></span>
+        </a>
+
       <!-- NHÓM 1: NGHIỆP VỤ CHÍNH -->
-      <div class="sidebar-section-title">NGHIỆP VỤ CHÍNH</div>
+           
+            <div class="sidebar-section-title">NGHIỆP VỤ CHÍNH</div>
       <div>
         <a class="nav-menu-item" id="menu-view-danh-sach-don" onclick="appNavigate('view-danh-sach-don')" title="Sổ Nhận Đơn">
           <i class="fas fa-inbox text-info"></i> <span>SỔ NHẬN ĐƠN</span>
@@ -265,6 +310,8 @@
         <a class="nav-menu-item" onclick="openDraftingModal('CURRENT_CASE')" title="Soạn Thảo Văn Bản">
           <i class="fas fa-file-signature text-primary"></i> <span>SOẠN THẢO VĂN BẢN</span>
         </a>
+             
+
         <a class="nav-menu-item" onclick="openAnPhiModal()" title="Tính Án Phí NQ 326">
           <i class="fas fa-calculator text-danger"></i> <span>TÍNH ÁN PHÍ</span>
         </a>
@@ -328,16 +375,39 @@
       <div id="view-schedule" class="spa-view"><?!= include('UI_Lich'); ?></div>
       <div id="view-stats" class="spa-view"><?!= include('UI_ThongKe'); ?></div>
       <div id="view-settings" class="spa-view"><?!= include('UI_CaiDat'); ?></div>
+      
+      <!-- ============================================== -->
+      <!-- ĐÂY LÀ VIEW CỦA SMARTCASE HUB -->
+      <!-- ============================================== -->
+      <div id="view-hub" class="spa-view"><?!= include('UI_Hub'); ?></div>
     </main>
 
     <!-- Footer bản quyền -->
     <footer class="app-footer-brand">
-      © 2026 <span class="text-dark fw-bold">TRỢ LÝ THẨM PHÁN V8.0</span> — Hệ thống hỗ trợ giải quyết án Tòa án nhân dân.
+      © 2026 <span class="text-dark fw-bold">TRỢ LÝ THẨM PHÁN V8.5</span> — Hệ thống hỗ trợ giải quyết án Tòa án nhân dân.
     </footer>
   </div>
 
-  <!-- NÚT AI CHAT NỔI (FAB) -->
-  <div id="ai-floating-btn" onclick="window.toggleCopilotChat ? window.toggleCopilotChat() : null" title="Trợ lý AI Tố tụng">
+  <!-- ========================================================================= -->
+  <!-- SMARTCASE HUB PEEK DRAWER (NGĂN KÉO LIẾC NHANH TỪ MÉP PHẢI) -->
+  <!-- ========================================================================= -->
+  <div class="peek-overlay" id="peek-overlay" onclick="togglePeekDrawer()"></div>
+  <div class="peek-trigger-zone" title="Chạm để liếc nhanh Hub" onclick="togglePeekDrawer()"></div>
+  <div id="hub-peek-drawer">
+    <div class="d-flex justify-content-between align-items-center p-3 bg-light border-bottom">
+      <h6 class="m-0 fw-bold text-dark"><i class="fas fa-layer-group text-danger me-2"></i>LIẾC NHANH HUB</h6>
+      <button class="btn btn-sm btn-link text-muted p-0 shadow-none" onclick="togglePeekDrawer()"><i class="fas fa-times fa-lg"></i></button>
+    </div>
+    <div class="flex-grow-1 p-3" style="overflow-y: auto;">
+      <div class="text-center text-muted small mt-5">
+        <i class="fas fa-eye fa-3x mb-3 text-secondary opacity-50"></i><br>
+        Bấm phím <b>Ctrl + Space</b> từ bất kỳ màn hình nào<br>để gọi nhanh bảng tin tác nghiệp này.
+      </div>
+    </div>
+  </div>
+
+  <!-- NÚT TRỢ LÝ THẨM PHÁN CHAT NỔI (FAB) -->
+  <div id="ai-floating-btn" onclick="window.toggleCopilotChat ? window.toggleCopilotChat() : null" title="Trợ lý Thẩm phán">
     <i class="fas fa-robot"></i>
   </div>
 
@@ -375,6 +445,41 @@
         wrapper.classList.toggle('sidebar-collapsed');
       }
     }
+
+    // =========================================================================
+    // LOGIC NGĂN KÉO PEEK - SMARTCASE HUB
+    // =========================================================================
+    window.togglePeekDrawer = function() {
+      var drawer = document.getElementById('hub-peek-drawer');
+      var overlay = document.getElementById('peek-overlay');
+      if (!drawer || !overlay) return;
+
+      if (drawer.classList.contains('active')) {
+        drawer.classList.remove('active');
+        overlay.classList.remove('active');
+      } else {
+        drawer.classList.add('active');
+        overlay.classList.add('active');
+        // TODO: Sẽ gọi hàm load dữ liệu mini vào Drawer ở đây sau khi hoàn thiện Logic Backend
+      }
+    };
+
+    // Lắng nghe phím tắt Ctrl + Space
+    document.addEventListener('keydown', function(e) {
+      // Ctrl + Space (Ngăn chặn hành vi cuộn trang mặc định của Space)
+      if (e.ctrlKey && e.code === 'Space') {
+        e.preventDefault();
+        window.togglePeekDrawer();
+      }
+      
+      // Phím Esc để đóng nhanh
+      if (e.code === 'Escape') {
+        var drawer = document.getElementById('hub-peek-drawer');
+        if (drawer && drawer.classList.contains('active')) {
+          window.togglePeekDrawer();
+        }
+      }
+    });
   </script>
 </body>
 </html>

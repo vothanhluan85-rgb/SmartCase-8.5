@@ -1,11 +1,11 @@
 <!--
   =========================================================================
-  HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.0 - HỒ SƠ VỤ ÁN CHUYÊN SÂU
-  TỆP: UI_ChiTiet.html - GIAO DIỆN TỐI GIẢN, SOẠN THẢO A4, CANVAS & TRÍCH XUẤT 1-CLICK
-  - TUÂN THỦ 100% QUY CHUẨN V8.0 PRODUCTION MASTER
-  - BỘ SOẠN THẢO ĐƯƠNG SỰ A4 IN-PLACE TRỰC QUAN KHÔNG ĐƯỜNG VIỀN
-  - VÙNG DỮ LIỆU CANVAS MỞ TỰ ĐỘNG LƯU VÀO _case_memory.json
-  - WIDGET HỒ SƠ DRIVE & DÒNG THỜI GIAN TIMELINE THỜI GIAN THỰC
+  HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.5 - HỒ SƠ VỤ ÁN CHUYÊN SÂU
+  TỆP: UI_ChiTiet.html - GIAO DIỆN HÀNH CHÍNH TƯ PHÁP CHUẨN MỰC TÒA ÁN
+  -------------------------------------------------------------------------
+  - THUẬT NGỮ CHUẨN HÓA: Tuyệt đối không dùng dấu ngoặc đơn chú thích.
+  - TIÊU ĐỀ ĐỘNG LINH HOẠT: Tự động chuẩn hóa theo từng phân loại vụ việc.
+  - PHÂN ĐỊNH RÀNH MẠCH: [THÀNH PHẦN ĐƯƠNG SỰ] và [DỮ LIỆU VỤ ÁN].
   =========================================================================
 -->
 
@@ -19,12 +19,12 @@
   .det-panel-card {
     background: #ffffff;
     border-radius: 12px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid #cbd5e1;
     box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
     overflow: hidden;
   }
 
-  /* Nút bấm thanh công cụ thanh mảnh */
+  /* Nút thao tác nghiệp vụ chuẩn mực */
   .btn-action-tool {
     border-radius: 8px !important;
     font-weight: 700 !important;
@@ -34,8 +34,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 5px;
-    transition: all 0.15s ease;
+    gap: 6px;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
     border: 1px solid transparent;
     white-space: nowrap;
     text-decoration: none;
@@ -48,6 +48,8 @@
   }
   .btn-action-primary:hover { 
     background-color: #1d4ed8 !important; 
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
   }
   .btn-action-tonal {
     background-color: #eff6ff !important;
@@ -56,20 +58,28 @@
   }
   .btn-action-tonal:hover { 
     background-color: #dbeafe !important; 
+    transform: translateY(-1px);
   }
   .btn-action-success {
     background-color: #f0fdf4 !important;
     color: #15803d !important;
     border-color: #bbf7d0 !important;
   }
+  .btn-action-success:hover {
+    background-color: #dcfce7 !important;
+    transform: translateY(-1px);
+  }
   .btn-action-outline {
     background-color: #ffffff !important;
-    color: #475569 !important;
+    color: #334155 !important;
     border-color: #cbd5e1 !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
   }
   .btn-action-outline:hover { 
     background-color: #f8fafc !important; 
     color: #0f172a !important; 
+    border-color: #94a3b8 !important;
+    transform: translateY(-1px);
   }
   .btn-action-danger {
     background-color: #ffffff !important;
@@ -78,13 +88,15 @@
   }
   .btn-action-danger:hover {
     background-color: #fef2f2 !important;
+    border-color: #f87171 !important;
+    transform: translateY(-1px);
   }
 
-  /* Hero Banner tóm tắt */
+  /* Khung thông tin tổng quan hồ sơ */
   .hero-case-banner {
     background: #ffffff;
     border-radius: 10px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid #cbd5e1;
     border-left: 4px solid #2563eb !important;
     box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
     padding: 10px 14px;
@@ -94,7 +106,7 @@
     font-weight: 800;
     color: #64748b;
     text-transform: uppercase;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.4px;
     margin-bottom: 2px;
   }
   .hero-meta-val {
@@ -103,7 +115,7 @@
     color: #0f172a;
   }
 
-  /* BỘ SOẠN THẢO A4 ĐƯƠNG SỰ */
+  /* Vùng soạn thảo đương sự phẳng */
   .a4-paper-sheet {
     padding: 14px 16px;
     background-color: #ffffff;
@@ -165,7 +177,7 @@
     right: 12px; 
     top: 32px; 
     background: #ffffff; 
-    border: 1px solid #e2e8f0; 
+    border: 1px solid #cbd5e1; 
     box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15); 
     border-radius: 10px; 
     z-index: 1050; 
@@ -229,18 +241,18 @@
     border-radius: 10px; background: #f8fafc; text-align: center; color: #64748b; font-weight: 600;
   }
 
-  /* VÙNG DỮ LIỆU VỤ ÁN MỞ */
+  /* Khối Dữ liệu vụ án */
   .open-canvas-card {
     background: #ffffff;
     border-radius: 12px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid #cbd5e1;
     padding: 14px 18px;
     box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
   }
 
   .canvas-free-textarea {
     width: 100%;
-    min-height: 260px;
+    min-height: 280px;
     background-color: transparent;
     border: none;
     outline: none;
@@ -253,16 +265,16 @@
     padding: 0;
   }
   .canvas-free-textarea::placeholder {
-    color: #cbd5e1;
+    color: #94a3b8;
     font-style: italic;
     font-weight: 400;
   }
 
-  /* Cột Widget bên phải */
+  /* Cột phụ trợ bên phải */
   .sidebar-widget-card {
     background: #ffffff; 
     border-radius: 10px; 
-    border: 1px solid #e2e8f0; 
+    border: 1px solid #cbd5e1; 
     box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03); 
     padding: 12px 14px;
   }
@@ -271,7 +283,7 @@
     font-weight: 800; 
     color: #334155; 
     text-transform: uppercase; 
-    letter-spacing: 0.3px; 
+    letter-spacing: 0.4px; 
     margin: 0; 
   }
 
@@ -283,9 +295,9 @@
   .timeline-dot.root { background: #2563eb; }
   .timeline-dot.result { background: #16a34a; }
   .timeline-dot.tdc { background: #64748b; }
-  .timeline-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; }
+  .timeline-card { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px; }
   
-  /* Hàng tệp Drive */
+  /* Danh sách tệp hồ sơ */
   .file-item-row {
     transition: all 0.15s ease;
     border-radius: 7px;
@@ -295,12 +307,12 @@
     background-color: #f1f5f9;
   }
   .btn-file-action-mini {
-    width: 22px !important;
-    height: 22px !important;
-    min-width: 22px !important;
+    width: 24px !important;
+    height: 24px !important;
+    min-width: 24px !important;
     padding: 0 !important;
-    border-radius: 4px !important;
-    font-size: 10px !important;
+    border-radius: 5px !important;
+    font-size: 10.5px !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -310,36 +322,52 @@
 
 <div class="det-main-container animate-fadeIn p-2 p-md-3">
   
-  <!-- 1. THANH ĐIỀU HƯỚNG TRÊN CÙNG -->
+  <!-- ========================================================================= -->
+  <!-- 1. THANH ĐIỀU HÀNH TỔNG THỂ HỒ SƠ VỤ VIỆC                                  -->
+  <!-- ========================================================================= -->
   <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
     <div class="d-flex align-items-center gap-2">
       <button class="btn btn-action-outline btn-action-tool" onclick="window.appNavigate('view-list')">
-        <i class="fas fa-arrow-left text-primary"></i> Sổ Thụ Lý
+        <i class="fas fa-arrow-left text-primary"></i> Sổ thụ lý
       </button>
       <span id="party_editor_autosave_indicator" class="small fw-bold text-success ms-1" style="font-size: 11px;"></span>
     </div>
     
+    <!-- Cụm công cụ giải quyết vụ việc chuẩn hóa -->
     <div class="d-flex gap-1 align-items-center flex-wrap">
-      <button class="btn btn-action-tonal btn-action-tool" onclick="window.copyDataForQLTA()" title="Sao chép cấu trúc chuẩn nhập liệu QLTA - TANDTC">
-        <i class="fas fa-copy"></i> QLTA
+      <button class="btn btn-action-primary btn-action-tool shadow-sm" onclick="window.openDraftingModal('CURRENT_CASE')" title="Soạn thảo và ban hành văn bản tố tụng">
+        <i class="fas fa-file-signature"></i> Soạn văn bản
       </button>
-      <button class="btn btn-action-outline btn-action-tool" onclick="window.openEditCaseModal(window.currentCaseId)" title="Sửa thông tin cơ bản vụ án">
-        <i class="fas fa-edit text-primary"></i> Sửa án
+
+      <button class="btn btn-action-tonal btn-action-tool" onclick="window.openTaskModal(window.currentCaseId, document.getElementById('det-so').innerText)" title="Thiết lập lịch làm việc, phiên họp, phiên tòa">
+        <i class="fas fa-calendar-plus text-primary"></i> Lên lịch làm việc
       </button>
-      <button class="btn btn-action-success btn-action-tool" onclick="window.openResolutionModal()" title="Cập nhật kết quả Bản án / Quyết định">
-        <i class="fas fa-gavel"></i> Kết quả
+
+      <button class="btn btn-action-success btn-action-tool" onclick="window.openResolutionModal()" title="Cập nhật kết quả giải quyết vụ việc">
+        <i class="fas fa-gavel"></i> Kết quả giải quyết
       </button>
-      <button class="btn btn-action-danger btn-action-tool" onclick="window.confirmDeleteCase()" title="Xóa hồ sơ vụ án">
-        <i class="fas fa-trash-alt"></i> Xóa
+
+      <button class="btn btn-action-outline btn-action-tool" onclick="window.copyDataForQLTA()" title="Sao chép dữ liệu chuẩn hóa sang phần mềm Quản lý án">
+        <i class="fas fa-copy text-secondary"></i> Sao chép QLTA
+      </button>
+
+      <button class="btn btn-action-outline btn-action-tool" onclick="window.openEditCaseModal(window.currentCaseId)" title="Chỉnh sửa thông tin thụ lý vụ việc">
+        <i class="fas fa-edit text-primary"></i> Sửa thông tin
+      </button>
+
+      <button class="btn btn-action-danger btn-action-tool" onclick="window.confirmDeleteCase()" title="Xóa toàn bộ hồ sơ vụ việc">
+        <i class="fas fa-trash-alt"></i> Xóa hồ sơ
       </button>
     </div>
   </div>
 
-  <!-- 2. BANNER TÓM TẮT HỒ SƠ -->
+  <!-- ========================================================================= -->
+  <!-- 2. KHUNG THÔNG TIN THỤ LÝ ĐƯỢC CHUẨN HÓA ĐỘNG                             -->
+  <!-- ========================================================================= -->
   <div class="hero-case-banner mb-3" id="banner-status-border">
     <div class="row g-2 align-items-center">
       <div class="col-12 col-md-3 border-end">
-        <div class="hero-meta-label">Số thụ lý sơ thẩm</div>
+        <div class="hero-meta-label" id="lbl-meta-so">Số thụ lý</div>
         <div class="fw-bold text-primary text-truncate" id="det-so" data-id="" style="font-size: 14.5px;">---</div>
       </div>
       <div class="col-4 col-md-2 border-end">
@@ -347,101 +375,96 @@
         <div class="hero-meta-val" id="det-ngay">--/--/----</div>
       </div>
       <div class="col-8 col-md-3 border-end">
-        <div class="hero-meta-label">Quan hệ / Tội danh</div>
+        <div class="hero-meta-label" id="lbl-meta-quanhe">Quan hệ pháp luật tranh chấp</div>
         <div class="hero-meta-val text-truncate" id="det-quanhe">---</div>
       </div>
       <div class="col-6 col-md-2 border-end text-md-center">
-        <div class="hero-meta-label">Trạng thái</div>
+        <div class="hero-meta-label">Trạng thái giải quyết</div>
         <div class="hero-meta-val text-success text-truncate" id="det-trangthai">---</div>
       </div>
       <div class="col-6 col-md-2 text-md-center">
-        <div class="hero-meta-label">Hạn giải quyết</div>
+        <div class="hero-meta-label">Thời hạn giải quyết</div>
         <div class="hero-meta-val text-danger" id="det-thoihan">--/--/----</div>
       </div>
     </div>
   </div>
 
-  <!-- 3. KHÔNG GIAN TÁC NGHIỆP PHẲNG A4 & DÒNG THỜI GIAN -->
+  <!-- ========================================================================= -->
+  <!-- 3. KHÔNG GIAN TÁC NGHIỆP TRỌNG TÂM                                        -->
+  <!-- ========================================================================= -->
   <div class="row g-3">
     
-    <!-- CỘT TRÁI: BỘ SOẠN THẢO A4 & VÙNG DỮ LIỆU VỤ ÁN -->
+    <!-- CỘT TRÁI: THÀNH PHẦN ĐƯƠNG SỰ & DỮ LIỆU ÁN -->
     <div class="col-lg-8 col-xl-9 d-flex flex-column gap-3">
       
-      <!-- KHỐI 1: BẢNG A4 ĐƯƠNG SỰ -->
+      <!-- PHÂN KHU 1: THÀNH PHẦN ĐƯƠNG SỰ -->
       <div class="det-panel-card d-flex flex-column mb-0">
         <div class="p-2 p-md-3 bg-light border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
-          <span class="fw-bold text-dark text-uppercase d-flex align-items-center" style="font-size: 12px; letter-spacing: 0.3px;">
-            <i class="fas fa-file-pen text-primary me-2"></i>THÀNH PHẦN ĐƯƠNG SỰ
+          <span class="fw-bold text-dark text-uppercase d-flex align-items-center" id="lbl-panel-duongsu" style="font-size: 12px; letter-spacing: 0.3px;">
+            <i class="fas fa-users text-primary me-2"></i>THÀNH PHẦN ĐƯƠNG SỰ
           </span>
           
           <div class="d-flex align-items-center gap-2 flex-wrap">
-            <button class="btn btn-sm btn-action-primary btn-action-tool shadow-sm" onclick="window.openDraftingModal('CURRENT_CASE')" title="Mở trung tâm xuất văn bản tố tụng">
-              <i class="fas fa-file-signature"></i> Soạn văn bản
-            </button>
-            
-              <button type="button" class="btn btn-sm btn-action-outline btn-action-tool shadow-sm text-primary fw-bold" onclick="document.getElementById('input_scan_parties_pure').click()" title="Quét tài liệu chuyên trách: Cập nhật thông tin người cũ, tách dính chùm và thêm người mới">
-              <i class="fas fa-users-viewfinder text-primary"></i> Quét đương sự
+            <button type="button" class="btn btn-sm btn-action-tonal btn-action-tool" onclick="document.getElementById('input_scan_parties_pure').click()" title="Nhận diện nhân thân đương sự, đối soát căn cước và người đại diện">
+              <i class="fas fa-wand-magic-sparkles text-primary"></i> Quét đương sự
             </button>
             <input type="file" id="input_scan_parties_pure" class="d-none" accept=".pdf,.doc,.docx,image/*" onchange="window.handleScanPartiesOnly(this)">
 
-            <input type="file" id="input_upload_parties_evidence" class="d-none" accept=".pdf,.doc,.docx,image/*" onchange="window.handleUploadDetailFile(this)">
+            <button type="button" class="btn btn-sm btn-action-outline btn-action-tool" onclick="window.openWizardCapNhatDuongSu()" title="Kiểm tra các trường thông tin nhân thân còn thiếu trong hồ sơ">
+              <i class="fas fa-list-check text-secondary"></i> Rà soát thông tin
+            </button>
           </div>
         </div>
 
         <div class="a4-paper-sheet flex-grow-1" id="parties-editor-root">
-          <div class="text-center p-4 text-muted"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Đang nạp danh sách đương sự...</div>
+          <div class="text-center p-4 text-muted"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Đang nạp dữ liệu đương sự...</div>
         </div>
       </div>
 
-      <!-- KHỐI 2: DỮ LIỆU VỤ ÁN (MỞ & PHẲNG) -->
+      <!-- PHÂN KHU 2: DỮ LIỆU ÁN -->
       <div class="open-canvas-card">
-        
-        <!-- THANH CÔNG CỤ DỮ LIỆU VỤ ÁN -->
         <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom flex-wrap gap-2">
           <div class="d-flex align-items-center gap-2">
-            <i class="fas fa-database text-primary"></i>
-            <span class="fw-bold text-dark text-uppercase" style="font-size: 12px; letter-spacing: 0.4px;">
-              DỮ LIỆU VỤ ÁN (LỜI KHAI & THÔNG SỐ)
+            <i class="fas fa-file-lines text-primary"></i>
+            <span class="fw-bold text-dark text-uppercase" id="lbl-panel-dulieu" style="font-size: 12px; letter-spacing: 0.4px;">
+              DỮ LIỆU VỤ ÁN
             </span>
           </div>
           
           <div class="d-flex align-items-center gap-1 flex-wrap">
             <span id="open_canvas_autosave_indicator" class="small fw-bold text-success me-1" style="font-size: 11px;"></span>
             
-            <!-- Nút Copy toàn bộ nội dung -->
-            <button type="button" class="btn btn-sm btn-action-outline btn-action-tool" onclick="copyCanvasContent()" title="Sao chép toàn bộ lời khai và thông số vụ án">
-              <i class="fas fa-copy text-primary"></i> Chép nội dung
+            <button type="button" class="btn btn-sm btn-action-outline btn-action-tool" onclick="window.copyCanvasContent()" title="Sao chép toàn bộ nội dung dữ liệu hồ sơ">
+              <i class="fas fa-copy text-primary"></i> Sao chép
             </button>
 
-            <!-- Nút Xóa sạch dữ liệu có cảnh báo -->
-            <button type="button" class="btn btn-sm btn-action-danger btn-action-tool" onclick="window.clearCanvasDataWithConfirm()" title="Xóa trắng dữ liệu lời khai và thông số">
-              <i class="fas fa-trash-alt"></i> Xóa dữ liệu
+            <button type="button" class="btn btn-sm btn-action-danger btn-action-tool" onclick="window.clearCanvasDataWithConfirm()" title="Xóa trắng toàn bộ nội dung dữ liệu">
+              <i class="fas fa-trash-alt"></i> Xóa nội dung
             </button>
 
-            <!-- Nút 1: Duyệt file từ máy tính -->
-            <button type="button" class="btn btn-sm btn-action-tonal btn-action-tool" onclick="document.getElementById('input_upload_ondemand').click()" title="Duyệt file từ máy tính để AI bóc tách dữ liệu vào hồ sơ">
-              <i class="fas fa-folder-open text-primary"></i> Nạp file
+            <button type="button" class="btn btn-sm btn-action-tonal btn-action-tool" onclick="document.getElementById('input_upload_evidence_only').click()" title="Đọc và trích xuất nội dung từ tệp tài liệu">
+              <i class="fas fa-file-import text-primary"></i> Nạp dữ liệu
             </button>
-            <input type="file" id="input_upload_ondemand" class="d-none" accept=".pdf,.doc,.docx,image/*" multiple onchange="window.handleUploadDetailFile(this)">
+            <input type="file" id="input_upload_evidence_only" class="d-none" accept=".pdf,.doc,.docx,image/*" onchange="window.handleUploadEvidenceOnly(this)">
 
-            <!-- Nút 2: OCR máy ảnh (Chụp nhiều ảnh liên tiếp) -->
-            <button type="button" class="btn btn-sm btn-action-outline btn-action-tool" onclick="document.getElementById('input_camera_multi').click()" title="Chụp ảnh một hoặc nhiều trang tài liệu">
-              <i class="fas fa-camera text-success"></i> Chụp ảnh OCR
+            <button type="button" class="btn btn-sm btn-action-outline btn-action-tool" onclick="document.getElementById('input_camera_multi').click()" title="Chụp ảnh tài liệu để nhận diện nội dung văn bản">
+              <i class="fas fa-camera text-success"></i> Quét ảnh tài liệu
             </button>
             <input type="file" id="input_camera_multi" class="d-none" accept="image/*" capture="environment" multiple onchange="window.handleMultiPhotoSelect(this)">
 
-            <!-- Dropdown Chèn Thẻ giữ chỗ -->
             <select id="select_insert_placeholder" class="form-select form-select-sm fw-bold text-secondary" style="max-width: 170px; height: 35px; font-size: 11.5px;" onchange="window.insertPlaceholderToCanvas(this)">
-              <option value="">+ Thẻ giữ chỗ...</option>
-              <optgroup label="1. Lời khai đương sự">
+              <option value="">Chèn trường dữ liệu...</option>
+              <optgroup label="Lời khai và diễn biến">
+                <option value="{Lời khai đương sự}">{Lời khai đương sự}</option>
+                <option value="{Nội dung vụ án}">{Nội dung vụ án}</option>
                 <option value="{Lời khai Nguyên đơn}">{Lời khai Nguyên đơn}</option>
                 <option value="{Lời khai Bị đơn}">{Lời khai Bị đơn}</option>
                 <option value="{Lời khai Người yêu cầu}">{Lời khai Người yêu cầu}</option>
-                <option value="{Lời khai Người bị yêu cầu}">{Lời khai Người bị yêu cầu}</option>
                 <option value="{Lời khai Người có quyền lợi, nghĩa vụ liên quan}">{Lời khai Người liên quan}</option>
                 <option value="{Lời khai người làm chứng}">{Lời khai Người làm chứng}</option>
               </optgroup>
-              <optgroup label="2. Thỏa thuận Hôn nhân & Gia đình">
+              <optgroup label="Nội dung hòa giải và thỏa thuận">
+                <option value="{Nội dung thỏa thuận}">{Nội dung thỏa thuận}</option>
                 <option value="{Quan hệ hôn nhân}">{Quan hệ hôn nhân}</option>
                 <option value="{Con chung}">{Con chung}</option>
                 <option value="{Thỏa thuận con chung}">{Thỏa thuận con chung}</option>
@@ -450,74 +473,69 @@
                 <option value="{Nợ chung}">{Nợ chung}</option>
                 <option value="{Thỏa thuận án phí}">{Thỏa thuận án phí}</option>
               </optgroup>
-              <optgroup label="3. Đất đai, Tín dụng & Dân sự">
-                <option value="{Thỏa thuận nghĩa vụ chính}">{Thỏa thuận nghĩa vụ chính}</option>
-                <option value="{Thời hạn và phương thức thực hiện}">{Thời hạn & Phương thức}</option>
-                <option value="{Thỏa thuận chi phí tố tụng}">{Chi phí tố tụng}</option>
+              <optgroup label="Tài sản và nghĩa vụ">
+                <option value="{Tài liệu kèm theo đơn khởi kiện}">{Danh mục chứng cứ kèm đơn}</option>
+                <option value="{Biên lai tạm ứng án phí}">{Biên lai tạm ứng án phí}</option>
                 <option value="{Tài sản tranh chấp}">{Tài sản tranh chấp}</option>
                 <option value="{Vị trí tài sản tranh chấp}">{Vị trí tài sản tranh chấp}</option>
                 <option value="{Hợp đồng tín dụng}">{Hợp đồng tín dụng}</option>
                 <option value="{Dư nợ tín dụng}">{Dư nợ tín dụng}</option>
                 <option value="{Di sản thừa kế}">{Di sản thừa kế}</option>
-                <option value="{Biên lai tạm ứng án phí}">{Biên lai tạm ứng án phí}</option>
-                <option value="{Tài liệu kèm theo đơn khởi kiện}">{Danh mục chứng cứ kèm đơn}</option>
               </optgroup>
             </select>
           </div>
         </div>
 
-        <!-- VÙNG VĂN BẢN MỞ -->
         <div id="case_open_canvas_wrapper">
-          <textarea id="case_free_narrative_text" class="canvas-free-textarea" placeholder="Khu vực này hoàn toàn trống. Khi bấm trích xuất từ file hoặc chụp ảnh, thông tin bóc tách sẽ tự động ghi vào đây, hoặc bạn có thể gõ/dán trực tiếp nội dung tóm tắt vụ án..." oninput="window.saveOpenCanvasText()"></textarea>
+          <textarea id="case_free_narrative_text" class="canvas-free-textarea" placeholder="Vùng dữ liệu đang trống. Thông tin bóc tách từ tài liệu hoặc nội dung tóm tắt vụ việc sẽ được hiển thị và tự động lưu trữ tại đây để phục vụ soạn thảo văn bản tố tụng..." oninput="window.saveOpenCanvasText()"></textarea>
         </div>
-
       </div>
 
     </div>
 
-    <!-- CỘT PHẢI: DRIVE & TIMELINE (VÔ HẠN CHIỀU DỌC) -->
+    <!-- CỘT PHẢI: HỒ SƠ ĐIỆN TỬ & DÒNG THỜI GIAN TỐ TỤNG -->
     <div class="col-lg-4 col-xl-3 d-flex flex-column gap-3">
       
-      <!-- WIDGET HỒ SƠ DRIVE -->
+      <!-- KHỐI HỒ SƠ ĐIỆN TỬ -->
       <div class="sidebar-widget-card">
         <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
           <h6 class="widget-header-title d-flex align-items-center">
-            <i class="fab fa-google-drive me-2 text-warning" style="font-size: 13px;"></i>HỒ SƠ DRIVE
+            <i class="fab fa-google-drive me-2 text-warning" style="font-size: 13px;"></i>HỒ SƠ ĐIỆN TỬ
           </h6>
-          <button class="btn btn-sm btn-outline-secondary border rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 22px; height: 22px;" onclick="window.refreshDetailFiles()" title="Làm mới danh sách tệp">
+          <button class="btn btn-sm btn-outline-secondary border rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 22px; height: 22px;" onclick="window.refreshDetailFiles()" title="Cập nhật danh sách tệp">
             <i class="fas fa-sync-alt" style="font-size: 9.5px;"></i>
           </button>
         </div>
         
         <div id="det-files" class="overflow-auto mb-2" style="max-height: 220px;">
-          <div class="text-center p-2 text-muted small">Chưa mở hồ sơ.</div>
+          <div class="text-center p-2 text-muted small">Chưa có tệp lưu trữ.</div>
         </div>
         
         <input type="file" id="local-file-uploader" class="d-none" multiple onchange="window.handleLocalFileUpload(this)">
         
         <div class="d-flex flex-column gap-1 mt-2">
           <button class="btn btn-sm btn-action-outline w-100 justify-content-center" id="btn-open-drive" onclick="window.openDetailDrive()" style="font-size: 11px; height: 30px;">
-            <i class="fas fa-folder-open text-warning me-1"></i> Mở Drive vụ án
+            <i class="fas fa-folder-open text-warning me-1"></i> Mở thư mục hồ sơ
           </button>
           <button class="btn btn-sm btn-action-tonal w-100 justify-content-center" style="font-size: 11px; height: 30px;" onclick="document.getElementById('local-file-uploader').click()">
-            <i class="fas fa-cloud-arrow-up text-primary me-1"></i> Tải file lên Drive
+            <i class="fas fa-cloud-arrow-up text-primary me-1"></i> Tải lên tệp tin
           </button>
         </div>
       </div>
 
-      <!-- WIDGET DÒNG THỜI GIAN -->
+      <!-- KHỐI DÒNG THỜI GIAN TỐ TỤNG -->
       <div class="sidebar-widget-card flex-grow-1 d-flex flex-column">
         <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
           <h6 class="widget-header-title d-flex align-items-center">
-            <i class="fas fa-stream me-2 text-primary" style="font-size: 12px;"></i>DÒNG THỜI GIAN
+            <i class="fas fa-stream me-2 text-primary" style="font-size: 12px;"></i>DÒNG THỜI GIAN TỐ TỤNG
           </h6>
           <button class="btn btn-sm btn-action-tonal py-0 px-2 fw-bold" style="font-size: 10px; border-radius: 6px; height: 22px;" onclick="window.openTaskModal(window.currentCaseId, document.getElementById('det-so').innerText)">
-            <i class="fas fa-plus me-1"></i> Lên lịch
+            <i class="fas fa-plus me-1"></i> Lập lịch làm việc
           </button>
         </div>
         
         <div id="det-timeline-list" class="overflow-auto flex-grow-1" style="min-height: 260px;">
-          <div class="text-center p-3 text-muted small"><div class="spinner-border spinner-border-sm me-1 text-primary"></div> Đang nạp timeline...</div>
+          <div class="text-center p-3 text-muted small"><div class="spinner-border spinner-border-sm me-1 text-primary"></div>Đang nạp dòng thời gian...</div>
         </div>
       </div>
 
@@ -526,21 +544,95 @@
 </div>
 
 <script>
-  // Hàm sao chép toàn văn Vùng Dữ liệu vụ án
-  function copyCanvasContent() {
+  // Chuẩn hóa tiêu đề động theo tính chất pháp lý của từng loại vụ việc
+  window.updateCaseTypeDynamicLabels = function(loaiAn, quanHe) {
+    var la = String(loaiAn || "").toLowerCase();
+    var qh = String(quanHe || "").toLowerCase();
+
+    var elSo = document.getElementById('lbl-meta-so');
+    var elQuanHe = document.getElementById('lbl-meta-quanhe');
+    var elPanelDuongSu = document.getElementById('lbl-panel-duongsu');
+    var elPanelDuLieu = document.getElementById('lbl-panel-dulieu');
+
+    // 1. Án Hình sự
+    if (la.includes("hình sự") || la.includes("1.")) {
+      if (elSo) elSo.innerText = "Số thụ lý vụ án hình sự";
+      if (elQuanHe) elQuanHe.innerText = "Tội danh truy tố";
+      if (elPanelDuongSu) elPanelDuongSu.innerHTML = '<i class="fas fa-users text-primary me-2"></i>NGƯỜI THAM GIA TỐ TỤNG';
+      if (elPanelDuLieu) elPanelDuLieu.innerText = "DỮ LIỆU ÁN HÌNH SỰ";
+    }
+    // 2. Án Hành chính
+    else if (la.includes("hành chính") || la.includes("6.")) {
+      if (elSo) elSo.innerText = "Số thụ lý vụ án hành chính";
+      if (elQuanHe) elQuanHe.innerText = "Đối tượng khởi kiện";
+      if (elPanelDuongSu) elPanelDuongSu.innerHTML = '<i class="fas fa-users text-primary me-2"></i>THÀNH PHẦN ĐƯƠNG SỰ';
+      if (elPanelDuLieu) elPanelDuLieu.innerText = "DỮ LIỆU ÁN HÀNH CHÍNH";
+    }
+    // 3. Việc dân sự hoặc Thuận tình ly hôn
+    else if (la.includes("việc") || qh.includes("thuận tình") || qh.includes("thuan tinh")) {
+      if (elSo) elSo.innerText = "Số thụ lý việc dân sự";
+      if (elQuanHe) elQuanHe.innerText = "Nội dung yêu cầu giải quyết";
+      if (elPanelDuongSu) elPanelDuongSu.innerHTML = '<i class="fas fa-users text-primary me-2"></i>NGƯỜI YÊU CẦU VÀ NGƯỜI LIÊN QUAN';
+      if (elPanelDuLieu) elPanelDuLieu.innerText = "DỮ LIỆU VIỆC DÂN SỰ";
+    }
+    // 4. Hòa giải đối thoại tại Tòa án
+    else if (la.includes("hòa giải") || la.includes("đối thoại") || la.includes("8.")) {
+      if (elSo) elSo.innerText = "Số thụ lý hòa giải đối thoại";
+      if (elQuanHe) elQuanHe.innerText = "Nội dung hòa giải đối thoại";
+      if (elPanelDuongSu) elPanelDuongSu.innerHTML = '<i class="fas fa-users text-primary me-2"></i>CÁC BÊN THAM GIA HÒA GIẢI';
+      if (elPanelDuLieu) elPanelDuLieu.innerText = "DỮ LIỆU HÒA GIẢI ĐỐI THOẠI";
+    }
+    // 5. Tranh chấp Hôn nhân và gia đình
+    else if (la.includes("hôn nhân") || la.includes("3.")) {
+      if (elSo) elSo.innerText = "Số thụ lý vụ án hôn nhân và gia đình";
+      if (elQuanHe) elQuanHe.innerText = "Quan hệ hôn nhân tranh chấp";
+      if (elPanelDuongSu) elPanelDuongSu.innerHTML = '<i class="fas fa-users text-primary me-2"></i>THÀNH PHẦN ĐƯƠNG SỰ';
+      if (elPanelDuLieu) elPanelDuLieu.innerText = "DỮ LIỆU VỤ ÁN HÔN NHÂN VÀ GIA ĐÌNH";
+    }
+    // 6. Án Dân sự, Kinh doanh thương mại, Lao động thông thường
+    else {
+      if (elSo) elSo.innerText = "Số thụ lý vụ án sơ thẩm";
+      if (elQuanHe) elQuanHe.innerText = "Quan hệ pháp luật tranh chấp";
+      if (elPanelDuongSu) elPanelDuongSu.innerHTML = '<i class="fas fa-users text-primary me-2"></i>THÀNH PHẦN ĐƯƠNG SỰ';
+      if (elPanelDuLieu) elPanelDuLieu.innerText = "DỮ LIỆU VỤ ÁN";
+    }
+  };
+
+  // Giám sát cập nhật tiêu đề tự động mỗi khi nạp hồ sơ mới
+  (function() {
+    var observer = new MutationObserver(function() {
+      var qhText = document.getElementById('det-quanhe') ? document.getElementById('det-quanhe').innerText : "";
+      var loaiAn = "";
+      if (window.currentCaseData && window.currentCaseData.info) {
+        loaiAn = window.currentCaseData.info.loaiAn || "";
+      } else if (window.currentCaseId && (window.G_An || window.G_Cases)) {
+        var c = (window.G_An || window.G_Cases).find(function(x) { return x.id === window.currentCaseId; });
+        if (c) loaiAn = c.loaiAn || "";
+      }
+      window.updateCaseTypeDynamicLabels(loaiAn, qhText);
+    });
+
+    var targetEl = document.getElementById('det-quanhe');
+    if (targetEl) {
+      observer.observe(targetEl, { childList: true, characterData: true, subtree: true });
+    }
+  })();
+
+  // Sao chép toàn bộ dữ liệu vụ việc
+  window.copyCanvasContent = function() {
     var ta = document.getElementById('case_free_narrative_text');
     if (!ta || !ta.value.trim()) {
-      AppUI.showToast("Vùng dữ liệu hiện đang trống!", "info");
+      if (typeof AppUI !== 'undefined') AppUI.showToast("Dữ liệu vụ án đang trống", "info");
       return;
     }
     navigator.clipboard.writeText(ta.value.trim()).then(function() {
-      AppUI.showToast("Đã sao chép toàn bộ dữ liệu vụ án vào bộ nhớ tạm!", "success");
+      if (typeof AppUI !== 'undefined') AppUI.showToast("Đã sao chép toàn bộ dữ liệu vào bộ nhớ tạm", "success");
     }).catch(function() {
-      AppUI.showToast("Trình duyệt chặn sao chép tự động", "info");
+      if (typeof AppUI !== 'undefined') AppUI.showToast("Trình duyệt không hỗ trợ sao chép tự động", "info");
     });
-  }
+  };
 
-  // Hàm chèn Thẻ Placeholder vào ô văn bản mở
+  // Chèn trường dữ liệu pháp lý vào vùng văn bản mở
   window.insertPlaceholderToCanvas = function(selectEl) {
     var val = selectEl.value;
     if (!val) return;
