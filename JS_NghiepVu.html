@@ -98,14 +98,17 @@ window.getProceduralRoleInfo = function(loaiAn, quanHe) {
 };
 
 // =========================================================================
-// 3. CỔNG XỬ LÝ TỆP TIN & TRÍCH XUẤT TÀI LIỆU AI OCR
+// 3. CỔNG XỬ LÝ TỆP TIN & TRÍCH XUẤT ĐƯƠNG SỰ / NGUYÊN LIỆU TỐ TỤNG BẰNG AI
 // =========================================================================
 
+/**
+ * HÀM 3.1: QUÉT ĐƠN KHỞI KIỆN / BÌA HỒ SƠ ĐỂ THỤ LÝ MỚI (HỖ TRỢ ĐA ĐƯƠNG SỰ)
+ */
 window.scanDocumentForInfo = function(input) {
   if (!input.files || input.files.length === 0) return;
   var file = input.files[0];
 
-  AppUI.showToast("AI đang đọc và bóc tách thông tin thụ lý từ đơn...", "");
+  AppUI.showToast("AI đang đọc và bóc tách thông tin thụ lý...", "");
 
   window.compressImageFile(file, 1600, 0.8, function(resFile) {
     google.script.run
@@ -120,29 +123,43 @@ window.scanDocumentForInfo = function(input) {
           if (d.quanHe && document.getElementById('in_quanHe')) {
             document.getElementById('in_quanHe').value = d.quanHe;
           }
+          if (d.loaiAn && document.getElementById('in_loaiAn')) {
+            document.getElementById('in_loaiAn').value = d.loaiAn;
+          }
 
           if (typeof window.handleCaseTypeChangeV3 === 'function') {
             window.handleCaseTypeChangeV3();
           }
 
-          ['ND', 'BD'].forEach(t => { 
+          ['ND', 'BD'].forEach(function(t) { 
             var el = document.getElementById('container-' + t); 
             if (el) el.innerHTML = ""; 
           });
 
-          if (d.nd_Info && d.nd_Info.hoTen) {
-            window.addPartyRowV3('ND', false, d.nd_Info);
+          // HỖ TRỢ ĐA ĐƯƠNG SỰ: Nạp toàn bộ danh sách bóc tách được
+          if (d.parties && Array.isArray(d.parties) && d.parties.length > 0) {
+            var hasND = false, hasBD = false;
+            d.parties.forEach(function(p) {
+              var tc = String(p.tuCach || "").toLowerCase();
+              if (tc.includes('nguyên đơn') || tc.includes('khởi kiện') || (tc.includes('yêu cầu') && !tc.includes('bị'))) {
+                window.addPartyRowV3('ND', hasND, p);
+                hasND = true;
+              } else {
+                window.addPartyRowV3('BD', hasBD, p);
+                hasBD = true;
+              }
+            });
+            if (!hasND) window.addPartyRowV3('ND', false);
+            if (!hasBD) window.addPartyRowV3('BD', false);
           } else {
-            window.addPartyRowV3('ND', false);
+            if (d.nd_Info && d.nd_Info.hoTen) window.addPartyRowV3('ND', false, d.nd_Info);
+            else window.addPartyRowV3('ND', false);
+
+            if (d.bd_Info && d.bd_Info.hoTen) window.addPartyRowV3('BD', false, d.bd_Info);
+            else window.addPartyRowV3('BD', false);
           }
 
-          if (d.bd_Info && d.bd_Info.hoTen) {
-            window.addPartyRowV3('BD', false, d.bd_Info);
-          } else {
-            window.addPartyRowV3('BD', false);
-          }
-
-          AppUI.showToast("Đã trích xuất thông tin đơn vào biểu mẫu thụ lý!", "success");
+          AppUI.showToast("Đã trích xuất thông tin thụ lý thành công!", "success");
         } else {
           AppUI.alert("Lỗi trích xuất", res ? res.error : "Không thể bóc tách nội dung đơn.");
         }
@@ -156,26 +173,44 @@ window.scanDocumentForInfo = function(input) {
   input.value = "";
 };
 
-window.mergeAndShowReviewParties = function(partiesData) {
-  if (!partiesData || !Array.isArray(partiesData) || partiesData.length === 0) {
-    AppUI.showToast("Không tìm thấy đương sự nào trong tài liệu.", "info");
+/**
+ * HÀM 3.2: BỔ SUNG HÀM BỊ THIẾU - QUÉT RIÊNG ĐƯƠNG SỰ TỪ MÀN HÌNH CHI TIẾT ÁN
+ */
+window.handleScanPartiesOnly = function(input) {
+  if (!input.files || input.files.length === 0) return;
+  var file = input.files[0];
+  var idVuAn = window.currentCaseId;
+
+  if (!idVuAn) {
+    AppUI.alert("Nhắc nhở", "Vui lòng mở một hồ sơ vụ án trước khi quét đương sự!");
+    input.value = "";
     return;
   }
-  var pseudoRes = {
-    isMismatch: false,
-    summary: "Đã bóc tách " + partiesData.length + " đương sự từ tài liệu.",
-    newParties: partiesData,
-    updatedExistingParties: [],
-    extractedVariables: {},
-    extractedNarratives: {}
-  };
-  window.handleIngestedEvidenceResult(pseudoRes, "Tài liệu đương sự scan");
+
+  AppUI.showToast("Đang quét và bóc tách danh sách đương sự...", "");
+
+  window.compressImageFile(file, 1600, 0.8, function(resFile) {
+    google.script.run
+      .withSuccessHandler(function(res) {
+        AppUI.hideToast();
+        if (res && res.success) {
+          window.handleIngestedEvidenceResult(res, resFile.name);
+        } else {
+          AppUI.alert("Lỗi quét đương sự", res ? res.error : "Không thể bóc tách đương sự từ tài liệu này.");
+        }
+      })
+      .withFailureHandler(function(err) {
+        AppUI.hideToast();
+        AppUI.showToast("Lỗi kết nối máy chủ: " + err.message, "error");
+      })
+      .api_ParseEvidenceDocument(idVuAn, resFile.name, resFile.mimeType, resFile.base64);
+  });
+  input.value = "";
 };
 
-// =========================================================================
-// 1. CỔNG PHÊ DUYỆT THÔNG TIN ĐƯƠNG SỰ & NỘI DUNG TỪ VĂN BẢN QUÉT (OCR)
-// =========================================================================
-
+/**
+ * HÀM 3.3: PHÊ DUYỆT THÔNG TIN ĐƯƠNG SỰ & GIẢI QUYẾT TRIỆT ĐỂ "TÁCH DÍNH CHÙM"
+ */
 window.handleIngestedEvidenceResult = function(res, fileName) {
   var idVuAn = window.currentCaseId;
   if (!idVuAn || !res) return;
@@ -184,34 +219,36 @@ window.handleIngestedEvidenceResult = function(res, fileName) {
 
   var updatedPartiesRaw = res.updatedExistingParties || [];
   var newParties = res.newParties || [];
+  var replacedJoinedNames = res.replacedJoinedNames || [];
   var isMismatch = res.isMismatch === true;
   var mismatchMsg = res.mismatchReason || "Số thụ lý hoặc đương sự trên tài liệu không khớp với hồ sơ đang mở.";
 
-  // Hàm kiểm tra trường còn trống hoặc đang chứa ký tự tạm
   function isBlankField(val) {
     if (!val) return true;
     var s = String(val).trim().toLowerCase();
     return s === "" || s === "---" || s === "19xx" || s.includes("chưa có") || s.includes("nhập địa chỉ");
   }
 
-  // 1. ĐỐI SOÁT THÔNG TIN VỚI CÁC ĐƯƠNG SỰ HIỆN CÓ TRÊN GIAO DIỆN A4
+  // A. ĐỐI SOÁT CẬP NHẬT THÔNG TIN CHO ĐƯƠNG SỰ ĐÃ CÓ (KHÔNG BỊ NUỐT DỮ LIỆU)
   var existingPartyUpdates = [];
 
   updatedPartiesRaw.forEach(function(p) {
-    var cleanTarget = window.removeAccents ? window.removeAccents(window.cleanHonorificFromName(p.hoTen)).toLowerCase().trim() : window.cleanHonorificFromName(p.hoTen).toLowerCase().trim();
+    var cleanTarget = window.cleanHonorificFromName(p.hoTen).toLowerCase().trim();
     if (!cleanTarget) return;
 
     window.a4State.forEach(function(group) {
       group.members.forEach(function(m) {
-        var mClean = window.removeAccents ? window.removeAccents(window.cleanHonorificFromName(m.name)).toLowerCase().trim() : window.cleanHonorificFromName(m.name).toLowerCase().trim();
-        
-        // Khớp tên linh hoạt (có hoặc không có danh xưng)
-        if (mClean === cleanTarget || mClean.includes(cleanTarget) || cleanTarget.includes(mClean)) {
+        var mClean = window.cleanHonorificFromName(m.name).toLowerCase().trim();
+
+        // CHỐNG NHẦM DÍNH CHÙM: Nếu tên cũ chứa nhiều hơn 4 từ và chứa tên người này, bỏ qua để chờ tách
+        var isOldNameJoined = mClean.split(/\s+/).length >= 5 && mClean.includes(cleanTarget) && mClean !== cleanTarget;
+
+        if (!isOldNameJoined && (mClean === cleanTarget || mClean.includes(cleanTarget) || cleanTarget.includes(mClean))) {
           var changes = [];
 
           if (p.namSinh && isBlankField(m.year)) changes.push(`Năm sinh: <b>${p.namSinh}</b>`);
           if (p.diaChi && isBlankField(m.address)) changes.push(`Địa chỉ: <b>${p.diaChi}</b>`);
-          if (p.sdt && isBlankField(m.phone)) changes.push(`SĐT: <b>${window.formatPhoneNumber ? window.formatPhoneNumber(p.sdt) : p.sdt}</b>`);
+          if (p.sdt && isBlankField(m.phone)) changes.push(`SĐT: <b>${window.formatPhoneNumber(p.sdt)}</b>`);
           if (p.cccd && isBlankField(m.idCard)) changes.push(`CCCD: <b>${p.cccd}</b>`);
           if (p.xungHo && p.xungHo !== "Ông/Bà" && (isBlankField(m.title) || m.title === "Ông/Bà")) changes.push(`Danh xưng: <b>${p.xungHo}</b>`);
 
@@ -229,19 +266,19 @@ window.handleIngestedEvidenceResult = function(res, fileName) {
     });
   });
 
-  // Nếu không có thông tin đương sự mới nào -> Nạp thẳng lời khai vào Canvas
-  if (existingPartyUpdates.length === 0 && newParties.length === 0 && !isMismatch) {
-    window.executeApplyEvidenceCanvas('FULL', [], []);
+  // Nếu không có thay đổi nào về đương sự và không lệch hồ sơ ➔ Nạp thẳng lời khai vào Canvas
+  if (existingPartyUpdates.length === 0 && newParties.length === 0 && replacedJoinedNames.length === 0 && !isMismatch) {
+    window.executeApplyEvidenceCanvas('FULL', [], [], []);
     return;
   }
 
-  // 2. TẠO HTML DUYỆT CẬP NHẬT ĐƯƠNG SỰ ĐÃ CÓ (CÓ Ô TÍCH CHỌN)
+  // B. RENDER MODAL PHÊ DUYỆT THÔNG TIN ĐƯƠNG SỰ
   var existingRowsHtml = "";
   if (existingPartyUpdates.length > 0) {
     existingRowsHtml = `
       <div class="mb-3">
         <div class="small-label text-primary mb-2">
-          <i class="fas fa-user-pen me-1"></i> 1. CẬP NHẬT THÔNG TIN ĐƯƠNG SỰ ĐÃ CÓ TRONG VỤ ÁN (${existingPartyUpdates.length}):
+          <i class="fas fa-user-pen me-1"></i> 1. CẬP NHẬT THÔNG TIN ĐƯƠNG SỰ ĐÃ CÓ (${existingPartyUpdates.length}):
         </div>
         <div class="d-flex flex-column gap-2">
           ${existingPartyUpdates.map(function(item, idx) {
@@ -256,25 +293,23 @@ window.handleIngestedEvidenceResult = function(res, fileName) {
                 <div class="text-success small mt-1 ps-4" style="font-size: 11.5px;">
                   <i class="fas fa-arrow-right me-1"></i> Bổ sung: ${item.changesText}
                 </div>
-              </div>
-            `;
+              </div>`;
           }).join('')}
         </div>
-      </div>
-    `;
+      </div>`;
   }
 
-  // 3. TẠO HTML DUYỆT THÊM ĐƯƠNG SỰ MỚI (CÓ Ô TÍCH CHỌN & CHỌN TƯ CÁCH)
+  // C. HIỂN THỊ ĐƯƠNG SỰ MỚI (HOẶC ĐÃ ĐƯỢC TÁCH RA TỪ DÍNH CHÙM)
   var newRowsHtml = "";
   if (newParties.length > 0) {
     newRowsHtml = `
       <div class="mb-2">
         <div class="small-label text-danger mb-2">
-          <i class="fas fa-user-plus me-1"></i> 2. ĐƯƠNG SỰ MỚI PHÁT HIỆN TỪ TÀI LIỆU (${newParties.length}) - TÍCH CHỌN NGƯỜI CẦN THÊM VÀO VỤ ÁN:
+          <i class="fas fa-user-plus me-1"></i> 2. ĐƯƠNG SỰ MỚI / ĐÃ ĐƯỢC TÁCH RỜI (${newParties.length}) - CHỌN ĐỂ THÊM VÀO VỤ ÁN:
         </div>
         <div class="d-flex flex-column gap-2">
           ${newParties.map(function(p, i) {
-            var safeName = window.toTitleCase ? window.toTitleCase(window.cleanHonorificFromName(p.hoTen)) : p.hoTen;
+            var safeName = window.toTitleCase(window.cleanHonorificFromName(p.hoTen));
             var safeXh = p.xungHo || "Ông/Bà";
             var currentRole = String(p.tuCach || "Người có quyền lợi, nghĩa vụ liên quan").trim();
 
@@ -284,13 +319,17 @@ window.handleIngestedEvidenceResult = function(res, fileName) {
             var selLC = currentRole.includes("làm chứng") ? "selected" : "";
             var selLQ = (!selND && !selBD && !selYC && !selLC) ? "selected" : "";
 
+            var repBadge = (p.daiDien && Array.isArray(p.daiDien) && p.daiDien.length > 0) 
+              ? `<span class="badge bg-warning-subtle text-dark border ms-2"><i class="fas fa-user-shield me-1"></i>Có ${p.daiDien.length} đại diện/LS</span>` 
+              : '';
+
             return `
               <div class="p-2 px-3 bg-white border rounded-3 shadow-sm">
                 <div class="d-flex justify-content-between align-items-center mb-1 flex-wrap gap-2">
                   <div class="form-check m-0">
                     <input class="form-check-input check-add-new-party" type="checkbox" id="chk_new_${i}" checked data-idx="${i}" style="cursor: pointer; width: 1.1rem; height: 1.1rem;">
                     <label class="form-check-label fw-bold text-dark ms-1" for="chk_new_${i}" style="cursor: pointer; font-size: 13px;">
-                      ${safeXh} ${safeName}
+                      ${safeXh} ${safeName} ${repBadge}
                     </label>
                   </div>
                   <div class="d-flex align-items-center gap-1">
@@ -309,15 +348,12 @@ window.handleIngestedEvidenceResult = function(res, fileName) {
                   <div class="col-md-6 text-truncate"><b>Địa chỉ:</b> ${p.diaChi || 'Chưa rõ'}</div>
                   <div class="col-md-3"><b>CCCD:</b> ${p.cccd || '---'}</div>
                 </div>
-              </div>
-            `;
+              </div>`;
           }).join('')}
         </div>
-      </div>
-    `;
+      </div>`;
   }
 
-  // 4. CẢNH BÁO LỆCH HỒ SƠ NẾU CÓ
   var alertBannerHtml = isMismatch ? `
     <div class="p-2 px-3 mb-3 bg-danger-subtle border border-danger rounded-3 text-danger d-flex align-items-start gap-2 shadow-sm">
       <i class="fas fa-triangle-exclamation fa-lg mt-1 flex-shrink-0 text-danger"></i>
@@ -326,14 +362,13 @@ window.handleIngestedEvidenceResult = function(res, fileName) {
       </div>
     </div>` : "";
 
-  // 5. HIỂN THỊ MODAL PHÊ DUYỆT
   var modalHtml = `
     <div class="modal fade" id="modalReviewEvidenceUnified" tabindex="-1" data-bs-backdrop="static">
       <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content border-0 shadow-lg" style="border-radius: 14px; overflow: hidden;">
           <div class="modal-header bg-white border-bottom py-3">
             <h6 class="modal-title fw-bold text-primary text-uppercase" style="font-size: 13.5px;">
-              <i class="fas fa-user-check text-primary me-2"></i>PHÊ DUYỆT THÔNG TIN ĐƯƠNG SỰ TỪ TÀI LIỆU
+              <i class="fas fa-user-check text-primary me-2"></i>PHÊ DUYỆT BÓC TÁCH ĐƯƠNG SỰ VÀO VỤ ÁN
             </h6>
             <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"></button>
           </div>
@@ -343,34 +378,31 @@ window.handleIngestedEvidenceResult = function(res, fileName) {
             ${newRowsHtml}
           </div>
           <div class="modal-footer bg-white border-top justify-content-between p-3 flex-wrap gap-2">
-            <button type="button" class="btn btn-action-outline btn-action-tool text-secondary" data-bs-dismiss="modal" onclick="window.executeApplyEvidenceCanvas('STATEMENT_ONLY', [], [])">
-              <i class="fas fa-file-lines me-1"></i> Chỉ nạp nội dung (Bỏ qua đương sự)
+            <button type="button" class="btn btn-action-outline btn-action-tool text-secondary" data-bs-dismiss="modal" onclick="window.executeApplyEvidenceCanvas('STATEMENT_ONLY', [], [], [])">
+              <i class="fas fa-file-lines me-1"></i> Chỉ lấy nội dung (Bỏ qua đương sự)
             </button>
             <div class="d-flex gap-2">
-              <button type="button" class="btn btn-action-outline btn-action-tool" data-bs-dismiss="modal">Hủy bỏ</button>
+              <button type="button" class="btn btn-action-outline btn-action-tool" data-bs-dismiss="modal">Hủy</button>
               <button type="button" class="btn btn-action-primary btn-action-tool shadow-sm" id="btn_confirm_evidence_unified">
-                <i class="fas fa-check-circle me-1"></i> Xác nhận cập nhật
+                <i class="fas fa-check-circle me-1"></i> Cập nhật vào chi tiết án
               </button>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  `;
+    </div>`;
 
   var oldModal = document.getElementById('modalReviewEvidenceUnified');
   if (oldModal) oldModal.remove();
   document.body.insertAdjacentHTML('beforeend', modalHtml);
 
   document.getElementById('btn_confirm_evidence_unified').onclick = function() {
-    // Lấy danh sách đương sự cũ được duyệt cập nhật
     var approvedExisting = [];
     document.querySelectorAll('.check-update-existing:checked').forEach(function(cb) {
       var idx = parseInt(cb.getAttribute('data-idx'), 10);
       if (existingPartyUpdates[idx]) approvedExisting.push(existingPartyUpdates[idx]);
     });
 
-    // Lấy danh sách đương sự mới được duyệt thêm
     var approvedNew = [];
     document.querySelectorAll('.check-add-new-party:checked').forEach(function(cb) {
       var idx = parseInt(cb.getAttribute('data-idx'), 10);
@@ -385,17 +417,34 @@ window.handleIngestedEvidenceResult = function(res, fileName) {
     var mInst = bootstrap.Modal.getInstance(document.getElementById('modalReviewEvidenceUnified'));
     if (mInst) mInst.hide();
 
-    window.executeApplyEvidenceCanvas('FULL', approvedNew, approvedExisting);
+    // GỌI HÀM THỰC THI CHUẨN XÁC 4 THAM SỐ ĐỂ CẬP NHẬT A4 STATE
+    window.executeApplyEvidenceCanvas('FULL', approvedNew, approvedExisting, replacedJoinedNames);
   };
 
   bootstrap.Modal.getOrCreateInstance(document.getElementById('modalReviewEvidenceUnified')).show();
 };
 
-// =========================================================================
-// 2. HÀM THỰC THI NẠP ĐƯƠNG SỰ VÀO A4 STATE & LƯU CƠ SỞ DỮ LIỆU
-// =========================================================================
+window.mergeAndShowReviewParties = function(partiesData) {
+  if (!partiesData || !Array.isArray(partiesData) || partiesData.length === 0) {
+    AppUI.showToast("Không tìm thấy đương sự nào trong tài liệu.", "info");
+    return;
+  }
+  var pseudoRes = {
+    isMismatch: false,
+    summary: "Đã bóc tách " + partiesData.length + " đương sự từ tài liệu.",
+    newParties: partiesData,
+    replacedJoinedNames: [],
+    updatedExistingParties: [],
+    extractedVariables: {},
+    extractedNarratives: {}
+  };
+  window.handleIngestedEvidenceResult(pseudoRes, "Tài liệu đương sự scan");
+};
 
-window.executeApplyEvidenceCanvas = function(mode, newPartiesToInsert, existingPartiesToUpdate) {
+/**
+ * HÀM 3.4: THỰC THI NẠP ĐƯƠNG SỰ VÀO A4 STATE & LƯU CƠ SỞ DỮ LIỆU CHUẨN MỰC
+ */
+window.executeApplyEvidenceCanvas = function(mode, newPartiesToInsert, existingPartiesToUpdate, replacedJoinedNames) {
   var res = window.currentPendingEvidence;
   if (!res) return;
 
@@ -408,7 +457,20 @@ window.executeApplyEvidenceCanvas = function(mode, newPartiesToInsert, existingP
     return s === "" || s === "---" || s === "19xx" || s.includes("chưa có") || s.includes("nhập địa chỉ");
   }
 
-  // 1. ÁP DỤNG CẬP NHẬT CHO CÁC ĐƯƠNG SỰ ĐÃ CÓ TRÊN A4
+  // 1. TÁCH DÍNH CHÙM: Xóa bỏ dòng gộp cũ nếu đã được tách thành người mới
+  if (mode === 'FULL' && replacedJoinedNames && replacedJoinedNames.length > 0) {
+    replacedJoinedNames.forEach(function(joinedName) {
+      var cleanJoined = window.cleanHonorificFromName(joinedName).toLowerCase().trim();
+      window.a4State.forEach(function(group) {
+        group.members = group.members.filter(function(m) {
+          var mClean = window.cleanHonorificFromName(m.name).toLowerCase().trim();
+          return mClean !== cleanJoined && !mClean.includes(cleanJoined);
+        });
+      });
+    });
+  }
+
+  // 2. CẬP NHẬT THÔNG TIN CHO ĐƯƠNG SỰ ĐÃ CÓ TRÊN A4 (BẢO TOÀN ĐẠI DIỆN)
   if (mode === 'FULL' && existingPartiesToUpdate && existingPartiesToUpdate.length > 0) {
     existingPartiesToUpdate.forEach(function(item) {
       var raw = item.rawUpdate;
@@ -417,48 +479,97 @@ window.executeApplyEvidenceCanvas = function(mode, newPartiesToInsert, existingP
           if (m.id === item.memberId) {
             if (raw.namSinh && isBlankField(m.year)) m.year = raw.namSinh;
             if (raw.diaChi && isBlankField(m.address)) m.address = raw.diaChi;
-            if (raw.sdt && isBlankField(m.phone)) m.phone = window.formatPhoneNumber ? window.formatPhoneNumber(raw.sdt) : raw.sdt;
+            if (raw.sdt && isBlankField(m.phone)) m.phone = window.formatPhoneNumber(raw.sdt);
             if (raw.cccd && isBlankField(m.idCard)) m.idCard = raw.cccd;
             if (raw.xungHo && raw.xungHo !== "Ông/Bà" && (isBlankField(m.title) || m.title === "Ông/Bà")) m.title = raw.xungHo;
+
+            // Bổ sung người đại diện nếu có
+            if (raw.daiDien && Array.isArray(raw.daiDien) && raw.daiDien.length > 0) {
+              m.reps = m.reps || [];
+              raw.daiDien.forEach(function(r) {
+                m.reps.push({
+                  id: 'r_' + Math.random().toString(36).substr(2, 9),
+                  type: r.type || 'uq',
+                  title: r.xungHo || 'Ông/Bà',
+                  name: window.toTitleCase(window.cleanHonorificFromName(r.hoTen || r.name || '')),
+                  year: r.namSinh || '',
+                  address: r.diaChi || '',
+                  phone: r.sdt || '',
+                  date: r.vanBan || '',
+                  position: r.chucVu || ''
+                });
+              });
+            }
           }
         });
       });
     });
   }
 
-  // 2. BỔ SUNG CÁC ĐƯƠNG SỰ MỚI ĐÃ ĐƯỢC PHÊ DUYỆT VÀO KHỐI TƯƠNG ỨNG
+  // 3. THÊM ĐƯƠNG SỰ MỚI VÀO ĐÚNG KHỐI A4 THEO LOẠI ÁN
   if (mode === 'FULL' && newPartiesToInsert && newPartiesToInsert.length > 0) {
+    var loaiAn = window.currentCaseData && window.currentCaseData.info ? window.currentCaseData.info.loaiAn : "";
+    var quanHe = window.currentCaseData && window.currentCaseData.info ? window.currentCaseData.info.quanHe : "";
+    var isVHN = String(loaiAn).includes("Hôn nhân") && (String(quanHe).toLowerCase().includes("thuận tình") || String(quanHe).toLowerCase().includes("thuan tinh"));
+
     newPartiesToInsert.forEach(function(p) {
       var tcLower = String(p.tuCach || "").toLowerCase();
-      var rKey = 'lq'; 
-      if (tcLower.includes('làm chứng')) rKey = 'lc';
-      else if (tcLower.includes('nguyên đơn') || tcLower.includes('khởi kiện') || (tcLower.includes('yêu cầu') && !tcLower.includes('bị'))) rKey = 'nd';
-      else if (tcLower.includes('bị đơn') || tcLower.includes('bị kiện') || tcLower.includes('bị cáo') || tcLower.includes('bị yêu cầu')) rKey = 'bd';
+      var rKey = 'lq';
+
+      if (isVHN) {
+        // Đối với Thuận tình ly hôn: Người đầu tiên vào ND, người thứ hai vào BD
+        var ndGroup = window.a4State.find(g => g.roleKey === 'nd');
+        if (!ndGroup || ndGroup.members.length === 0) rKey = 'nd';
+        else rKey = 'bd';
+      } else {
+        if (tcLower.includes('làm chứng')) rKey = 'lc';
+        else if (tcLower.includes('nguyên đơn') || tcLower.includes('khởi kiện') || (tcLower.includes('yêu cầu') && !tcLower.includes('bị'))) rKey = 'nd';
+        else if (tcLower.includes('bị đơn') || tcLower.includes('bị kiện') || tcLower.includes('bị cáo') || tcLower.includes('bị yêu cầu')) rKey = 'bd';
+      }
 
       var targetGroup = window.a4State.find(g => g.roleKey === rKey);
       if (targetGroup) {
-        var cleanNewName = window.toTitleCase ? window.toTitleCase(window.cleanHonorificFromName(p.hoTen)) : p.hoTen;
+        var cleanNewName = window.toTitleCase(window.cleanHonorificFromName(p.hoTen));
+
+        // CHUYỂN ĐỔI ĐẠI DIỆN TỪ AI SANG MẢNG REPS CHUẨN TRÊN A4
+        var parsedReps = [];
+        if (p.daiDien && Array.isArray(p.daiDien) && p.daiDien.length > 0) {
+          parsedReps = p.daiDien.map(function(r) {
+            return {
+              id: 'r_' + Math.random().toString(36).substr(2, 9),
+              type: r.type || 'uq',
+              title: r.xungHo || 'Ông/Bà',
+              name: window.toTitleCase(window.cleanHonorificFromName(r.hoTen || r.name || '')),
+              year: r.namSinh || '',
+              address: r.diaChi || '',
+              phone: r.sdt || '',
+              date: r.vanBan || '',
+              position: r.chucVu || ''
+            };
+          });
+        }
+
         targetGroup.members.push({
           id: 'm_' + Math.random().toString(36).substr(2, 9),
           title: p.xungHo || 'Ông/Bà',
           name: cleanNewName,
           year: p.namSinh || '',
           address: p.diaChi || '',
-          phone: p.sdt ? (window.formatPhoneNumber ? window.formatPhoneNumber(p.sdt) : p.sdt) : '',
+          phone: p.sdt ? window.formatPhoneNumber(p.sdt) : '',
           idCard: p.cccd || '',
-          reps: []
+          reps: parsedReps
         });
       }
     });
   }
 
-  // Vẽ lại bảng A4 và tự động lưu vào CSDL máy chủ
-  if (mode === 'FULL' && ((existingPartiesToUpdate && existingPartiesToUpdate.length > 0) || (newPartiesToInsert && newPartiesToInsert.length > 0))) {
+  // 4. VẼ LẠI TRÌNH SOẠN THẢO A4 VÀ TỰ ĐỘNG LƯU VÀO CSDL SHEET 2_DUONGSU
+  if (mode === 'FULL') {
     window.renderA4Editor();
     window.saveA4StateToServer();
   }
 
-  // 3. CẬP NHẬT BIẾN MASTER VÀO RAM VÀ VÙNG DỮ LIỆU CANVAS
+  // 5. CẬP NHẬT BIẾN VÀ LỜI KHAI VÀO VÙNG DỮ LIỆU CANVAS
   window.currentCaseVariables = Object.assign({}, window.currentCaseVariables || {}, extractedVars);
   window.currentCaseNarratives = Object.assign({}, window.currentCaseNarratives || {}, extractedNars);
 
@@ -497,7 +608,7 @@ window.executeApplyEvidenceCanvas = function(mode, newPartiesToInsert, existingP
 
   var msg = (mode === 'STATEMENT_ONLY') 
     ? "Đã nạp nội dung lời khai vào vùng dữ liệu vụ án!" 
-    : "Đã cập nhật thông tin đương sự và lưu vào CSDL thành công!";
+    : "Đã cập nhật đầy đủ đương sự và lưu vào CSDL thành công!";
   AppUI.showToast(msg, "success");
 };
 

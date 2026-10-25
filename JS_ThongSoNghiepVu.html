@@ -1,14 +1,14 @@
 <script>
 /**
  * =========================================================================
- * HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.5 - MASTER CASE PARAMETERS & OCR ENGINE (PRODUCTION)
+ * HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.5 - MASTER CASE PARAMETERS & OCR ENGINE
  * TỆP: JS_ThongSoNghiepVu.html - ĐIỀU HÀNH BỘ NHỚ VỤ ÁN, CANVAS & MULTI-PHOTO OCR
  * -------------------------------------------------------------------------
  * - BẢO TỒN MASTER DATA: BIẾN DO AI BÓC TÁCH ĐƯỢC LƯU VĨNH VIỄN VÀO _case_memory.json.
- * - KHÔNG BỊ XÓA HAY ĐÈ BIẾN BỞI CÁC CÂU MẪU MẶC ĐỊNH (FALLBACK STRINGS).
- * - BÓC TÁCH CHUẨN XÁC: VỊ TRÍ TÀI SẢN, HỢP ĐỒNG TÍN DỤNG, DƯ NỢ, DI SẢN THỪA KẾ.
- * - CHUẨN HÓA BỘ 3 THỂ THỨC: {Tên} (Tiêu đề), {tên} (Viết thường), {TÊN} (IN HOA).
- * - MULTI-PHOTO OCR: NÉN CLIENT-SIDE, CHỤP ĐA TRANG VÀ BÓC TÁCH LIỀN MẠCH.
+ * - BÓC TÁCH CHUẨN XÁC: Vị trí tài sản, Hợp đồng tín dụng, Dư nợ, Di sản thừa kế.
+ * - MULTI-PHOTO OCR: Nén Client-side, chụp đa trang và bóc tách liền mạch.
+ * - [ĐÃ KHẮC PHỤC LỖI NGHIÊM TRỌNG]: Đã xóa bỏ hoàn toàn hàm executeApplyEvidenceCanvas
+ *   khỏi tệp này để không ghi đè lên luồng xử lý chính trong JS_NghiepVu.html.
  * =========================================================================
  */
 
@@ -343,7 +343,7 @@ window.clearCanvasDataWithConfirm = function() {
 };
 
 // =========================================================================
-// 3. ĐÓNG GÓI BIẾN ĐỘNG CHO MAIL MERGE V3 (KHÔNG ĐÈ CÂU MẶC ĐỊNH)
+// 3. ĐÓNG GÓI BIẾN ĐỘNG CHO MAIL MERGE V3
 // =========================================================================
 
 window.compileDynamicVariables = function(vars, currentA4Parties) {
@@ -417,7 +417,7 @@ window.compileDynamicVariables = function(vars, currentA4Parties) {
   vars["{Điều luật HNGĐ}"] = dieuLuatHNGD_Str;
   vars["{điều luật hngđ}"] = dieuLuatHNGD_Str;
 
-  // E. Nhân bản bộ 3 thể thức cho toàn bộ Placeholder ({Tên}, {tên}, {TÊN})
+  // E. Nhân bản bộ 3 thể thức cho toàn bộ Placeholder
   for (var key in vars) {
     if (vars[key] !== undefined && vars[key] !== null) {
       var valStr = String(vars[key]);
@@ -560,99 +560,4 @@ window.executeMultiPhotoExtraction = function() {
     .api_ParseEvidenceDocument(idVuAn, "Ảnh_chụp_đa_trang.jpg", "image/jpeg", null, null, window.stagedOcrPhotos);
 };
 
-// =========================================================================
-// 5. NẠP NGUYÊN LIỆU CHI TIẾT VÀO VÙNG CANVAS
-// =========================================================================
-
-window.executeApplyEvidenceCanvas = function(mode, partiesToInsert) {
-  var res = window.currentPendingEvidence;
-  if (!res) return;
-
-  var extractedVars = res.extractedVariables || {};
-  var extractedNars = res.extractedNarratives || {};
-
-  // 1. Thêm đương sự mới vào A4 State nếu có
-  if (mode === 'FULL' && partiesToInsert && partiesToInsert.length > 0) {
-    partiesToInsert.forEach(function(p) {
-      var tcLower = String(p.tuCach || "").toLowerCase();
-      var rKey = 'lq'; 
-      if (tcLower.includes('làm chứng')) rKey = 'lc';
-      else if (tcLower.includes('nguyên đơn') || tcLower.includes('khởi kiện') || (tcLower.includes('yêu cầu') && !tcLower.includes('bị'))) rKey = 'nd';
-      else if (tcLower.includes('bị đơn') || tcLower.includes('bị kiện') || tcLower.includes('bị cáo') || tcLower.includes('bị yêu cầu')) rKey = 'bd';
-
-      var targetGroup = window.a4State.find(g => g.roleKey === rKey);
-      if (targetGroup) {
-        var cleanNewName = window.toTitleCase(window.cleanHonorificFromName(p.hoTen));
-        targetGroup.members.push({
-          id: 'm_' + Math.random().toString(36).substr(2, 9),
-          title: p.xungHo || 'Ông/Bà',
-          name: cleanNewName,
-          year: p.namSinh || '',
-          address: p.diaChi || '',
-          phone: p.sdt || '',
-          idCard: p.cccd || '',
-          reps: []
-        });
-      }
-    });
-    window.renderA4Editor();
-    window.saveA4StateToServer();
-  }
-
-  // 2. Cập nhật biến vào RAM (Master copy)
-  window.currentCaseVariables = Object.assign({}, window.currentCaseVariables || {}, extractedVars);
-  window.currentCaseNarratives = Object.assign({}, window.currentCaseNarratives || {}, extractedNars);
-
-  // 3. Đổ toàn văn chi tiết lên Canvas Textarea
-  var textarea = document.getElementById('case_free_narrative_text');
-  if (textarea) {
-    var compiled = [];
-
-    // Biên lai án phí
-    if (extractedVars["{Biên lai tạm ứng án phí}"]) {
-      compiled.push("[TẠM ỨNG ÁN PHÍ - NQ 326]:\n" + extractedVars["{Biên lai tạm ứng án phí}"]);
-    }
-    // Danh mục chứng cứ kèm đơn
-    if (extractedVars["{Tài liệu kèm theo đơn khởi kiện}"]) {
-      compiled.push("[DANH MỤC TÀI LIỆU, CHỨNG CỨ KÈM THEO ĐƠN]:\n" + extractedVars["{Tài liệu kèm theo đơn khởi kiện}"]);
-    }
-    // Lời khai đương sự
-    var lk = extractedVars["{Lời khai đương sự}"] || extractedVars["{Nội dung vụ án}"];
-    if (lk) {
-      compiled.push("[TRÍCH LỤC LỜI KHAI ĐƯƠNG SỰ]:\n" + lk);
-    }
-    // Thông tin tài sản, hợp đồng, di sản
-    var assetSec = [];
-    if (extractedVars["{Vị trí tài sản tranh chấp}"]) assetSec.push("- Vị trí tài sản tranh chấp: " + extractedVars["{Vị trí tài sản tranh chấp}"]);
-    if (extractedVars["{Tài sản tranh chấp}"] && extractedVars["{Tài sản tranh chấp}"] !== extractedVars["{Vị trí tài sản tranh chấp}"]) assetSec.push("- Tài sản tranh chấp: " + extractedVars["{Tài sản tranh chấp}"]);
-    if (extractedVars["{Hợp đồng tín dụng}"]) assetSec.push("- Hợp đồng tín dụng: " + extractedVars["{Hợp đồng tín dụng}"]);
-    if (extractedVars["{Dư nợ tín dụng}"]) assetSec.push("- Dư nợ tín dụng: " + extractedVars["{Dư nợ tín dụng}"]);
-    if (extractedVars["{Di sản thừa kế}"]) assetSec.push("- Di sản thừa kế: " + extractedVars["{Di sản thừa kế}"]);
-    if (assetSec.length > 0) compiled.push("[THÔNG TIN TÀI SẢN / HỢP ĐỒNG / DI SẢN]:\n" + assetSec.join("\n"));
-
-    // Thỏa thuận hòa giải
-    if (extractedVars["{Nội dung thỏa thuận}"]) {
-      compiled.push("[NỘI DUNG THỎA THUẬN HÒA GIẢI]:\n" + extractedVars["{Nội dung thỏa thuận}"]);
-    } else {
-      var ts = [];
-      if (extractedVars["{Quan hệ hôn nhân}"]) ts.push("1. Về quan hệ hôn nhân: " + extractedVars["{Quan hệ hôn nhân}"]);
-      if (extractedVars["{Thỏa thuận con chung}"] || extractedVars["{Con chung}"]) ts.push("2. Về con chung: " + (extractedVars["{Thỏa thuận con chung}"] || extractedVars["{Con chung}"]));
-      if (extractedVars["{Tài sản chung}"]) ts.push("3. Về tài sản chung: " + extractedVars["{Tài sản chung}"]);
-      if (extractedVars["{Nợ chung}"]) ts.push("4. Về nợ chung: " + extractedVars["{Nợ chung}"]);
-      if (extractedVars["{Thỏa thuận án phí}"]) ts.push("5. Về án phí: " + extractedVars["{Thỏa thuận án phí}"]);
-      if (ts.length > 0) compiled.push("[NỘI DUNG THỎA THUẬN HÒA GIẢI]:\n" + ts.join("\n"));
-    }
-
-    var newContent = compiled.join("\n\n");
-    if (newContent) {
-      textarea.value = textarea.value.trim() ? (textarea.value.trim() + "\n\n" + newContent) : newContent;
-      window.saveOpenCanvasText();
-    }
-  }
-
-  var msg = (mode === 'STATEMENT_ONLY') 
-    ? "Đã nạp toàn văn lời khai chi tiết vào hồ sơ!" 
-    : "Đã trích xuất nguyên liệu và cập nhật đầy đủ thông tin đương sự!";
-  AppUI.showToast(msg, "success");
-};
 </script>

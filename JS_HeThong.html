@@ -1,14 +1,14 @@
 <script>
 /**
  * =========================================================================
- * HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.5 - MASTER SYSTEM CORE JAVASCRIPT (PRODUCTION)
+ * HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.5 - MASTER SYSTEM CORE JAVASCRIPT
  * TỆP: JS_HeThong.html - KHỞI TẠO STATE RAM, APPUI, NLP UTILS & COPILOT ROUTER
  * -------------------------------------------------------------------------
- * - BẢN VIẾT LẠI TOÀN DIỆN: 100% CHUẨN CÚ PHÁP, TRIỆT TIÊU LỖI TREO MÀN HÌNH CHỜ.
- * - SINGLE SOURCE OF TRUTH: NLP, TIỆN ÍCH CHUỖI, ĐỌC TIỀN VÀ TÍNH ÁN PHÍ NQ 326.
+ * - ĐÃ KHẮC PHỤC LỖI REGEX COPILOT ACTION: Xử lý chính xác định dạng 
+ *   [ACTION:tên_lệnh:tham_số_1:tham_số_2:Tiêu_đề] dù có chứa các tham số rỗng.
+ * - Bổ sung định tuyến mở chi tiết Đơn khởi kiện từ Copilot.
  * - TÍCH HỢP TÍNH NĂNG XUẤT EXCEL 6 CỘT CHUẨN XÁC THEO HIỆN TRẠNG BỘ LỌC.
- * - BỎ HẸN GIỜ 10 GIÂY: THẺ THÔNG BÁO XUẤT VĂN BẢN KHÔNG TỰ TẮT (ĐÓNG BẰNG NÚT ×).
- * - BỘ DỌN DẸP BACKDROP MỒ CÔI TỰ ĐỘNG CHỐNG KẸT MÀN HÌNH MỜ.
+ * - KHÔNG tự đóng thẻ thông báo xuất văn bản (Chỉ đóng khi người dùng ấn x).
  * =========================================================================
  */
 
@@ -53,26 +53,16 @@ window.CURRENT_APP_CONTEXT = {
 // 2. TIỆN ÍCH NLP, CHUẨN HÓA DANH XƯNG & VĂN BẢN (SINGLE SOURCE OF TRUTH)
 // =========================================================================
 
-// Xóa dấu tiếng Việt phục vụ tìm kiếm nhanh không dấu
 window.removeAccents = function(str) {
   if (!str) return "";
-  return String(str)
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/đ/g, 'd')
-    .replace(/Đ/g, 'D');
+  return String(str).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
 };
 
-// Bóc tách danh xưng thừa phía trước tên
 window.cleanHonorificFromName = function(name) {
   if (!name) return "";
-  return String(name)
-    .trim()
-    .replace(/^(ông\/bà|ông\/bà\.|ông|bà|anh|chị|cô|chú|bác|cháu)\s*[:.\-]?\s+/i, '')
-    .trim();
+  return String(name).trim().replace(/^(ông\/bà|ông\/bà\.|ông|bà|anh|chị|cô|chú|bác|cháu)\s*[:.\-]?\s+/i, '').trim();
 };
 
-// Kiểm tra danh xưng cá nhân hợp lệ (loại trừ pháp nhân, cơ quan)
 window.isIndividualHonorific = function(xh) {
   if (!xh) return false;
   var x = String(xh).trim().toLowerCase();
@@ -81,7 +71,6 @@ window.isIndividualHonorific = function(xh) {
   return ["ông", "bà", "anh", "chị", "cháu", "ông/bà"].includes(x);
 };
 
-// Chuẩn hóa Title Case
 window.toTitleCase = function(str) {
   if (!str) return "";
   var acronyms = [
@@ -95,9 +84,7 @@ window.toTitleCase = function(str) {
     var upperW = w.toUpperCase();
     if (acronyms.includes(upperW)) return upperW;
     if (w.includes("'") || w.includes("’")) {
-      return w.split(/['’]/).map(function(p) {
-        return p ? p.charAt(0).toUpperCase() + p.slice(1).toLowerCase() : "";
-      }).join("'");
+      return w.split(/['’]/).map(function(p) { return p ? p.charAt(0).toUpperCase() + p.slice(1).toLowerCase() : ""; }).join("'");
     }
     return upperW.charAt(0) + w.slice(1).toLowerCase();
   }).join(" ");
@@ -105,7 +92,6 @@ window.toTitleCase = function(str) {
 window.toTitleCaseLocal = window.toTitleCase;
 window.local_toTitleCase = window.toTitleCase;
 
-// Chuẩn hóa số điện thoại Việt Nam
 window.formatPhoneNumber = function(phone) {
   if (!phone) return "";
   var str = String(phone).trim().replace(/[^0-9+]/g, '');
@@ -114,7 +100,6 @@ window.formatPhoneNumber = function(phone) {
 };
 window.local_formatPhoneNumber = window.formatPhoneNumber;
 
-// Tự động định dạng số điện thoại khi nhập liệu
 window.formatPhoneVNInput = function(input) {
   if (!input) return;
   var val = input.value.replace(/\D/g, '');
@@ -125,7 +110,6 @@ window.formatPhoneVNInput = function(input) {
   input.value = formatted;
 };
 
-// Viết tắt chuẩn mực kết quả giải quyết
 window.standardizeResolutionAbbr = function(raw) {
   if (!raw) return "Đã giải quyết";
   var s = String(raw).trim();
@@ -145,26 +129,18 @@ window.standardizeResolutionAbbr = function(raw) {
   if (sLow.includes("chuyen ho so") || sLow.includes("chuyen vu an")) return "Chuyển hồ sơ";
   if (sLow.includes("nhap vu an") || sLow.includes("nhap vu viec")) return "Nhập vụ án";
   if (sLow.includes("viec dan su") || sLow.includes("giai quyet viec")) return "QĐGQ-VDS";
-
   return s;
 };
 
-// Đọc tiền thành chữ tiếng Việt chuẩn Nghị quyết 326/2016
 window.numberToWordsVi = function(so) {
   if (so === 0 || so === "0" || so === "") return "Không đồng";
   so = parseInt(String(so).replace(/[^\d]/g, ''), 10);
   if (isNaN(so) || so === 0) return "Không đồng";
-
   var chuSo = ["không", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín"];
   var donVi = ["", "nghìn", "triệu", "tỷ", "nghìn tỷ", "triệu tỷ"];
   var numStr = String(so);
   var blocks = [];
-
-  while (numStr.length > 0) {
-    blocks.push(numStr.slice(-3));
-    numStr = numStr.slice(0, -3);
-  }
-
+  while (numStr.length > 0) { blocks.push(numStr.slice(-3)); numStr = numStr.slice(0, -3); }
   var str = "";
   for (var i = 0; i < blocks.length; i++) {
     var blockStr = blocks[i];
@@ -194,7 +170,6 @@ window.numberToWordsVi = function(so) {
 };
 window.local_numberToWordsVi = window.numberToWordsVi;
 
-// Tính án phí và tạm ứng án phí NQ 326 trên Client
 window.calculateCourtFee = function(loaiAn, giaTriRaw) {
   var fee = 0; var tamUng = 0;
   var la = String(loaiAn || "").toLowerCase();
@@ -232,7 +207,6 @@ window.calculateCourtFee = function(loaiAn, giaTriRaw) {
 };
 window.local_calculateCourtFee = window.calculateCourtFee;
 
-// Nén ảnh Canvas Client-side (< 400KB)
 window.compressImageFile = function(file, maxWidth, quality, callback) {
   if (!file.type || !file.type.startsWith('image/')) {
     var reader = new FileReader();
@@ -247,21 +221,15 @@ window.compressImageFile = function(file, maxWidth, quality, callback) {
     reader.readAsDataURL(file);
     return;
   }
-
   var img = new Image();
   var reader = new FileReader();
   reader.onload = function(e) {
     img.onload = function() {
       var canvas = document.createElement('canvas');
-      var width = img.width;
-      var height = img.height;
+      var width = img.width, height = img.height;
       var maxW = maxWidth || 1200;
-      if (width > maxW) {
-        height = Math.round((height * maxW) / width);
-        width = maxW;
-      }
-      canvas.width = width;
-      canvas.height = height;
+      if (width > maxW) { height = Math.round((height * maxW) / width); width = maxW; }
+      canvas.width = width; canvas.height = height;
       var ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, width, height);
       var compressedDataUrl = canvas.toDataURL('image/jpeg', quality || 0.7);
@@ -407,7 +375,6 @@ const AppUI = {
           '<div class="w-100 d-flex flex-column gap-1" style="font-size: 11px;">' + (success ? linksHtml : '<span class="text-danger fw-bold" style="font-size: 10.5px;">' + linksHtml + '</span>') + '</div>' +
         '</div>' +
       '</div>';
-    // Đã bỏ hoàn toàn hẹn giờ 10 giây tự đóng thẻ theo yêu cầu của bạn
   }
 };
 
@@ -447,7 +414,7 @@ window.forceCleanupModals = function() {
 };
 
 // =========================================================================
-// 5. COPILOT TRỢ LÝ TỐ TỤNG & ROUTER LỆNH ĐIỀU KHIỂN
+// 5. COPILOT TRỢ LÝ TỐ TỤNG & ROUTER LỆNH ĐIỀU KHIỂN (ĐÃ FIX REGEX ACTION)
 // =========================================================================
 
 function ensureCopilotWindowDOM() {
@@ -593,6 +560,7 @@ window.updateCopilotScopeBadge = function() {
   }
 };
 
+// ĐÃ KHẮC PHỤC LỖI REGEX TRONG FORMAT MARKDOWN
 window.formatCopilotMarkdown = function(text) {
   if (!text) return "";
   var html = text
@@ -602,11 +570,13 @@ window.formatCopilotMarkdown = function(text) {
 
   html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, '<a href="$2" target="_blank" class="fw-bold text-primary text-decoration-underline">$1</a>');
 
-  html = html.replace(/\[ACTION:([^:\]]+)(?::([^:\]]*))?(?::([^:\]]*))?(?::([^\]]+))?\]/g, function(match, fn, p1, p2, title) {
-    var fnName = (fn || "").trim();
-    var param1 = (p1 || "").trim();
-    var param2 = (p2 || "").trim();
-    var btnTitle = (title || param2 || param1 || fnName).trim();
+  // Xử lý Cú pháp [ACTION:...] bằng split thay vì Regex tĩnh để giải quyết các tham số rỗng (:::)
+  html = html.replace(/\[ACTION:([^\]]+)\]/g, function(match, innerContent) {
+    var parts = innerContent.split(':');
+    var fnName = (parts[0] || "").trim();
+    var param1 = (parts[1] || "").trim();
+    var param2 = (parts[2] || "").trim();
+    var btnTitle = parts.slice(3).join(':').trim(); // Cho phép tiêu đề chứa dấu hai chấm
     
     if (!btnTitle || btnTitle === fnName) {
       btnTitle = "👉 Thực hiện thao tác";
@@ -618,6 +588,7 @@ window.formatCopilotMarkdown = function(text) {
   return html;
 };
 
+// ĐÃ BỔ SUNG ĐỊNH TUYẾN moChiTietDon
 window.handleCopilotAction = function(fnName, p1, p2) {
   if (fnName === 'moChiTiet' || fnName === 'moHoSo') {
     var targetId = p1;
@@ -629,6 +600,16 @@ window.handleCopilotAction = function(fnName, p1, p2) {
       if (matched) targetId = matched.id;
     }
     if (typeof window.moChiTiet === 'function') window.moChiTiet(targetId);
+  } else if (fnName === 'moChiTietDon') {
+    var targetDonId = p1;
+    if (p1 && window.G_Don && Array.isArray(window.G_Don)) {
+      var cleanDonSearch = String(p1).trim().toLowerCase();
+      var matchedDon = window.G_Don.find(function(d) {
+        return d.id === p1 || String(d.soDon || '').toLowerCase() === cleanDonSearch || String(d.soDon || '').toLowerCase().includes(cleanDonSearch);
+      });
+      if (matchedDon) targetDonId = matchedDon.id;
+    }
+    if (typeof window.moChiTietDon === 'function') window.moChiTietDon(targetDonId);
   } else if (fnName === 'openDraftingModal') {
     var draftTargetId = (p1 === 'CURRENT_CASE' || !p1) ? (window.currentCaseId || 'CURRENT_CASE') : p1;
     if (p1 && p1 !== 'CURRENT_CASE' && window.G_An) {
@@ -1064,7 +1045,6 @@ window.appNavigate = function(viewId) {
   if (window.openCanvasAutoSaveTimer) { clearTimeout(window.openCanvasAutoSaveTimer); window.openCanvasAutoSaveTimer = null; }
   if (window.donAutoSaveTimer) { clearTimeout(window.donAutoSaveTimer); window.donAutoSaveTimer = null; }
 
-  // Giải cứu kẹt backdrop mồ côi
   window.forceCleanupModals();
 
   var sidebar = document.getElementById('main-sidebar');
@@ -1436,7 +1416,6 @@ window.runFilterEngine = function() {
     safeSetText('stat-rate-text', pctOnResolved + "%");
   }
 
-  // LƯU TRỮ HIỆN TRẠNG ĐANG LỌC PHỤC VỤ XUẤT EXCEL TỨC THÌ
   window.G_FilteredCases = displayList;
 
   initNotificationSystem(urgentCasesList);
@@ -1970,7 +1949,6 @@ function buildExcelExportFileName() {
   var parts = ["So_thu_ly"];
   var f = window.G_Filter || {};
 
-  // 1. Phân loại theo thẻ Dashboard đang kích hoạt
   var catMap = {
     "ALL": "Tat_ca",
     "ACTIVE": "Dang_giai_quyet",
@@ -1983,13 +1961,11 @@ function buildExcelExportFileName() {
   var catName = catMap[f.category] || f.category;
   if (catName && catName !== "Tat_ca") parts.push(catName);
 
-  // 2. Phân loại theo Loại án đang lọc
   if (f.loaiAn && f.loaiAn !== "ALL" && f.loaiAn !== "-- Tất cả loại án --") {
     var loaiClean = window.removeAccents(f.loaiAn).replace(/^\d+\.\s*/, '').replace(/[^a-zA-Z0-9]/g, '_');
     parts.push(loaiClean);
   }
 
-  // 3. Phân loại theo Hình thức kết quả đang lọc
   if (f.ketQua && f.ketQua !== "ALL") {
     var kqMap = {
       "BAN_AN": "Ban_an",
@@ -2004,13 +1980,11 @@ function buildExcelExportFileName() {
     parts.push(kqMap[f.ketQua] || f.ketQua);
   }
 
-  // 4. Từ khóa tìm kiếm nếu có
   if (f.keyword && f.keyword.trim()) {
     var kwClean = window.removeAccents(f.keyword.trim()).replace(/[^a-zA-Z0-9]/g, '_').substring(0, 15);
     parts.push("Tim_" + kwClean);
   }
 
-  // 5. Ngày xuất tệp (dd_MM_yyyy)
   var now = new Date();
   var dateStr = ("0" + now.getDate()).slice(-2) + "_" + ("0" + (now.getMonth() + 1)).slice(-2) + "_" + now.getFullYear();
   parts.push(dateStr);
@@ -2025,7 +1999,6 @@ window.xuatExcelDanhSachAn = function() {
     return;
   }
 
-  // 6 Cột chuẩn theo yêu cầu nghiệp vụ
   var headers = [
     "Số thứ tự",
     "Số / Ngày thụ lý / Loại án",
@@ -2039,14 +2012,9 @@ window.xuatExcelDanhSachAn = function() {
 
   for (var i = 0; i < dataList.length; i++) {
     var an = dataList[i];
-    
-    // Cột 1: Số thứ tự
     var stt = i + 1;
-
-    // Cột 2: Số / Ngày thụ lý / Loại án
     var col2 = (an.soTL || "") + "\nNgày: " + (an.ngayTL || "---") + "\nLoại: " + (an.loaiAn || "");
 
-    // Cột 3: Đương sự
     var col3 = "";
     if (an.nguyenDon) col3 += "Bên khởi kiện/yêu cầu: " + an.nguyenDon;
     if (an.biDon) col3 += (col3 ? "\n" : "") + "Bên bị kiện/bị yêu cầu: " + an.biDon;
@@ -2056,10 +2024,7 @@ window.xuatExcelDanhSachAn = function() {
       }).join("\n");
     }
 
-    // Cột 4: Quan hệ / Tội danh
     var col4 = an.quanHe || "";
-
-    // Cột 5: Tiến độ / Kết quả (Ghi đầy đủ thông tin y hệt Dashboard / Bảng danh sách)
     var col5 = "";
     if (an.liveStatus === "Đã giải quyết") {
       var resLines = String(an.ketQuaGiaiQuyet || "").split('\n');
@@ -2072,29 +2037,23 @@ window.xuatExcelDanhSachAn = function() {
       col5 = (an.liveStatus || "Đang giải quyết") + "\nHạn: " + dateHanStr;
     }
 
-    // Cột 6: Ghi chú
     var col6 = an.ghiChu || "";
-
     rows.push([stt, col2, col3, col4, col5, col6]);
   }
 
-  // Khởi tạo bảng tính bằng thư viện SheetJS (đã tích hợp sẵn trong UI_Chinh.html)
   var wb = XLSX.utils.book_new();
   var ws = XLSX.utils.aoa_to_sheet(rows);
 
-  // Cấu hình độ rộng các cột tối ưu khi mở bằng Microsoft Excel
   ws['!cols'] = [
-    { wch: 8 },   // STT
-    { wch: 25 },  // Số/ngày/loại án
-    { wch: 38 },  // Đương sự
-    { wch: 30 },  // Quan hệ/Tội danh
-    { wch: 28 },  // Tiến độ/Kết quả
-    { wch: 22 }   // Ghi chú
+    { wch: 8 },   
+    { wch: 25 },  
+    { wch: 38 },  
+    { wch: 30 },  
+    { wch: 28 },  
+    { wch: 22 }   
   ];
 
   XLSX.utils.book_append_sheet(wb, ws, "So_Thu_Ly");
-
-  // Xuất file trực tiếp trên trình duyệt (0ms delay)
   var fileName = buildExcelExportFileName();
   XLSX.writeFile(wb, fileName);
 

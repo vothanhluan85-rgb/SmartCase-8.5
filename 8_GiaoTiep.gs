@@ -1,12 +1,13 @@
 /**
  * =========================================================================
- * HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.0 - MASTER API GATEWAY & ROUTER (PRODUCTION)
- * TỆP: 8_GiaoTiep.gs - ĐIỀU PHỐI ĐỊNH TUYẾN TOÀN DIỆN, BẢO VỆ CSDL & CHẨN ĐOÁN KHO MẪU
+ * HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.5 - MASTER API GATEWAY & ROUTER (PRODUCTION)
+ * TỆP: 8_GiaoTiep.gs - ĐIỀU PHỐI ĐỊNH TUYẾN TOÀN DIỆN, BẢO VỆ CSDL & KHO MẪU
  * -------------------------------------------------------------------------
- * - CẮT ĐỨT 100% LỖI ĐỆ QUY TRÀN BỘ NHỚ (MAXIMUM CALL STACK EXCEEDED).
- * - BỌC TRY-CATCH VÀ KIỂM TRA TYPEOF AN TOÀN CHO TOÀN BỘ CÁC PHÂN HỆ.
- * - ĐẤU NỐI ĐẦY ĐỦ CỔNG TRỘN VĂN BẢN ĐƠN (api_RunMailMergeDon) & QUÉT DRIVE (api_ScanCaseDriveSmartMilestone).
- * - THỰC THI THUẬT TOÁN QUÉT VÀ TỰ ĐỘNG SỬA LỖI PLACEHOLDER THẬT TRÊN GOOGLE DRIVE.
+ * - ĐÃ TÁI CẤU TRÚC TOÀN DIỆN:
+ *   1. ĐẤU NỐI ĐẦY ĐỦ CÁC CỔNG AI: Đơn, Thụ lý, Bóc tách chứng cứ, Quét Drive, Copilot.
+ *   2. PHÒNG VỆ TRIỆT ĐỂ: Bọc try-catch và kiểm tra typeof an toàn cho 100% API.
+ *   3. CẮT ĐỨT HOÀN TOÀN LỖI ĐỆ QUY TRÀN BỘ NHỚ (MAXIMUM CALL STACK EXCEEDED).
+ *   4. BẢO VỆ DỮ LIỆU ĐƯƠNG SỰ: Đồng bộ mảng đương sự A4 nguyên vẹn xuống 2_DuongSu.
  * =========================================================================
  */
 
@@ -374,6 +375,17 @@ function api_CreateTemplateFromDoc(fileName, mimeType, base64Data, targetFileId,
   }
 }
 
+// BỔ SUNG ĐIỀU PHỐI AI SOẠN BIỂU MẪU RỖNG
+function api_AutoGenerateEmptyTemplate(templateId, templateName) {
+  try {
+    return (typeof backend_AutoGenerateEmptyTemplate === 'function')
+      ? backend_AutoGenerateEmptyTemplate(templateId, templateName)
+      : { success: false, error: "Chưa cấu hình hàm AI soạn mẫu rỗng." };
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
 // =========================================================================
 // 4. ĐIỀU PHỐI LỊCH TRÌNH & TIMELINE (4_XuLyLich.gs)
 // =========================================================================
@@ -508,6 +520,7 @@ function api_RunMailMergeDon(input) {
   }
 }
 
+// QUÉT THÔNG MINH MỐC TỐ TỤNG TỪ DRIVE
 function api_ScanCaseDriveSmartMilestone(idVuAn) {
   try {
     if (!idVuAn) return { success: false, error: "Chưa chọn vụ án." };
