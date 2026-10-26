@@ -410,7 +410,7 @@ window.removeVariableCard = function(fieldKey, btnEl) {
 
   // 5. Lưu trực tiếp xuống Drive kèm danh sách keysToDelete để server dọn sạch vĩnh viễn
   window.saveCaseVariables(true, keysToDelete);
-  AppUI.showToast("Đã xóa thẻ dữ liệu!", "info");
+  if (typeof AppUI !== 'undefined') AppUI.showToast("Đã xóa thẻ dữ liệu!", "info");
 };
 
 /**
@@ -471,23 +471,25 @@ window.saveCaseVariables = function(isAuto, deletedKeys) {
  * Xóa sạch toàn bộ dữ liệu vụ án sau khi người dùng xác nhận
  */
 window.clearCanvasDataWithConfirm = function() {
-  AppUI.confirm(
-    "XÓA TRẮNG DỮ LIỆU VỤ ÁN",
-    "⚠️ Bạn có chắc chắn muốn xóa toàn bộ các khối thông tin đã bóc tách của vụ việc này?\nThao tác này sẽ làm sạch vùng dữ liệu để bạn nhập hoặc quét lại từ đầu.",
-    "danger",
-    function() {
-      // Lấy toàn bộ keys hiện có để gửi xóa triệt để trên Drive
-      var allKeys = Object.keys(window.currentCaseVariables || {});
+  if (typeof AppUI !== 'undefined') {
+    AppUI.confirm(
+      "XÓA TRẮNG DỮ LIỆU VỤ ÁN",
+      "⚠️ Bạn có chắc chắn muốn xóa toàn bộ các khối thông tin đã bóc tách của vụ việc này?\nThao tác này sẽ làm sạch vùng dữ liệu để bạn nhập hoặc quét lại từ đầu.",
+      "danger",
+      function() {
+        // Lấy toàn bộ keys hiện có để gửi xóa triệt để trên Drive
+        var allKeys = Object.keys(window.currentCaseVariables || {});
 
-      window.currentCaseVariables = {};
-      window.currentCaseNarratives = {};
+        window.currentCaseVariables = {};
+        window.currentCaseNarratives = {};
 
-      var loaiAn = window.currentCaseData && window.currentCaseData.info ? window.currentCaseData.info.loaiAn : "";
-      window.renderAllSavedVariableCards({}, loaiAn, {});
-      window.saveCaseVariables(false, allKeys);
-      AppUI.showToast("Đã xóa sạch dữ liệu vụ án!", "success");
-    }
-  );
+        var loaiAn = window.currentCaseData && window.currentCaseData.info ? window.currentCaseData.info.loaiAn : "";
+        window.renderAllSavedVariableCards({}, loaiAn, {});
+        window.saveCaseVariables(false, allKeys);
+        AppUI.showToast("Đã xóa sạch dữ liệu vụ án!", "success");
+      }
+    );
+  }
 };
 
 /**
@@ -496,7 +498,7 @@ window.clearCanvasDataWithConfirm = function() {
 window.copyCanvasContent = function() {
   var cards = document.querySelectorAll('.data-variable-card');
   if (cards.length === 0) {
-    AppUI.showToast("Dữ liệu vụ án đang trống!", "info");
+    if (typeof AppUI !== 'undefined') AppUI.showToast("Dữ liệu vụ án đang trống!", "info");
     return;
   }
 
@@ -512,14 +514,14 @@ window.copyCanvasContent = function() {
   });
 
   if (compiledParts.length === 0) {
-    AppUI.showToast("Dữ liệu vụ án đang trống!", "info");
+    if (typeof AppUI !== 'undefined') AppUI.showToast("Dữ liệu vụ án đang trống!", "info");
     return;
   }
 
   navigator.clipboard.writeText(compiledParts.join("\n\n")).then(function() {
-    AppUI.showToast("Đã sao chép toàn bộ dữ liệu vào bộ nhớ tạm!", "success");
+    if (typeof AppUI !== 'undefined') AppUI.showToast("Đã sao chép toàn bộ dữ liệu vào bộ nhớ tạm!", "success");
   }).catch(function() {
-    AppUI.showToast("Trình duyệt không hỗ trợ sao chép tự động", "info");
+    if (typeof AppUI !== 'undefined') AppUI.showToast("Trình duyệt không hỗ trợ sao chép tự động", "info");
   });
 };
 
@@ -527,11 +529,11 @@ window.copyCanvasContent = function() {
  * Chèn một khối dữ liệu mới từ danh sách dropdown
  */
 window.insertPlaceholderToCanvas = function(selectEl) {
-  var tag = selectEl.value;
+  var tag = selectEl ? selectEl.value : "";
   if (!tag) return;
 
   window.currentCaseVariables = window.currentCaseVariables || {};
-  if (!window.currentCaseVariables[tag]) {
+  if (!window.currentCaseVariables[tag] || window.currentCaseVariables[tag] === "...") {
     window.currentCaseVariables[tag] = "...";
   }
 
@@ -546,7 +548,7 @@ window.insertPlaceholderToCanvas = function(selectEl) {
       newCard.focus();
       newCard.select();
     }
-  }, 100);
+  }, 120);
 };
 
 // =========================================================================
@@ -644,9 +646,12 @@ window.handleMultiPhotoSelect = function(input) {
   var files = Array.from(input.files);
   var idVuAn = window.currentCaseId;
 
-  if (!idVuAn) return AppUI.alert("Nhắc nhở", "Vui lòng mở hồ sơ vụ việc trước khi quét tài liệu!");
+  if (!idVuAn) {
+    if (typeof AppUI !== 'undefined') AppUI.alert("Nhắc nhở", "Vui lòng mở hồ sơ vụ việc trước khi quét tài liệu!");
+    return;
+  }
 
-  AppUI.showToast(`Trợ lý thẩm phán đang xử lý ${files.length} ảnh chụp tài liệu...`, "");
+  if (typeof AppUI !== 'undefined') AppUI.showToast(`Trợ lý thẩm phán đang xử lý ${files.length} ảnh chụp tài liệu...`, "");
   var processed = 0;
 
   files.forEach(function(file) {
@@ -660,7 +665,7 @@ window.handleMultiPhotoSelect = function(input) {
       });
       processed++;
       if (processed === files.length) {
-        AppUI.hideToast();
+        if (typeof AppUI !== 'undefined') AppUI.hideToast();
         window.renderOcrStagingModal();
       }
     });
@@ -744,11 +749,11 @@ window.executeMultiPhotoExtraction = function() {
   var modalEl = document.getElementById('modalOcrStaging');
   if (modalEl) bootstrap.Modal.getInstance(modalEl).hide();
 
-  AppUI.showToast(`Trợ lý thẩm phán đang phân tích ${window.stagedOcrPhotos.length} ảnh chụp tài liệu...`, "");
+  if (typeof AppUI !== 'undefined') AppUI.showToast(`Trợ lý thẩm phán đang phân tích ${window.stagedOcrPhotos.length} ảnh chụp tài liệu...`, "");
 
   google.script.run
     .withSuccessHandler(function(res) {
-      AppUI.hideToast();
+      if (typeof AppUI !== 'undefined') AppUI.hideToast();
       window.stagedOcrPhotos = [];
 
       if (res && res.success) {
@@ -761,15 +766,15 @@ window.executeMultiPhotoExtraction = function() {
           window.renderAllSavedVariableCards(window.currentCaseVariables, loaiAn, window.currentCaseNarratives);
           window.saveCaseVariables(true);
         }
-        AppUI.showToast("Đã trích xuất và lưu dữ liệu vụ án thành công!", "success");
+        if (typeof AppUI !== 'undefined') AppUI.showToast("Đã trích xuất và lưu dữ liệu vụ án thành công!", "success");
       } else {
-        AppUI.alert("Lỗi bóc tách", res ? res.error : "Không thể nhận diện nội dung tài liệu.");
+        if (typeof AppUI !== 'undefined') AppUI.alert("Lỗi bóc tách", res ? res.error : "Không thể nhận diện nội dung tài liệu.");
       }
     })
     .withFailureHandler(function(err) {
-      AppUI.hideToast();
+      if (typeof AppUI !== 'undefined') AppUI.hideToast();
       window.stagedOcrPhotos = [];
-      AppUI.showToast("Lỗi kết nối máy chủ: " + err.message, "error");
+      if (typeof AppUI !== 'undefined') AppUI.showToast("Lỗi kết nối máy chủ: " + err.message, "error");
     })
     .api_ParseEvidenceDocument(idVuAn, "Anh_chup_da_trang.jpg", "image/jpeg", null, 'EVIDENCE_ONLY', window.stagedOcrPhotos);
 };

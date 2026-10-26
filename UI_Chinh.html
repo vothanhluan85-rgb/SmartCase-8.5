@@ -3,31 +3,19 @@
 <head>
   <base target="_top">
   <meta charset="UTF-8">
-  <!-- Viewport chuẩn chống co giãn sai tỉ lệ trên mọi thiết bị & iframe -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>TRỢ LÝ THẨM PHÁN V8.5</title>
 
-  <!-- Google Fonts: Inter (Tối ưu hóa độ sắc nét cho văn bản Tòa án & Màn hình DPI cao) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
-  <!-- FontAwesome 6 CDN -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  
-  <!-- Bootstrap 5.3.2 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  
-  <!-- SheetJS (XLSX) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
-  <!-- Nạp Style Master của Hệ thống -->
   <?!= include('CSS_DinhDang'); ?>
 
   <style>
-    /* =========================================================================
-       HỆ QUY CHUẨN ĐỒ HỌA MASTER: EXECUTIVE TACTILE
-       ========================================================================= */
     :root {
       --sidebar-width: 260px;
       --header-height: 62px;
@@ -43,7 +31,6 @@
       --shadow-sidebar: 2px 0 8px -2px rgba(15, 23, 42, 0.04);
     }
 
-    /* SIDEBAR ĐẲNG CẤP & GỌN GÀNG */
     #main-sidebar {
       width: var(--sidebar-width);
       height: 100vh;
@@ -68,7 +55,6 @@
       transition: margin-left 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    /* HEADER SẮC NÉT & TINH TẾ */
     #main-header {
       height: var(--header-height);
       background-color: #ffffff;
@@ -80,7 +66,6 @@
       z-index: 1020;
     }
 
-    /* KHU VỰC LOGO THƯƠNG HIỆU */
     .sidebar-brand-box {
       padding: 18px 18px 14px;
       text-align: center;
@@ -97,7 +82,6 @@
       padding: 14px 20px 4px;
     }
 
-    /* MỤC MENU ĐIỀU HƯỚNG */
     .nav-menu-item {
       display: flex;
       align-items: center;
@@ -145,7 +129,6 @@
       background: #ffffff;
     }
 
-    /* NÚT TRỢ LÝ THẨM PHÁN NỔI (FAB) */
     #ai-floating-btn {
       position: fixed; 
       bottom: 24px; 
@@ -172,7 +155,6 @@
       font-size: 20px;
     }
 
-    /* SPA VIEWS */
     .spa-view { display: none; }
     .spa-view.active { display: block; animation: fadeIn 0.18s ease-in-out; }
 
@@ -181,7 +163,16 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* Nút thu gọn Sidebar Desktop */
+    /* ĐÃ XÓA KEYFRAMES RUNG RINH - HOA THỊ ĐỨNG YÊN TĨNH LẶNG */
+    .hub-splat {
+      display: inline-block;
+      color: #dc2626;
+      font-size: 14px;
+      font-weight: 900;
+      margin-left: 2px;
+      text-shadow: 0 0 3px rgba(220, 38, 38, 0.4);
+    }
+
     .btn-sidebar-toggle {
       width: 34px;
       height: 34px;
@@ -201,21 +192,19 @@
       border-color: #bfdbfe;
     }
 
-    /* =========================================================================
-       THÊM MỚI: NGĂN KÉO PEEK CỦA SMARTCASE HUB (LIẾC NHANH)
-       ========================================================================= */
+    /* NGĂN KÉO PEEK */
     #hub-peek-drawer {
       position: fixed;
       top: 0;
       right: 0;
-      width: 480px;
+      width: 440px;
       max-width: 90vw;
       height: 100vh;
       background: #ffffff;
-      box-shadow: -10px 0 30px rgba(15, 23, 42, 0.2);
+      box-shadow: -10px 0 35px rgba(15, 23, 42, 0.2);
       z-index: 1060;
       transform: translateX(100%);
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
       display: flex;
       flex-direction: column;
       border-left: 1px solid #cbd5e1;
@@ -225,19 +214,18 @@
     }
     .peek-overlay {
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(15, 23, 42, 0.3); z-index: 1055;
-      opacity: 0; pointer-events: none; transition: opacity 0.3s;
+      background: rgba(15, 23, 42, 0.35); z-index: 1055;
+      opacity: 0; pointer-events: none; transition: opacity 0.25s;
+      backdrop-filter: blur(1px);
     }
     .peek-overlay.active { opacity: 1; pointer-events: auto; }
     
-    /* Vùng kích hoạt tàng hình ở mép phải */
     .peek-trigger-zone {
-      position: fixed; right: 0; top: 20%; height: 60%; width: 6px;
+      position: fixed; right: 0; top: 25%; height: 50%; width: 6px;
       z-index: 1050; cursor: pointer;
     }
-    .peek-trigger-zone:hover { background: rgba(37, 99, 235, 0.3); }
+    .peek-trigger-zone:hover { background: rgba(37, 99, 235, 0.35); }
 
-    /* RESPONSIVE DI ĐỘNG */
     @media (max-width: 991.98px) {
       #main-sidebar { transform: translateX(-100%); width: 280px !important; }
       #main-sidebar.show { transform: translateX(0); box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
@@ -247,7 +235,7 @@
 </head>
 <body>
 
-  <!-- MÀN HÌNH CHỜ (SPLASH SCREEN) -->
+  <!-- MÀN HÌNH CHỜ -->
   <div id="splash-screen" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #ffffff; z-index: 999999; display: flex; align-items: center; justify-content: center; flex-direction: column; transition: opacity 0.4s ease;">
     <div class="p-3 bg-light rounded-circle shadow-sm mb-3 border">
       <i class="fas fa-scale-balanced fa-2x text-primary"></i>
@@ -257,10 +245,9 @@
     <div class="spinner-border spinner-border-sm text-primary mt-1" role="status"></div>
   </div>
 
-  <!-- LỚP PHỦ MỜ KHI MỞ MENU MOBILE -->
   <div class="sidebar-overlay d-lg-none" id="mobile-overlay" style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(15, 23, 42, 0.4); backdrop-filter: blur(2px); z-index:1030; display:none;" onclick="toggleMobileMenu()"></div>
 
-  <!-- THANH ĐIỀU HƯỚNG BÊN TRÁI (SIDEBAR) -->
+  <!-- SIDEBAR -->
   <nav id="main-sidebar" class="d-flex flex-column justify-content-between">
     <div>
       <div class="sidebar-brand-box">
@@ -272,22 +259,21 @@
         <div class="text-muted fw-semibold" style="font-size: 11px;">Phiên bản V8.5 – AI Studio</div>
       </div>
 
-       <!-- ============================================== -->
-        <!-- ĐÂY LÀ VỊ TRÍ SMARTCASE HUB MỚI -->
-        <!-- ============================================== -->
-        <a class="nav-menu-item" id="menu-view-hub" onclick="appNavigate('view-hub')" title="Trung tâm Hợp nhất Tố tụng">
-          <i class="fas fa-layer-group text-danger"></i> 
-          <span class="fw-bold text-dark" style="letter-spacing: 0.3px;">SMARTCASE HUB <span style="color: #dc2626; font-size: 14px; font-weight: 900; margin-left: 2px; text-shadow: 0 0 3px rgba(220, 38, 38, 0.4);">✻</span></span>
-        </a>
+      <!-- SMARTCASE HUB -->
+      <a class="nav-menu-item active" id="menu-view-hub" onclick="appNavigate('view-hub')" title="Trung tâm Hợp nhất Tác nghiệp">
+        <i class="fas fa-layer-group text-danger"></i> 
+        <span class="fw-bold text-dark" style="letter-spacing: 0.3px;">
+          SMARTCASE HUB <span class="hub-splat" style="display: none;">✻</span>
+        </span>
+      </a>
 
-      <!-- NHÓM 1: NGHIỆP VỤ CHÍNH -->
-           
-            <div class="sidebar-section-title">NGHIỆP VỤ CHÍNH</div>
+      <!-- NGHIỆP VỤ CHÍNH -->
+      <div class="sidebar-section-title">NGHIỆP VỤ CHÍNH</div>
       <div>
         <a class="nav-menu-item" id="menu-view-danh-sach-don" onclick="appNavigate('view-danh-sach-don')" title="Sổ Nhận Đơn">
           <i class="fas fa-inbox text-info"></i> <span>SỔ NHẬN ĐƠN</span>
         </a>
-        <a class="nav-menu-item active" id="menu-view-list" onclick="appNavigate('view-list')" title="Sổ Thụ Lý">
+        <a class="nav-menu-item" id="menu-view-list" onclick="appNavigate('view-list')" title="Sổ Thụ Lý">
           <i class="fas fa-list-ul text-primary"></i> <span>SỔ THỤ LÝ</span>
         </a>
         <a class="nav-menu-item" id="menu-view-detail" style="display:none;" onclick="appNavigate('view-detail')" title="Chi Tiết Vụ Án">
@@ -304,14 +290,12 @@
         </a>
       </div>
       
-      <!-- NHÓM 2: CÔNG CỤ HỖ TRỢ -->
+      <!-- CÔNG CỤ HỖ TRỢ -->
       <div class="sidebar-section-title">CÔNG CỤ HỖ TRỢ</div>
       <div>
         <a class="nav-menu-item" onclick="openDraftingModal('CURRENT_CASE')" title="Soạn Thảo Văn Bản">
           <i class="fas fa-file-signature text-primary"></i> <span>SOẠN THẢO VĂN BẢN</span>
         </a>
-             
-
         <a class="nav-menu-item" onclick="openAnPhiModal()" title="Tính Án Phí NQ 326">
           <i class="fas fa-calculator text-danger"></i> <span>TÍNH ÁN PHÍ</span>
         </a>
@@ -328,7 +312,7 @@
 
     </div>
 
-    <!-- Cài đặt đáy Sidebar -->
+    <!-- Cài đặt -->
     <div class="p-2 border-top" style="border-color: var(--border-subtle) !important;">
       <a class="nav-menu-item m-0 rounded" id="menu-view-settings" onclick="appNavigate('view-settings')" title="Cài Đặt & Trợ Giúp">
         <i class="fas fa-user-cog text-secondary"></i> <span>Cài đặt & Trợ giúp</span>
@@ -341,21 +325,22 @@
     <!-- Top Header -->
     <header id="main-header" class="d-flex align-items-center justify-content-between">
       <div class="d-flex align-items-center gap-2">
-        <!-- Nút mở Sidebar trên Mobile -->
         <button class="btn-sidebar-toggle d-lg-none" onclick="toggleMobileMenu()" title="Mở danh mục">
           <i class="fas fa-bars"></i>
         </button>
-        
-        <!-- Nút thu gọn Sidebar 64px trên Desktop -->
         <button class="btn-sidebar-toggle d-none d-lg-inline-flex" onclick="toggleSidebarCollapse()" title="Thu gọn / Mở rộng Sidebar">
           <i class="fas fa-bars-staggered"></i>
         </button>
-        
-        <span class="fw-bold text-dark ms-2" id="current-page-title" style="font-size: 14.5px; letter-spacing: 0.4px;">
-          SỔ THỤ LÝ ĐIỆN TỬ
+        <span class="fw-bold text-dark ms-2" id="current-page-title" style="font-size: 14px; letter-spacing: 0.3px;">
+          TRUNG TÂM HỢP NHẤT TỐ TỤNG (SMARTCASE HUB)
         </span>
       </div>
       <div class="d-flex align-items-center gap-3">
+        <!-- ĐÃ XÓA NÚT LIẾC NHANH TO ĐÙNG, THAY BẰNG ICON TIA SÉT GỌN GÀNG -->
+        <button class="btn btn-link text-secondary p-0 shadow-none d-none d-md-inline-flex align-items-center justify-content-center" style="width: 34px; height: 34px; border-radius: 50%; background: #f8fafc; border: 1px solid var(--border-subtle);" onclick="window.togglePeekDrawer()" title="Liếc nhanh Hub (Ctrl + Space)">
+          <i class="fas fa-bolt text-danger"></i>
+        </button>
+
         <div class="text-end d-none d-sm-block">
           <div class="fw-bold text-dark" id="header-ten-tp" style="font-size: 13px;">Đang nạp...</div>
           <div class="text-muted" id="header-ten-toa" style="font-size: 11px;">Tòa án nhân dân</div>
@@ -368,18 +353,14 @@
 
     <!-- Các View SPA con -->
     <main class="flex-grow-1 p-2 p-md-3">
-      <div id="view-list" class="spa-view active"><?!= include('UI_DanhSach'); ?></div>
+      <div id="view-hub" class="spa-view active"><?!= include('UI_Hub'); ?></div>
+      <div id="view-list" class="spa-view"><?!= include('UI_DanhSach'); ?></div>
       <div id="view-detail" class="spa-view"><?!= include('UI_ChiTiet'); ?></div>
       <div id="view-danh-sach-don" class="spa-view"><?!= include('UI_DanhSach_Don'); ?></div>
       <div id="view-chi-tiet-don" class="spa-view"><?!= include('UI_ChiTiet_Don'); ?></div>
       <div id="view-schedule" class="spa-view"><?!= include('UI_Lich'); ?></div>
       <div id="view-stats" class="spa-view"><?!= include('UI_ThongKe'); ?></div>
       <div id="view-settings" class="spa-view"><?!= include('UI_CaiDat'); ?></div>
-      
-      <!-- ============================================== -->
-      <!-- ĐÂY LÀ VIEW CỦA SMARTCASE HUB -->
-      <!-- ============================================== -->
-      <div id="view-hub" class="spa-view"><?!= include('UI_Hub'); ?></div>
     </main>
 
     <!-- Footer bản quyền -->
@@ -389,19 +370,38 @@
   </div>
 
   <!-- ========================================================================= -->
-  <!-- SMARTCASE HUB PEEK DRAWER (NGĂN KÉO LIẾC NHANH TỪ MÉP PHẢI) -->
+  <!-- SMARTCASE HUB PEEK DRAWER (NGĂN KÉO LIẾC NHANH TỪ MÉP PHẢI)                -->
   <!-- ========================================================================= -->
-  <div class="peek-overlay" id="peek-overlay" onclick="togglePeekDrawer()"></div>
-  <div class="peek-trigger-zone" title="Chạm để liếc nhanh Hub" onclick="togglePeekDrawer()"></div>
+  <div class="peek-overlay" id="peek-overlay" onclick="window.togglePeekDrawer()"></div>
+  <div class="peek-trigger-zone" title="Chạm để liếc nhanh Hub (Ctrl + Space)" onclick="window.togglePeekDrawer()"></div>
   <div id="hub-peek-drawer">
     <div class="d-flex justify-content-between align-items-center p-3 bg-light border-bottom">
-      <h6 class="m-0 fw-bold text-dark"><i class="fas fa-layer-group text-danger me-2"></i>LIẾC NHANH HUB</h6>
-      <button class="btn btn-sm btn-link text-muted p-0 shadow-none" onclick="togglePeekDrawer()"><i class="fas fa-times fa-lg"></i></button>
+      <div class="d-flex align-items-center gap-2">
+        <i class="fas fa-layer-group text-danger"></i>
+        <h6 class="m-0 fw-bold text-dark" style="font-size: 13px; letter-spacing: 0.3px;">LIẾC NHANH HUB <span id="peek-splat" class="hub-splat" style="font-size: 13px; display: none;">✻</span></h6>
+      </div>
+      <div class="d-flex align-items-center gap-1">
+        <button class="btn btn-sm btn-outline-primary py-0 px-2 fw-bold" style="font-size: 11px; height: 26px;" onclick="window.appNavigate('view-hub'); window.togglePeekDrawer();">
+          <i class="fas fa-expand me-1"></i> Mở Hub
+        </button>
+        <button class="btn btn-sm btn-link text-muted p-0 shadow-none ms-2" onclick="window.togglePeekDrawer()" title="Đóng (Esc)">
+          <i class="fas fa-times fa-lg"></i>
+        </button>
+      </div>
     </div>
-    <div class="flex-grow-1 p-3" style="overflow-y: auto;">
-      <div class="text-center text-muted small mt-5">
-        <i class="fas fa-eye fa-3x mb-3 text-secondary opacity-50"></i><br>
-        Bấm phím <b>Ctrl + Space</b> từ bất kỳ màn hình nào<br>để gọi nhanh bảng tin tác nghiệp này.
+    
+    <!-- Thanh đếm nhanh 4 dòng chảy -->
+    <div class="d-flex gap-1 p-2 bg-white border-bottom justify-content-between" style="font-size: 11px;">
+      <span class="badge bg-light text-primary border" id="peek-badge-print"><i class="fas fa-print me-1"></i> In: <b id="peek-count-print">0</b></span>
+      <span class="badge bg-light text-danger border" id="peek-badge-urgent"><i class="fas fa-bell me-1"></i> Khẩn: <b id="peek-count-urgent">0</b></span>
+      <span class="badge bg-light text-success border" id="peek-badge-schedule"><i class="fas fa-calendar-day me-1"></i> Lịch: <b id="peek-count-schedule">0</b></span>
+      <span class="badge bg-light text-warning-emphasis border" id="peek-badge-new"><i class="fas fa-inbox me-1"></i> Đơn: <b id="peek-count-new">0</b></span>
+    </div>
+
+    <!-- Danh sách sự kiện mini của Hub -->
+    <div class="flex-grow-1 p-2 hub-scroll" id="hub-peek-content" style="overflow-y: auto; background: #f8fafc;">
+      <div class="text-center p-5 text-muted small mt-4">
+        <div class="spinner-border spinner-border-sm text-primary me-2"></div>Đang nạp dữ liệu...
       </div>
     </div>
   </div>
@@ -422,7 +422,6 @@
   <?!= include('JS_ThongSoNghiepVu'); ?>
 
   <script>
-    // Hàm mở menu trên mobile
     function toggleMobileMenu() {
       var sidebar = document.getElementById('main-sidebar');
       var overlay = document.getElementById('mobile-overlay');
@@ -436,7 +435,6 @@
       }
     }
 
-    // Hàm thu gọn Sidebar dạng Mini-Bar (64px) trên Desktop
     function toggleSidebarCollapse() {
       var sidebar = document.getElementById('main-sidebar');
       var wrapper = document.getElementById('main-content-wrapper');
@@ -446,9 +444,88 @@
       }
     }
 
-    // =========================================================================
-    // LOGIC NGĂN KÉO PEEK - SMARTCASE HUB
-    // =========================================================================
+    window.renderPeekDrawerContent = function() {
+      var contentEl = document.getElementById('hub-peek-content');
+      if (!contentEl) return;
+
+      var hubData = window.HubData || { PRINT: [], URGENT: [], SCHEDULE: [], NEW: [], ALL: [] };
+      
+      var cPrint = hubData.PRINT ? hubData.PRINT.length : 0;
+      var cUrgent = hubData.URGENT ? hubData.URGENT.length : 0;
+      var cSchedule = hubData.SCHEDULE ? hubData.SCHEDULE.length : 0;
+      var cNew = hubData.NEW ? hubData.NEW.length : 0;
+
+      var elCp = document.getElementById('peek-count-print'); if (elCp) elCp.innerText = cPrint;
+      var elCu = document.getElementById('peek-count-urgent'); if (elCu) elCu.innerText = cUrgent;
+      var elCs = document.getElementById('peek-count-schedule'); if (elCs) elCs.innerText = cSchedule;
+      var elCn = document.getElementById('peek-count-new'); if (elCn) elCn.innerText = cNew;
+
+      var peekSplat = document.getElementById('peek-splat');
+      var menuHubSplat = document.querySelector('#menu-view-hub .hub-splat');
+      
+      if (cPrint > 0 || cUrgent > 0) {
+        if (peekSplat) peekSplat.style.display = 'inline-block';
+        if (menuHubSplat) menuHubSplat.style.display = 'inline-block';
+      } else {
+        if (peekSplat) peekSplat.style.display = 'none';
+        if (menuHubSplat) menuHubSplat.style.display = 'none';
+      }
+
+      var allItems = [].concat(hubData.URGENT || [], hubData.PRINT || [], hubData.SCHEDULE || [], hubData.NEW || []);
+      
+      if (allItems.length === 0) {
+        contentEl.innerHTML = `
+          <div class="text-center p-5 text-muted small mt-4">
+            <i class="fas fa-circle-check fa-3x text-success opacity-50 mb-3 d-block"></i>
+            Hệ thống an toàn! Không có văn bản chờ in hoặc mốc khẩn cấp nào.
+          </div>
+        `;
+        return;
+      }
+
+      var html = allItems.slice(0, 25).map(function(item) {
+        var badgeColor = 'bg-primary text-white';
+        var iconClass = 'fa-file-lines';
+        if (item.type === 'PRINT') { badgeColor = 'bg-info-subtle text-primary border border-primary'; iconClass = 'fa-print'; }
+        else if (item.type === 'URGENT') { badgeColor = 'bg-danger-subtle text-danger border border-danger'; iconClass = 'fa-bell'; }
+        else if (item.type === 'SCHEDULE') { badgeColor = 'bg-success-subtle text-success border border-success'; iconClass = 'fa-calendar-day'; }
+        else if (item.type === 'NEW') { badgeColor = 'bg-warning-subtle text-dark border border-warning'; iconClass = 'fa-inbox'; }
+
+        var actionHtml = '';
+        if (item.type === 'PRINT') {
+          var docsUrl = item.raw ? (item.raw.linkDocs || '') : '';
+          actionHtml = `<a href="${docsUrl}" target="_blank" class="btn btn-sm btn-action-primary py-0 px-2 fw-bold" style="font-size: 11px; height: 24px; line-height: 22px;"><i class="fas fa-print me-1"></i>In ngay</a>`;
+        } else if (item.type === 'URGENT') {
+          // BẢO VỆ CHỐNG LỖI MỞ CHI TIẾT "GENERAL"
+          if (item.idVuAn && item.idVuAn !== 'GENERAL') {
+            actionHtml = `<button type="button" class="btn btn-sm btn-action-danger py-0 px-2 fw-bold" style="font-size: 11px; height: 24px;" onclick="window.togglePeekDrawer(); window.appNavigate('view-detail'); window.moChiTiet('${item.idVuAn}');"><i class="fas fa-bolt me-1"></i>Xử lý</button>`;
+          } else {
+            actionHtml = `<button type="button" class="btn btn-sm btn-action-tonal py-0 px-2 fw-bold" style="font-size: 11px; height: 24px;" onclick="window.togglePeekDrawer(); window.appNavigate('view-schedule');"><i class="fas fa-eye me-1"></i>Mở Lịch</button>`;
+          }
+        } else if (item.type === 'SCHEDULE') {
+          actionHtml = `<button type="button" class="btn btn-sm btn-action-tonal py-0 px-2 fw-bold" style="font-size: 11px; height: 24px;" onclick="window.togglePeekDrawer(); window.appNavigate('view-schedule');"><i class="fas fa-eye me-1"></i>Xem</button>`;
+        } else if (item.type === 'NEW') {
+          actionHtml = `<button type="button" class="btn btn-sm btn-action-outline py-0 px-2 fw-bold text-primary" style="font-size: 11px; height: 24px;" onclick="window.togglePeekDrawer(); window.moChiTietDon('${item.idVuAn}');"><i class="fas fa-arrow-right me-1"></i>Mở đơn</button>`;
+        }
+
+        return `
+          <div class="p-2 mb-2 bg-white rounded-3 border shadow-sm" style="font-size: 12px; border-color: #cbd5e1 !important;">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span class="badge ${badgeColor}" style="font-size: 9.5px;"><i class="fas ${iconClass} me-1"></i>${item.caseNo}</span>
+              <span class="text-muted fw-bold" style="font-size: 10px;">${item.time}</span>
+            </div>
+            <div class="fw-bold text-dark text-truncate mb-1" title="${item.title}">${item.title}</div>
+            <div class="text-muted text-truncate mb-2" style="font-size: 11px;">${item.desc}</div>
+            <div class="d-flex justify-content-end gap-1">
+              ${actionHtml}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      contentEl.innerHTML = html;
+    };
+
     window.togglePeekDrawer = function() {
       var drawer = document.getElementById('hub-peek-drawer');
       var overlay = document.getElementById('peek-overlay');
@@ -460,19 +537,17 @@
       } else {
         drawer.classList.add('active');
         overlay.classList.add('active');
-        // TODO: Sẽ gọi hàm load dữ liệu mini vào Drawer ở đây sau khi hoàn thiện Logic Backend
+        if (typeof window.renderPeekDrawerContent === 'function') {
+          window.renderPeekDrawerContent();
+        }
       }
     };
 
-    // Lắng nghe phím tắt Ctrl + Space
     document.addEventListener('keydown', function(e) {
-      // Ctrl + Space (Ngăn chặn hành vi cuộn trang mặc định của Space)
       if (e.ctrlKey && e.code === 'Space') {
         e.preventDefault();
         window.togglePeekDrawer();
       }
-      
-      // Phím Esc để đóng nhanh
       if (e.code === 'Escape') {
         var drawer = document.getElementById('hub-peek-drawer');
         if (drawer && drawer.classList.contains('active')) {

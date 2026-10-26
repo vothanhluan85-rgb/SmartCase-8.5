@@ -1,16 +1,18 @@
 <!--
   =========================================================================
-  HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.0 - SỔ NHẬN ĐƠN ĐIỆN TỬ (TIỀN TỐ TỤNG)
+  HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.5 - SỔ NHẬN ĐƠN ĐIỆN TỬ (TIỀN TỐ TỤNG)
   TỆP: UI_DanhSach_Don.html - DANH SÁCH ĐƠN, CAPSULE STATUS TABS & THAO TÁC 1-CLICK
-  - TUÂN THỦ 100% QUY CHUẨN V8.0 PRODUCTION MASTER
-  - BẢNG ĐƠN TABLE-ELEGANT SẮC NÉT, MÃ MÀU TRẠNG THÁI RÕ RÀNG
-  - DẢI CAPSULE STATUS TABS CUỘN MƯỢT MÀ VÀ LỌC TỨC THÌ 0MS TRÊN RAM
+  -------------------------------------------------------------------------
+  - THIẾT KẾ: Ngôn ngữ phẳng, viền Hairline 1px, Typography Inter sắc nét.
+  - CAPSULE TABS: Lọc trạng thái mượt mà, phản hồi tức thì 0ms trên RAM.
+  - BẢNG ĐƠN TABLE-ELEGANT: Phân tách rõ ràng NKK / NBK / Thẩm phán / Trạng thái.
+  - BẢO TOÀN 100% CHỨC NĂNG: Đồng bộ sổ gốc, đối chiếu Văn thư, Fast SMS hàng loạt.
   =========================================================================
 -->
 
 <style>
   /* =========================================================================
-     1. HỆ THỐNG GIAO DIỆN CHỦ ĐẠO SỔ ĐƠN (EXECUTIVE SLATE)
+     1. GIAO DIỆN CHỦ ĐẠO SỔ ĐƠN (TACTILE & ELEGANT)
      ========================================================================= */
   .don-main-container {
     color: #0f172a;
@@ -20,19 +22,19 @@
 
   .don-card {
     background: #ffffff;
-    border-radius: 12px;
+    border-radius: 10px;
     border: 1px solid #e2e8f0;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
     overflow: hidden;
   }
 
-  /* Nút bấm thanh công cụ */
+  /* Nút bấm thanh công cụ chuẩn Sleek Tool */
   .btn-action-tool {
-    border-radius: 8px !important;
+    border-radius: 7px !important;
     font-weight: 700 !important;
-    font-size: 12px !important;
-    height: 35px !important;
-    padding: 0 0.85rem !important;
+    font-size: 11.5px !important;
+    height: 32px !important;
+    padding: 0 0.8rem !important;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -46,10 +48,11 @@
     background-color: #2563eb !important;
     color: #ffffff !important;
     border-color: #2563eb !important;
-    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.2);
   }
   .btn-action-primary:hover { 
     background-color: #1d4ed8 !important; 
+    transform: translateY(-1px);
   }
   .btn-action-tonal {
     background-color: #eff6ff !important;
@@ -58,25 +61,29 @@
   }
   .btn-action-tonal:hover { 
     background-color: #dbeafe !important; 
+    transform: translateY(-1px);
   }
   .btn-action-outline {
     background-color: #ffffff !important;
-    color: #475569 !important;
+    color: #334155 !important;
     border-color: #cbd5e1 !important;
     box-shadow: 0 1px 2px rgba(0,0,0,0.02);
   }
   .btn-action-outline:hover { 
     background-color: #f8fafc !important; 
     color: #0f172a !important; 
+    border-color: #94a3b8 !important;
+    transform: translateY(-1px);
   }
   .btn-action-danger-solid {
     background-color: #dc2626 !important;
     color: #ffffff !important;
     border-color: #dc2626 !important;
-    box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
+    box-shadow: 0 1px 3px rgba(220, 38, 38, 0.2);
   }
   .btn-action-danger-solid:hover {
     background-color: #b91c1c !important;
+    transform: translateY(-1px);
   }
   .btn-action-danger {
     background-color: #ffffff !important;
@@ -85,15 +92,17 @@
   }
   .btn-action-danger:hover { 
     background-color: #fef2f2 !important; 
+    border-color: #f87171 !important;
+    transform: translateY(-1px);
   }
 
-  /* Ô Tìm kiếm Pill */
+  /* Ô Tìm kiếm Pill thanh mảnh */
   .don-search-pill {
-    height: 35px;
+    height: 32px;
     background: #f8fafc;
     border: 1px solid #cbd5e1;
-    border-radius: 20px !important;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 6px !important;
+    transition: all 0.15s ease;
     overflow: hidden;
   }
   .don-search-pill:focus-within {
@@ -103,7 +112,7 @@
   }
   .don-search-pill input {
     background: transparent !important;
-    font-size: 12.5px;
+    font-size: 12px;
     font-weight: 600;
     color: #0f172a;
   }
@@ -113,7 +122,7 @@
   }
 
   /* =========================================================================
-     2. CAPSULE TABS LỌC TRẠNG THÁI (TONAL BLUE ACTIVE)
+     2. CAPSULE TABS LỌC TRẠNG THÁI
      ========================================================================= */
   .don-filter-wrapper {
     position: relative;
@@ -137,12 +146,12 @@
   .don-capsule-btn {
     white-space: nowrap;
     font-size: 11.5px;
-    font-weight: 600;
+    font-weight: 700;
     padding: 5px 12px;
     border-radius: 20px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid #cbd5e1;
     background: #ffffff;
-    color: #64748b;
+    color: #475569;
     cursor: pointer;
     transition: all 0.15s ease;
     display: inline-flex;
@@ -152,22 +161,21 @@
   }
   .don-capsule-btn:hover {
     background: #f8fafc;
-    color: #1e293b;
-    border-color: #cbd5e1;
+    color: #0f172a;
+    border-color: #94a3b8;
   }
   .don-capsule-btn.active {
     background: #eff6ff !important;
     color: #1d4ed8 !important;
-    border-color: #93c5fd !important;
-    font-weight: 700 !important;
-    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.12);
+    border-color: #3b82f6 !important;
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.15);
   }
 
   .tab-nav-arrow {
     width: 26px;
     height: 26px;
     border-radius: 50%;
-    border: 1px solid #e2e8f0;
+    border: 1px solid #cbd5e1;
     background: #ffffff;
     color: #64748b;
     display: inline-flex;
@@ -181,7 +189,7 @@
   .tab-nav-arrow:hover {
     background: #f1f5f9;
     color: #0f172a;
-    border-color: #cbd5e1;
+    border-color: #94a3b8;
   }
 
   /* =========================================================================
@@ -200,7 +208,7 @@
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    padding: 10px 12px;
+    padding: 9px 12px;
     border-bottom: 1px solid #e2e8f0;
     position: sticky;
     top: 0;
@@ -213,7 +221,7 @@
     vertical-align: middle;
     border-bottom: 1px solid #f1f5f9;
     background: #ffffff;
-    transition: background-color 0.12s ease;
+    transition: background-color 0.1s ease;
   }
   .table-elegant-don tbody tr:hover td {
     background-color: #f8fafd !important;
@@ -235,33 +243,33 @@
 <div class="animate-fadeIn don-main-container">
 
   <!-- THANH CÔNG CỤ TÁC NGHIỆP TRUNG TÂM -->
-  <div class="don-card p-3 mb-2">
+  <div class="don-card p-2.5 mb-2">
     <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
       
       <!-- Cụm Tìm kiếm & Lọc khoảng ngày -->
-      <div class="d-flex flex-wrap gap-2 align-items-center flex-grow-1" style="min-width: 300px;">
+      <div class="d-flex flex-wrap gap-2 align-items-center flex-grow-1" style="min-width: 280px;">
         
         <!-- Ô Tìm kiếm Pill -->
-        <div class="input-group don-search-pill" style="max-width: 320px;">
-          <span class="input-group-text bg-transparent border-0 ps-3 pe-1 text-muted" style="font-size: 12px;">
+        <div class="input-group don-search-pill" style="max-width: 300px;">
+          <span class="input-group-text bg-transparent border-0 ps-2.5 pe-1 text-muted" style="font-size: 11px;">
             <i class="fas fa-search text-slate-400"></i>
           </span>
           <input type="text" id="don_txtSearch" class="form-control border-0 ps-1" placeholder="Tìm số đơn, đương sự, thẩm phán..." oninput="window.triggerDonSearch()" autocomplete="off">
-          <button class="btn btn-transparent border-0 pe-3 text-muted" type="button" onclick="document.getElementById('don_txtSearch').value=''; window.triggerDonSearch();" title="Xóa tìm kiếm">
-            <i class="fas fa-times-circle" style="font-size: 12px;"></i>
+          <button class="btn btn-transparent border-0 pe-2 text-muted" type="button" onclick="document.getElementById('don_txtSearch').value=''; window.triggerDonSearch();" title="Xóa tìm kiếm">
+            <i class="fas fa-times-circle" style="font-size: 11px;"></i>
           </button>
         </div>
 
         <!-- Bộ lọc ngày tố tụng -->
-        <div class="d-flex align-items-center gap-1 bg-light px-2 rounded-3 border" style="border-color: #e2e8f0 !important; height: 35px;">
+        <div class="d-flex align-items-center gap-1 bg-light px-2 rounded-3 border" style="border-color: #cbd5e1 !important; height: 32px;">
           <div class="d-flex align-items-center">
-            <span class="text-secondary fw-bold me-1" style="font-size: 10.5px; text-transform: uppercase;">Từ:</span>
-            <input type="date" id="don_filter_start" class="form-control form-control-sm border-0 bg-transparent fw-bold text-dark p-0" style="width: 115px; font-size: 12px;" onchange="window.runFilterDonEngine()">
+            <span class="text-secondary fw-bold me-1" style="font-size: 10px; text-transform: uppercase;">Từ:</span>
+            <input type="date" id="don_filter_start" class="form-control form-control-sm border-0 bg-transparent fw-bold text-dark p-0" style="width: 108px; font-size: 11.5px;" onchange="window.runFilterDonEngine()">
           </div>
           <span class="text-muted px-1" style="font-size: 11px;">–</span>
           <div class="d-flex align-items-center">
-            <span class="text-secondary fw-bold me-1" style="font-size: 10.5px; text-transform: uppercase;">Đến:</span>
-            <input type="date" id="don_filter_end" class="form-control form-control-sm border-0 bg-transparent fw-bold text-dark p-0" style="width: 115px; font-size: 12px;" onchange="window.runFilterDonEngine()">
+            <span class="text-secondary fw-bold me-1" style="font-size: 10px; text-transform: uppercase;">Đến:</span>
+            <input type="date" id="don_filter_end" class="form-control form-control-sm border-0 bg-transparent fw-bold text-dark p-0" style="width: 108px; font-size: 11.5px;" onchange="window.runFilterDonEngine()">
           </div>
         </div>
       </div>
@@ -270,39 +278,39 @@
       <div class="d-flex flex-wrap gap-1 align-items-center">
         
         <!-- Nút Nhận đơn mới -->
-        <button class="btn btn-action-primary btn-action-tool" onclick="window.moModalThemDonMoi()">
-          <i class="fas fa-plus-circle"></i> Nhận đơn mới
+        <button class="btn btn-action-primary btn-action-tool py-0 px-3" onclick="window.moModalThemDonMoi()">
+          <i class="fas fa-plus-circle me-1"></i> Nhận đơn mới
         </button>
         
         <!-- Nút Xử lý hàng loạt SMS -->
-        <button id="btn-bulk-don" class="btn btn-action-danger-solid btn-action-tool d-none" onclick="window.openBulkActionModal()">
-          <i class="fas fa-paper-plane"></i> Xử lý hàng loạt (<span id="bulk-don-count">0</span>)
+        <button id="btn-bulk-don" class="btn btn-action-danger-solid btn-action-tool d-none py-0 px-2" onclick="window.openBulkActionModal()">
+          <i class="fas fa-paper-plane me-1"></i> Xử lý hàng loạt (<span id="bulk-don-count">0</span>)
         </button>
 
         <!-- Nút Xóa chọn -->
-        <button id="btn-bulk-delete-don" class="btn btn-action-danger btn-action-tool d-none" onclick="window.deleteSelectedDons()">
-          <i class="fas fa-trash-alt"></i> Xóa chọn
+        <button id="btn-bulk-delete-don" class="btn btn-action-danger btn-action-tool d-none py-0 px-2" onclick="window.deleteSelectedDons()">
+          <i class="fas fa-trash-alt me-1"></i> Xóa chọn
         </button>
 
         <!-- Nút Đồng bộ sổ gốc -->
-        <button id="btn-sync-don-ngam" class="btn btn-action-tonal btn-action-tool" onclick="window.thucHienDongBoDonNgam()" title="Đồng bộ từ File Excel Sổ đơn gốc của Văn thư">
-          <i class="fas fa-cloud-arrow-down text-primary"></i> Đồng bộ sổ
+        <button id="btn-sync-don-ngam" class="btn btn-action-tonal btn-action-tool py-0 px-2.5" onclick="window.thucHienDongBoDonNgam()" title="Đồng bộ từ File Excel Sổ đơn gốc của Văn thư">
+          <i class="fas fa-cloud-arrow-down text-primary me-1"></i> Đồng bộ sổ
         </button>
         
         <!-- Nút Đối chiếu số liệu -->
-        <button class="btn btn-action-outline btn-action-tool" onclick="window.doiChieuDuLieuDon()" title="Đối chiếu số lượng đơn với Văn thư">
-          <i class="fas fa-balance-scale text-primary"></i> Đối chiếu
+        <button class="btn btn-action-outline btn-action-tool py-0 px-2.5" onclick="window.doiChieuDuLieuDon()" title="Đối chiếu số lượng đơn với Văn thư">
+          <i class="fas fa-balance-scale text-primary me-1"></i> Đối chiếu
         </button>
 
         <!-- Nút Làm mới -->
-        <button class="btn btn-action-outline btn-action-tool px-0 d-flex align-items-center justify-content-center" onclick="window.loadDanhSachDon(true)" title="Tải lại danh sách đơn" style="width: 35px;">
+        <button class="btn btn-action-outline btn-action-tool px-0 d-flex align-items-center justify-content-center" onclick="window.loadDanhSachDon(true)" title="Tải lại danh sách đơn" style="width: 32px;">
           <i class="fas fa-sync-alt text-secondary"></i>
         </button>
       </div>
 
     </div>
 
-    <!-- Dải Capsule Tabs Lọc Trạng Thái (Kèm Mũi Tên Cuộn Trái/Phải) -->
+    <!-- Dải Capsule Tabs Lọc Trạng Thái -->
     <div class="don-filter-wrapper mt-2 pt-2 border-top">
       <button type="button" class="tab-nav-arrow" onclick="scrollDonTabs(-150)" title="Cuộn sang trái"><i class="fas fa-chevron-left"></i></button>
       
@@ -336,7 +344,7 @@
 
   <!-- BẢNG DANH SÁCH ĐƠN KHỞI KIỆN TABLE-ELEGANT -->
   <div class="don-card">
-    <div class="table-responsive" style="max-height: calc(100vh - 240px); overflow-y: auto;">
+    <div class="table-responsive" style="max-height: calc(100vh - 235px); overflow-y: auto;">
       <table class="table-elegant-don align-middle" style="min-width: 1100px;">
         <thead>
           <tr>

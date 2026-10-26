@@ -1,18 +1,18 @@
 <!--
   =========================================================================
   HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.5 - SỔ THỤ LÝ ĐIỆN TỬ & DASHBOARD VĨ MÔ
-  TỆP: UI_DanhSach.html - SỔ THỤ LÝ, 8 THẺ STATS CO GIÃN & LỌC ĐA TIÊU CHÍ
-  - TUÂN THỦ 100% QUY CHUẨN V8.5 PRODUCTION MASTER
-  - BẢNG DỮ LIỆU HIGH-DPI SẮC NÉT, STICKY HEADER & DÒNG PHÂN TÁCH ĐƯƠNG SỰ
-  - PHẢN HỒI LỌC TỨC THÌ 0MS TRÊN BỘ NHỚ RAM CLIENT
-  - BỔ SUNG NÚT LÀM MỚI (1-CLICK SYNC) TRÊN THANH CÔNG CỤ PC
-  - TỐI ƯU HÓA HOÀN HẢO GIAO DIỆN MOBILE CHỐNG LỆCH HÀNG
+  TỆP: UI_DanhSach.html - CHUẨN MỰC TACTILE & ELEGANT (BLACKBERRY-INSPIRED)
+  -------------------------------------------------------------------------
+  - THIẾT KẾ: Ngôn ngữ phẳng, viền Hairline 1px, Typography Inter sắc nét.
+  - 8 THẺ DASHBOARD: Co giãn đàn hồi trên Desktop, trượt mượt mà trên Mobile.
+  - BẢNG SỔ THỤ LÝ: Header dính (Sticky), dòng kẻ mỏng #f1f5f9, phân tách 2 dòng đương sự.
+  - PHẢN HỒI LỌC 0MS: Bộ lọc đa tiêu chí chạy tức thì trên RAM Client.
   =========================================================================
 -->
 
 <style>
   /* =========================================================================
-     1. DASHBOARD STATS GRID: 8 CỘT ĐÀN HỒI (DESKTOP) & MINI-CHIP (MOBILE)
+     1. DASHBOARD STATS GRID: 8 CỘT ĐÀN HỒI (EXECUTIVE TACTILE)
      ========================================================================= */
   .stat-grid-8 {
     display: grid;
@@ -23,31 +23,31 @@
 
   .stat-box {
     background: #ffffff;
-    border-radius: 12px;
+    border-radius: 10px;
     padding: 10px 12px;
     border: 1px solid #e2e8f0;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
     cursor: pointer;
     user-select: none;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    min-height: 98px;
+    min-height: 96px;
     transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
   }
   
   .stat-box:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 14px -2px rgba(15, 23, 42, 0.08);
+    transform: translateY(-1.5px);
+    box-shadow: 0 4px 10px -2px rgba(15, 23, 42, 0.08);
     border-color: #cbd5e1;
   }
   
   .stat-box.active-filter {
     border: 1.5px solid #2563eb !important;
     background-color: #ffffff !important;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12), 0 4px 12px rgba(37, 99, 235, 0.08) !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
   }
 
   .stat-box-title {
@@ -63,7 +63,7 @@
   }
 
   .stat-box-val {
-    font-size: 24px;
+    font-size: 23px;
     font-weight: 800;
     line-height: 1.1;
     margin: 3px 0 2px;
@@ -86,7 +86,7 @@
   }
   .stat-box-reminder:hover {
     border-color: #fca5a5 !important;
-    box-shadow: 0 6px 14px -2px rgba(220, 38, 38, 0.1) !important;
+    box-shadow: 0 4px 10px -2px rgba(220, 38, 38, 0.1) !important;
   }
   .stat-box-reminder.active-filter {
     border-color: #dc2626 !important;
@@ -94,63 +94,56 @@
   }
 
   /* =========================================================================
-     2. THANH CÔNG CỤ TOOLBAR SẮC NÉT & CHỈ BÁO BỘ LỌC
+     2. THANH CÔNG CỤ TOOLBAR SẮC NÉT & BỘ LỌC ĐA TIÊU CHÍ
      ========================================================================= */
   .toolbar-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 10px;
     background: #ffffff;
-    padding: 8px 12px;
-    border-radius: 12px;
+    border-radius: 10px;
     border: 1px solid #e2e8f0;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
   }
 
   .search-wrapper {
     position: relative;
-    flex: 1 1 240px;
-    min-width: 200px;
-    max-width: 340px;
+    flex: 1 1 200px;
+    min-width: 160px;
+    max-width: 300px;
   }
   .search-wrapper .fa-search {
     position: absolute;
-    left: 14px;
+    left: 11px;
     top: 50%;
     transform: translateY(-50%);
     color: #94a3b8;
-    font-size: 12.5px;
+    font-size: 11px;
   }
   .search-wrapper input {
-    padding-left: 36px !important;
-    border-radius: 20px !important;
+    padding-left: 28px !important;
+    border-radius: 6px !important;
     background-color: #f8fafc !important;
     border: 1px solid #cbd5e1 !important;
-    font-size: 13px !important;
+    font-size: 12px !important;
     font-weight: 600 !important;
     color: #0f172a !important;
+    height: 32px;
     transition: all 0.15s ease;
-    height: 35px;
   }
   .search-wrapper input:focus {
     background-color: #ffffff !important;
     border-color: #2563eb !important;
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+    outline: none;
   }
 
   .toolbar-container .form-control, 
   .toolbar-container .form-select {
     background-color: #f8fafc;
     border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    font-size: 12px;
+    border-radius: 6px;
+    font-size: 11.5px;
     font-weight: 600;
     color: #1e293b;
-    padding: 0.38rem 0.6rem;
-    height: 35px;
+    height: 32px;
     transition: all 0.15s ease;
   }
   .toolbar-container .form-control:focus, 
@@ -162,11 +155,11 @@
   }
 
   .btn-action-tool {
-    border-radius: 8px !important;
+    border-radius: 7px !important;
     font-weight: 700 !important;
-    font-size: 12px !important;
-    height: 35px !important;
-    padding: 0 0.85rem !important;
+    font-size: 11.5px !important;
+    height: 32px !important;
+    padding: 0 0.75rem !important;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -180,31 +173,34 @@
     background-color: #2563eb !important;
     color: #ffffff !important;
     border-color: #2563eb !important;
-    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.2);
   }
   .btn-action-primary:hover { 
     background-color: #1d4ed8 !important; 
+    transform: translateY(-1px);
   }
   .btn-action-outline {
     background-color: #ffffff !important;
-    color: #475569 !important;
+    color: #334155 !important;
     border-color: #cbd5e1 !important;
     box-shadow: 0 1px 2px rgba(0,0,0,0.02);
   }
   .btn-action-outline:hover { 
     background-color: #f8fafc !important; 
     color: #0f172a !important; 
+    border-color: #94a3b8 !important;
+    transform: translateY(-1px);
   }
 
   /* =========================================================================
-     3. BẢNG DỮ LIỆU SỔ THỤ LÝ (HIGH-DPI CRISP TABLE)
+     3. BẢNG DỮ LIỆU SỔ THỤ LÝ (HAIRLINE TABLE-ELEGANT)
      ========================================================================= */
   .table-card-wrapper {
     background: #ffffff;
     border: 1px solid #e2e8f0;
-    border-radius: 12px;
+    border-radius: 10px;
     overflow: hidden;
-    box-shadow: 0 2px 6px -1px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.02);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
   }
 
   .table-elegant {
@@ -221,7 +217,7 @@
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    padding: 10px 12px;
+    padding: 9px 12px;
     border-bottom: 1px solid #e2e8f0;
     white-space: nowrap;
     position: sticky;
@@ -230,7 +226,7 @@
   }
 
   .table-elegant tbody tr {
-    transition: background-color 0.12s ease;
+    transition: background-color 0.1s ease;
   }
   .table-elegant tbody tr:hover {
     background-color: #f8fafd;
@@ -243,7 +239,7 @@
   }
 
   /* =========================================================================
-     4. TỐI ƯU HÓA MOBILE & RESPONSIVE CHỐNG LỆCH HÀNG
+     4. TỐI ƯU HÓA MOBILE CHỐNG LỆCH HÀNG
      ========================================================================= */
   @media (max-width: 1440px) {
     .stat-grid-8 {
@@ -290,46 +286,13 @@
     #notification-hub {
       min-width: 180px !important;
     }
-
-    .toolbar-container {
-      padding: 8px;
-      gap: 6px;
-    }
-    .search-wrapper {
-      min-width: 100% !important;
-      max-width: 100% !important;
-      margin-bottom: 2px;
-    }
-    .filter-date-group {
-      width: 100% !important;
-      display: flex !important;
-      gap: 4px !important;
-    }
-    .filter-date-group div {
-      flex: 1 1 50% !important;
-      width: 50% !important;
-    }
-    .filter-select-group {
-      width: 100% !important;
-      display: flex !important;
-      gap: 4px !important;
-    }
-    .filter-select-group select {
-      flex: 1 1 50% !important;
-      width: 50% !important;
-    }
-    .toolbar-action-group {
-      width: 100% !important;
-      justify-content: flex-end !important;
-      margin-top: 4px;
-    }
   }
 </style>
 
 <div class="animate-fadeIn">
 
   <!-- ========================================================= -->
-  <!-- 1. KHỐI 8 THẺ THỐNG KÊ DASHBOARD                          -->
+  <!-- 1. KHỐI 8 THẺ THỐNG KÊ DASHBOARD (VĨ MÔ 0MS)               -->
   <!-- ========================================================= -->
   <div class="stat-grid-8">
     
@@ -340,7 +303,7 @@
       <div class="stat-box-sub" id="stat-sub-total">Mới: 0 | Cũ: 0</div>
     </div>
 
-    <!-- 2. ĐÃ HOÀN THÀNH (TỰ ĐỘNG ĐỔI SỐ LƯỢNG & TÍNH % THEO HÌNH THỨC KẾT QUẢ ĐANG LỌC) -->
+    <!-- 2. ĐÃ HOÀN THÀNH -->
     <div class="stat-box sc-finished" onclick="window.setFilter('category', 'FINISHED', event)" title="Xem các vụ án đã ra phán quyết giải quyết">
       <div class="stat-box-title" id="stat-finished-title">ĐÃ HOÀN THÀNH</div>
       <div class="stat-box-val text-success" id="stat-finished">0</div>
@@ -400,33 +363,33 @@
   </div>
 
   <!-- ========================================================= -->
-  <!-- 2. THANH CÔNG CỤ (TÌM KIẾM, LỌC LOẠI ÁN, LỌC KẾT QUẢ)     -->
+  <!-- 2. THANH CÔNG CỤ (TÌM KIẾM, LỌC KHOẢNG NGÀY, LOẠI ÁN, KẾT QUẢ) -->
   <!-- ========================================================= -->
-  <div class="toolbar-container d-flex align-items-center justify-content-between gap-1 flex-nowrap" style="padding: 6px 10px; overflow-x: auto;">
+  <div class="toolbar-container d-flex align-items-center justify-content-between gap-1 flex-nowrap p-2 mb-2" style="overflow-x: auto;">
     
-    <!-- Cụm Tìm kiếm & Lọc (Tự động co giãn theo màn hình) -->
+    <!-- Cụm Tìm kiếm & Bộ lọc linh hoạt -->
     <div class="d-flex align-items-center gap-1 flex-grow-1 flex-nowrap" style="min-width: 0;">
       
       <!-- 1. Ô Tìm kiếm nhanh -->
-      <div class="search-wrapper" style="min-width: 150px; flex: 1 1 200px; max-width: 280px;">
-        <i class="fas fa-search" style="left: 11px; font-size: 11px;"></i>
-        <input type="text" id="txtSearchMain" class="form-control form-control-sm" style="padding-left: 28px !important; height: 32px; font-size: 12px !important;" placeholder="Tìm số thụ lý, đương sự, tội danh..." oninput="window.runFilterEngine()" autocomplete="off">
+      <div class="search-wrapper">
+        <i class="fas fa-search"></i>
+        <input type="text" id="txtSearchMain" class="form-control form-control-sm" placeholder="Tìm số thụ lý, đương sự, tội danh..." oninput="window.runFilterEngine()" autocomplete="off">
       </div>
 
       <!-- 2. Khoảng ngày thụ lý -->
       <div class="d-flex gap-1 align-items-center flex-shrink-0">
         <div style="width: 108px;">
-          <input type="date" id="filter-start" class="form-control form-control-sm px-1 fw-bold text-center" style="height: 32px; font-size: 11px !important;" title="Từ ngày thụ lý" onchange="window.runFilterEngine()">
+          <input type="date" id="filter-start" class="form-control form-control-sm px-1 fw-bold text-center" title="Từ ngày thụ lý" onchange="window.runFilterEngine()">
         </div>
         <span class="text-muted small" style="font-size: 11px;">–</span>
         <div style="width: 108px;">
-          <input type="date" id="filter-end" class="form-control form-control-sm px-1 fw-bold text-center" style="height: 32px; font-size: 11px !important;" title="Đến ngày thụ lý" onchange="window.runFilterEngine()">
+          <input type="date" id="filter-end" class="form-control form-control-sm px-1 fw-bold text-center" title="Đến ngày thụ lý" onchange="window.runFilterEngine()">
         </div>
       </div>
 
       <!-- 3. Dropdown Loại án -->
       <div class="flex-shrink-0" style="width: 130px;">
-        <select id="filter-loaiAn" class="form-select form-select-sm fw-bold px-2 text-truncate" style="height: 32px; font-size: 11.5px !important;" onchange="window.setFilter('loaiAn', this.value, event)">
+        <select id="filter-loaiAn" class="form-select form-select-sm fw-bold px-2 text-truncate" onchange="window.setFilter('loaiAn', this.value, event)">
           <option value="ALL">-- Loại án --</option>
           <option value="1. Hình sự">1. Hình sự</option>
           <option value="2. Dân sự">2. Dân sự</option>
@@ -441,7 +404,7 @@
 
       <!-- 4. Dropdown Kết quả -->
       <div class="flex-shrink-0" style="width: 135px;">
-        <select id="filter-ketQua" class="form-select form-select-sm fw-bold text-primary px-2 text-truncate" style="height: 32px; font-size: 11.5px !important;" onchange="window.setFilter('ketQua', this.value, event)">
+        <select id="filter-ketQua" class="form-select form-select-sm fw-bold text-primary px-2 text-truncate" onchange="window.setFilter('ketQua', this.value, event)">
           <option value="ALL">-- Kết quả --</option>
           <option value="BAN_AN">Bản án sơ thẩm</option>
           <option value="THOA_THUAN">CN sự thỏa thuận</option>
@@ -454,30 +417,30 @@
         </select>
       </div>
 
-      <!-- 5. Nút Reset Lọc -->
-      <button class="btn btn-outline-secondary px-2 py-0 flex-shrink-0 d-flex align-items-center justify-content-center" style="height: 32px; width: 32px; border-radius: 7px;" onclick="window.clearAllFilters()" title="Đặt lại bộ lọc">
+      <!-- 5. Nút Đặt lại bộ lọc -->
+      <button class="btn btn-action-outline px-2 py-0 flex-shrink-0 d-flex align-items-center justify-content-center" style="height: 32px; width: 32px; border-radius: 7px;" onclick="window.clearAllFilters()" title="Đặt lại toàn bộ bộ lọc">
         <i class="fas fa-filter-circle-xmark" style="font-size: 12px;"></i>
       </button>
     </div>
 
-    <!-- Cụm Nút Hành Động Bên Phải (Cố định không ngắt dòng) -->
+    <!-- Cụm Nút Hành Động Bên Phải -->
     <div class="d-flex align-items-center gap-1 flex-shrink-0 ms-1">
-      <button id="btn-bulk-delete-case" class="btn btn-danger d-none shadow-sm btn-action-tool py-0 px-2" style="height: 32px !important; font-size: 11.5px !important;" onclick="deleteSelectedCases()">
+      <button id="btn-bulk-delete-case" class="btn btn-danger d-none shadow-sm btn-action-tool py-0 px-2" style="height: 32px !important;" onclick="deleteSelectedCases()">
         <i class="fas fa-trash-alt me-1"></i> Xóa (<span id="bulk-case-count">0</span>)
       </button>
 
       <!-- Làm mới -->
-      <button class="btn btn-action-outline btn-action-tool py-0 px-2" style="height: 32px !important; font-size: 11.5px !important;" onclick="window.loadCaseList(true)" title="Đồng bộ số liệu">
+      <button class="btn btn-action-outline btn-action-tool py-0 px-2.5" onclick="window.loadCaseList(true)" title="Đồng bộ lại dữ liệu Sổ thụ lý">
         <i class="fas fa-sync-alt text-primary"></i> <span>Làm mới</span>
       </button>
 
       <!-- Xuất Excel -->
-      <button class="btn btn-action-outline btn-action-tool py-0 px-2 text-success" style="height: 32px !important; font-size: 11.5px !important;" onclick="window.xuatExcelDanhSachAn()" title="Xuất Excel danh sách đang lọc">
+      <button class="btn btn-action-outline btn-action-tool py-0 px-2.5 text-success" onclick="window.xuatExcelDanhSachAn()" title="Xuất file Excel danh sách hồ sơ đang lọc">
         <i class="fas fa-file-excel text-success me-1"></i> <span>Xuất Excel</span>
       </button>
 
       <!-- Thụ lý mới -->
-      <button class="btn btn-primary shadow-sm btn-action-tool py-0 px-2.5" style="height: 32px !important; font-size: 11.5px !important;" onclick="moModalThemMoi()">
+      <button class="btn btn-action-primary btn-action-tool py-0 px-3" onclick="moModalThemMoi()">
         <i class="fas fa-plus me-1"></i> <span>THỤ LÝ</span>
       </button>
     </div>
@@ -487,11 +450,11 @@
   <!-- 3. BẢNG DANH SÁCH SỔ THỤ LÝ ĐIỆN TỬ                       -->
   <!-- ========================================================= -->
   <div class="table-card-wrapper">
-    <div class="table-responsive" style="max-height: calc(100vh - 255px); overflow-y: auto;">
+    <div class="table-responsive" style="max-height: calc(100vh - 250px); overflow-y: auto;">
       <table class="table-elegant m-0">
         <thead>
           <tr>
-            <th class="text-center ps-3" style="width: 42px;">
+            <th class="text-center ps-3" style="width: 40px;">
               <input type="checkbox" class="form-check-input" id="select-all-checkbox" onclick="toggleAllCaseCheckboxes(this.checked)" title="Chọn / Bỏ chọn tất cả">
             </th>
             <th style="width: 17%;">SỐ / NGÀY THỤ LÝ</th>
@@ -515,7 +478,7 @@
 
 <script>
   function toggleAllCaseCheckboxes(checked) {
-    document.querySelectorAll('.case-select-checkbox').forEach(cb => { cb.checked = checked; });
+    document.querySelectorAll('.case-select-checkbox').forEach(function(cb) { cb.checked = checked; });
     toggleBulkCaseDeleteButton();
   }
 
@@ -544,72 +507,76 @@
     }
   });
 
-  // XÓA CHỌN NHIỀU ÁN
+  // XÓA HÀNG LOẠT VỤ ÁN ĐÃ CHỌN
   function deleteSelectedCases() {
     const checkedBoxes = document.querySelectorAll('.case-select-checkbox:checked');
     if (checkedBoxes.length === 0) return;
    
     const confirmMsg = `Xóa vĩnh viễn <b>${checkedBoxes.length}</b> hồ sơ đã chọn?\nMọi dữ liệu và thư mục Drive của các vụ án này sẽ bị xóa sạch hoàn toàn.`;
    
-    AppUI.confirm("Cảnh báo xóa vĩnh viễn", confirmMsg, 'danger', function() {
-      const idsToDelete = Array.from(checkedBoxes).map(cb => cb.dataset.id);
-      
-      document.getElementById('btn-bulk-delete-case').classList.add('d-none');
-      const selectAllCb = document.getElementById('select-all-checkbox');
-      if (selectAllCb) selectAllCb.checked = false;
-      
-      AppUI.showToast(`Đang dọn dẹp ${idsToDelete.length} hồ sơ...`, "");
-      
-      google.script.run
-        .withSuccessHandler(res => {
-          if (res.success) {
-            AppUI.showToast("Đã xóa hoàn tất!", "success");
-            loadCaseList(true);
-          } else {
-            AppUI.showToast("Lỗi hệ thống: " + res.error, "error");
-          }
-        })
-        .withFailureHandler(err => {
-          AppUI.showToast("Lỗi kết nối: " + err.message, "error");
-        })
-        .api_DeleteMultipleCases(idsToDelete);
-    });
+    if (typeof AppUI !== 'undefined') {
+      AppUI.confirm("Cảnh báo xóa vĩnh viễn", confirmMsg, 'danger', function() {
+        const idsToDelete = Array.from(checkedBoxes).map(function(cb) { return cb.dataset.id; });
+        
+        document.getElementById('btn-bulk-delete-case').classList.add('d-none');
+        const selectAllCb = document.getElementById('select-all-checkbox');
+        if (selectAllCb) selectAllCb.checked = false;
+        
+        AppUI.showToast(`Đang dọn dẹp ${idsToDelete.length} hồ sơ...`, "");
+        
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.success) {
+              AppUI.showToast("Đã xóa hoàn tất!", "success");
+              window.loadCaseList(true);
+            } else {
+              AppUI.showToast("Lỗi hệ thống: " + res.error, "error");
+            }
+          })
+          .withFailureHandler(function(err) {
+            AppUI.showToast("Lỗi kết nối: " + err.message, "error");
+          })
+          .api_DeleteMultipleCases(idsToDelete);
+      });
+    }
   }
 
   // XÓA MỘT ÁN NGOÀI DANH SÁCH
   function confirmDeleteSingleCase(idAn) {
-    if (event) event.stopPropagation();
+    if (typeof event !== 'undefined' && event) event.stopPropagation();
    
-    const an = (window.G_Cases || window.G_An || []).find(c => c.id === idAn);
+    const an = (window.G_Cases || window.G_An || []).find(function(c) { return c.id === idAn; });
     const soThuLy = an ? an.soTL : "";
     const confirmMsg = `Xóa vĩnh viễn hồ sơ <b>${soThuLy}</b>?\nDữ liệu không thể khôi phục và hệ thống sẽ xóa cả thư mục Drive.`;
    
-    AppUI.confirm("Xác nhận xóa", confirmMsg, 'danger', function() {
-      let row = document.querySelector(`input[data-id="${idAn}"]`);
-      if (row) { 
-        let tr = row.closest('tr');
-        if (tr) { tr.style.opacity = '0.4'; tr.style.pointerEvents = 'none'; }
-      }
-       
-      AppUI.showToast("Đang xóa hồ sơ...", "");
-      
-      google.script.run
-        .withSuccessHandler(res => {
-          if (res.success) {
-            AppUI.showToast("Xóa hồ sơ thành công!", "success");
-            loadCaseList(true);
-          } else {
-            AppUI.showToast("Lỗi: " + res.error, "error");
-            let tr = row.closest('tr');
-            if (tr) { tr.style.opacity = '1'; tr.style.pointerEvents = 'auto'; }
-          }
-        })
-        .withFailureHandler(err => {
-          AppUI.showToast("Lỗi kết nối: " + err.message, "error");
+    if (typeof AppUI !== 'undefined') {
+      AppUI.confirm("Xác nhận xóa", confirmMsg, 'danger', function() {
+        let row = document.querySelector(`input[data-id="${idAn}"]`);
+        if (row) { 
           let tr = row.closest('tr');
-          if (tr) { tr.style.opacity = '1'; tr.style.pointerEvents = 'auto'; }
-        })
-        .api_DeleteCase(idAn);
-    });
+          if (tr) { tr.style.opacity = '0.35'; tr.style.pointerEvents = 'none'; }
+        }
+         
+        AppUI.showToast("Đang xóa hồ sơ...", "");
+        
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res.success) {
+              AppUI.showToast("Xóa hồ sơ thành công!", "success");
+              window.loadCaseList(true);
+            } else {
+              AppUI.showToast("Lỗi: " + res.error, "error");
+              let tr = row ? row.closest('tr') : null;
+              if (tr) { tr.style.opacity = '1'; tr.style.pointerEvents = 'auto'; }
+            }
+          })
+          .withFailureHandler(function(err) {
+            AppUI.showToast("Lỗi kết nối: " + err.message, "error");
+            let tr = row ? row.closest('tr') : null;
+            if (tr) { tr.style.opacity = '1'; tr.style.pointerEvents = 'auto'; }
+          })
+          .api_DeleteCase(idAn);
+      });
+    }
   }
 </script>

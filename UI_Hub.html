@@ -1,12 +1,7 @@
 <!--
   =========================================================================
   HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.5 - SMARTCASE HUB (TRUNG TÂM HỢP NHẤT)
-  TỆP: UI_Hub.html - PHIÊN BẢN HOÀN CHỈNH: GIAO DIỆN PHẲNG & ĐIỀU PHỐI DỮ LIỆU
-  -------------------------------------------------------------------------
-  - THIẾT KẾ: Ngôn ngữ phẳng, viền Hairline 1px, độ đậm chữ thanh lịch.
-  - CẤU TRÚC: Phân vùng 3 cột (Bộ lọc Triage ➔ Danh sách Stream ➔ Bàn xử lý).
-  - TRIẾT LÝ BLACKBERRY HUB: Vách ngăn ngày tháng, Red Splat ✻, Zero-lag 0ms.
-  - HỘI TỤ 4 DÒNG CHẢY: Hàng đợi in, Mốc 24h & Quá hạn, Lịch hôm nay, Đơn mới.
+  TỆP: UI_Hub.html - PHIÊN BẢN TỐI ƯU HÓA HIỆU NĂNG SIÊU NHẸ & NÚT "ĐÃ XEM"
   =========================================================================
 -->
 
@@ -94,15 +89,14 @@
     color: #2563eb; 
   }
 
-  /* Dấu hoa thị đỏ BlackBerry Splat */
+  /* Dấu hoa thị đỏ tĩnh lặng */
   .hub-splat {
-    color: #ef4444;
-    font-size: 13px;
+    display: inline-block;
+    color: #dc2626;
+    font-size: 14px;
     font-weight: 900;
     margin-left: 2px;
-    line-height: 1;
-    position: relative;
-    top: -3px;
+    text-shadow: 0 0 3px rgba(220, 38, 38, 0.4);
   }
   .hub-badge {
     background: transparent;
@@ -151,7 +145,6 @@
     background: #ffffff;
   }
   
-  /* Vách ngăn ngày tháng trượt dính */
   .hub-date-header {
     padding: 5px 14px;
     font-size: 10px;
@@ -168,14 +161,13 @@
   }
   .hub-date-header:first-child { border-top: none; }
 
-  /* Dòng sự kiện Stream */
   .hub-list-item {
-    padding: 12px 14px;
+    padding: 11px 14px;
     background: #ffffff;
     border-bottom: 1px solid #f1f5f9;
     cursor: pointer;
     display: flex;
-    gap: 12px;
+    gap: 10px;
     transition: background 0.1s ease;
     position: relative;
   }
@@ -183,7 +175,7 @@
     background-color: #f8fafc; 
   }
   .hub-list-item.selected { 
-    background-color: #f8fafd; 
+    background-color: #f0f7ff; 
   }
   .hub-list-item.selected::before {
     content: ''; 
@@ -191,29 +183,30 @@
     left: 0; 
     top: 0; 
     bottom: 0; 
-    width: 2.5px; 
+    width: 3px; 
     background-color: #2563eb;
   }
   
   .hub-list-item.unread .hub-item-title { 
-    font-weight: 600; 
+    font-weight: 700 !important; 
     color: #0f172a; 
   }
   
   .hub-item-icon {
     width: 26px; 
     height: 26px;
-    border-radius: 50%;
+    border-radius: 6px;
     display: flex; 
     align-items: center; 
     justify-content: center;
-    font-size: 12px; 
+    font-size: 11.5px; 
     flex-shrink: 0;
+    margin-top: 2px;
   }
-  .icon-print { color: #0284c7; background: #f0f9ff; }
-  .icon-urgent { color: #dc2626; background: #fef2f2; }
-  .icon-schedule { color: #16a34a; background: #f0fdf4; }
-  .icon-new { color: #d97706; background: #fffbeb; }
+  .icon-print { color: #0284c7; background: #e0f2fe; }
+  .icon-urgent { color: #dc2626; background: #fee2e2; }
+  .icon-schedule { color: #16a34a; background: #dcfce7; }
+  .icon-new { color: #d97706; background: #fef3c7; }
 
   .hub-item-body { 
     flex-grow: 1; 
@@ -235,15 +228,15 @@
   }
   .hub-item-title { 
     font-size: 12.5px; 
-    font-weight: 500; 
-    color: #334155; 
+    font-weight: 600; 
+    color: #1e293b; 
     white-space: nowrap; 
     overflow: hidden; 
     text-overflow: ellipsis; 
   }
   .hub-item-time { 
     font-size: 10px; 
-    font-weight: 500; 
+    font-weight: 600; 
     color: #94a3b8; 
     flex-shrink: 0; 
     margin-left: 6px; 
@@ -259,7 +252,7 @@
   }
   .hub-item-case { 
     font-size: 11px; 
-    font-weight: 600; 
+    font-weight: 700; 
     color: #2563eb; 
   }
 
@@ -273,15 +266,16 @@
   }
   
   .hub-reader-header {
-    padding: 20px 24px 14px;
+    padding: 18px 24px 14px;
     border-bottom: 1px solid #f1f5f9;
   }
   
   .hub-reader-meta { 
     font-size: 10.5px; 
-    font-weight: 700; 
+    font-weight: 800; 
     color: #64748b; 
     text-transform: uppercase; 
+    letter-spacing: 0.5px;
     margin-bottom: 6px; 
     display: flex; 
     align-items: center; 
@@ -289,14 +283,13 @@
   }
   
   .hub-reader-title { 
-    font-size: 16.5px; 
-    font-weight: 600; 
+    font-size: 16px; 
+    font-weight: 700; 
     color: #0f172a; 
     line-height: 1.4; 
     margin-bottom: 12px; 
   }
   
-  /* Thanh Toolbar tinh tế */
   .hub-reader-toolbar {
     display: flex;
     gap: 6px;
@@ -304,32 +297,33 @@
     flex-wrap: wrap;
   }
   .btn-hub-tool {
-    padding: 5px 12px;
-    border-radius: 6px;
-    font-size: 11.5px;
-    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 700;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     gap: 6px;
     background: #ffffff;
-    border: 1px solid #e2e8f0;
+    border: 1px solid #cbd5e1;
     color: #334155;
     transition: all 0.15s ease;
     text-decoration: none !important;
   }
   .btn-hub-tool:hover { 
     background: #f8fafc; 
-    border-color: #cbd5e1; 
+    border-color: #94a3b8; 
     color: #0f172a; 
   }
   .btn-hub-tool.primary { 
-    color: #2563eb; 
-    border-color: #bfdbfe; 
-    background: #eff6ff; 
+    color: #ffffff; 
+    border-color: #2563eb; 
+    background: #2563eb; 
   }
   .btn-hub-tool.primary:hover { 
-    background: #dbeafe; 
+    background: #1d4ed8; 
+    border-color: #1d4ed8;
   }
   .btn-hub-tool.success { 
     color: #15803d; 
@@ -352,7 +346,7 @@
   .hub-data-box {
     border-top: 1px solid #f1f5f9;
     border-bottom: 1px solid #f1f5f9;
-    padding: 14px 0;
+    padding: 12px 0;
     margin-top: 10px;
     margin-bottom: 14px;
   }
@@ -368,9 +362,10 @@
     width: 140px;
     flex-shrink: 0;
     color: #64748b;
+    font-weight: 600;
   }
   .hub-data-value {
-    font-weight: 500;
+    font-weight: 600;
     color: #0f172a;
   }
 </style>
@@ -383,7 +378,7 @@
       <span class="d-flex align-items-center">
         <i class="fas fa-layer-group text-danger me-2"></i> TRẠM TÁC NGHIỆP
       </span>
-      <button class="btn btn-sm btn-link p-0 text-muted shadow-none" onclick="window.loadHubData(true)" title="Đồng bộ dữ liệu Hub">
+      <button class="btn btn-sm btn-link p-0 text-muted shadow-none" onclick="window.loadHubData(true)" title="Đồng bộ lại dữ liệu Hub">
         <i class="fas fa-sync-alt" style="font-size: 11px;"></i>
       </button>
     </div>
@@ -400,14 +395,14 @@
         <div class="d-flex align-items-center">
           <i class="fas fa-print hub-nav-icon"></i> Chờ in <span class="hub-splat" id="hub-splat-print" style="display:none;">✻</span>
         </div>
-        <span class="hub-badge text-danger" id="hub-count-print">0</span>
+        <span class="hub-badge text-primary fw-bold" id="hub-count-print">0</span>
       </div>
 
       <div class="hub-nav-item" onclick="window.filterHubStream('URGENT', this)">
         <div class="d-flex align-items-center">
           <i class="fas fa-bell hub-nav-icon"></i> Mốc khẩn <span class="hub-splat" id="hub-splat-urgent" style="display:none;">✻</span>
         </div>
-        <span class="hub-badge text-danger" id="hub-count-urgent">0</span>
+        <span class="hub-badge text-danger fw-bold" id="hub-count-urgent">0</span>
       </div>
 
       <div class="hub-nav-item" onclick="window.filterHubStream('SCHEDULE', this)">
@@ -419,7 +414,7 @@
 
       <div class="hub-nav-item" onclick="window.filterHubStream('NEW', this)">
         <div class="d-flex align-items-center">
-          <i class="fas fa-envelope-open-text hub-nav-icon"></i> Đơn tiếp nhận
+          <i class="fas fa-envelope-open-text hub-nav-icon"></i> Đơn của bạn
         </div>
         <span class="hub-badge" id="hub-count-new">0</span>
       </div>
@@ -434,7 +429,7 @@
     
     <div class="hub-list-content hub-scroll" id="hub-stream-list">
       <div class="text-center p-5 text-muted small">
-        <div class="spinner-border spinner-border-sm text-primary me-2"></div>Đang hội tụ dữ liệu...
+        <div class="spinner-border spinner-border-sm text-primary me-2"></div>Đang hội tụ dữ liệu tác nghiệp...
       </div>
     </div>
   </div>
@@ -444,7 +439,7 @@
     <div id="hub-reading-content" class="d-flex flex-column h-100">
       <div class="text-center p-5 text-muted fst-italic mt-5">
         <i class="fas fa-inbox fa-3x mb-3 text-secondary opacity-25"></i><br>
-        Chọn một công việc bên danh sách để xem chi tiết và xử lý.
+        Chọn một công việc từ danh sách bên trái để xem chi tiết và thực hiện xử lý.
       </div>
     </div>
   </div>
@@ -452,104 +447,184 @@
 </div>
 
 <script>
-  window.HubData = {
-    PRINT: [], URGENT: [], SCHEDULE: [], NEW: [], ALL: []
-  };
+  window.HubData = { PRINT: [], URGENT: [], SCHEDULE: [], NEW: [], ALL: [] };
   window.currentHubFilter = 'ALL';
   window.currentSelectedHubItemId = null;
   window.currentHubSearchKeyword = '';
+  window.G_HangDoiIn = window.G_HangDoiIn || [];
 
-  /**
-   * HỘI TỤ TOÀN BỘ DỮ LIỆU TỪ RAM VÀ DRIVE VÀO SMARTCASE HUB
-   */
   window.loadHubData = function(isForceRefresh) {
-    // 1. Quét dữ liệu từ G_An, G_Don, G_LichTrinh đã có sẵn trong RAM (Tức thì)
-    var today = new Date(); today.setHours(0,0,0,0);
+    var today = new Date(); 
+    today.setHours(0, 0, 0, 0);
+    var todayTs = today.getTime();
     var todayStr = today.getFullYear() + "-" + ("0" + (today.getMonth() + 1)).slice(-2) + "-" + ("0" + today.getDate()).slice(-2);
-    
+    var threeDaysAgoTs = todayTs - (3 * 86400000);
+
     window.HubData = { PRINT: [], URGENT: [], SCHEDULE: [], NEW: [], ALL: [] };
 
-    // Lọc Đơn mới (Chỉ lấy đơn chưa xử lý)
-    (window.G_Don || []).forEach(function(d) {
+    var currentJudgeName = "";
+    try {
+      var cachedConfig = sessionStorage.getItem('judgeConfigV78');
+      if (cachedConfig) { currentJudgeName = JSON.parse(cachedConfig).TEN_THAM_PHAN || ""; }
+    } catch(e) {}
+    if (!currentJudgeName) {
+       var elTp = document.getElementById('header-ten-tp');
+       if (elTp) currentJudgeName = elTp.innerText.trim();
+    }
+    currentJudgeName = (currentJudgeName || "").replace(/^(Ông|Bà)\s+/i, '').trim().toLowerCase();
+
+    // 1. ĐƠN MỚI
+    var maxDonToLoad = 30;
+    var donCount = 0;
+    var arrDon = window.G_Don || [];
+    for (var i = 0; i < arrDon.length; i++) {
+      if (donCount >= maxDonToLoad) break;
+      var d = arrDon[i];
       var tt = String(d.trangThai || "").toLowerCase();
-      // Chỉ đưa đơn mới tiếp nhận vào Hub, bỏ qua đơn đã thụ lý hoặc đã xong
+      var tp = String(d.thamPhan || "").toLowerCase();
+
       if (tt === "chưa xử lý" || tt === "đang xem xét" || tt === "") {
-        window.HubData.NEW.push({
-          id: "DON_" + d.id,
-          type: 'NEW',
-          title: "Đơn khởi kiện mới: " + (d.quanHe || "Chưa phân loại"),
-          desc: "Người nộp: " + (d.nguoiKhoiKien || "Chưa rõ"),
-          caseNo: "Đơn " + (d.soDon || "---"),
-          idVuAn: d.id,
-          time: d.ngayNhan || "Mới nhận",
-          dateISO: d.rawDate ? (window.formatDateToYMD ? window.formatDateToYMD(d.rawDate) : todayStr) : todayStr,
-          raw: d,
-          unread: true
+        var isReallyNew = false;
+        if (d.rawDate && d.rawDate >= threeDaysAgoTs) isReallyNew = true;
+        else if (String(d.id).includes("TEMP_")) isReallyNew = true;
+
+        if (isReallyNew) {
+          if (tp === "" || tp === "chưa phân công" || (currentJudgeName && tp.includes(currentJudgeName)) || (currentJudgeName && currentJudgeName.includes(tp))) {
+            var dateISO = todayStr;
+            if (d.rawDate) dateISO = window.formatDateToYMD ? window.formatDateToYMD(d.rawDate) : todayStr;
+            else if (d.ngayNhan && d.ngayNhan.includes("/")) {
+              var p = d.ngayNhan.split("/");
+              if (p.length === 3) dateISO = p[2] + "-" + ("0" + p[1]).slice(-2) + "-" + ("0" + p[0]).slice(-2);
+            }
+            window.HubData.NEW.push({
+              id: "DON_" + d.id, rawId: d.id, type: 'NEW',
+              title: "Đơn mới: " + (d.quanHe || "Chưa phân loại"),
+              desc: "Người nộp: " + (d.nguoiKhoiKien || "Chưa rõ"),
+              caseNo: "Số đơn: " + (d.soDon || "---"),
+              idVuAn: d.id, time: d.ngayNhan || "Mới nhận", dateISO: dateISO, raw: d, unread: true
+            });
+            donCount++;
+          }
+        }
+      }
+    }
+
+    // 2. LỊCH HÔM NAY
+    (window.G_LichTrinh || []).forEach(function(ev) {
+      if (ev.trangThai === "Hoàn thành") return;
+      if (!ev.start) return;
+      var evDateISO = ev.start.includes("T") ? ev.start.split("T")[0] : ev.start.split(" ")[0];
+      var timeStr = (ev.start.includes("T") && ev.start.split("T")[1]) ? ev.start.split("T")[1].substring(0, 5) : "08:00";
+      if (evDateISO === todayStr) {
+        window.HubData.SCHEDULE.push({
+          id: "SCH_" + (ev.idLich || ev.id), rawId: ev.idLich || ev.id, type: 'SCHEDULE',
+          title: ev.title || "Lịch làm việc",
+          desc: (ev.duongSuText ? ev.duongSuText + " • " : "") + (ev.ghiChu || "Trụ sở Tòa án"),
+          caseNo: ev.soTL ? "[" + ev.soTL + "]" : "Việc Tòa án",
+          idVuAn: ev.idVuAn || "GENERAL", time: timeStr, dateISO: evDateISO, raw: ev, unread: false
         });
       }
     });
 
-    // Các logic lọc Lịch và Án vẫn giữ nguyên...
-    // ... [giữ lại phần render Lịch và Án như cũ] ...
+    // 3. MỐC KHẨN CẤP
+    (window.G_LichTrinh || []).forEach(function(ev) {
+      if (ev.trangThai === "Hoàn thành") return;
+      var tLow = (ev.title || "").toLowerCase();
+      var isMilestone24h = tLow.includes("ngày thứ 8") || tLow.includes("ngày thứ 16") || tLow.includes("mốc 24h") || tLow.includes("🔔") || (tLow.includes("ra qđ") && (tLow.includes("hòa giải") || tLow.includes("đối thoại") || tLow.includes("thỏa thuận")));
+      if (isMilestone24h && ev.start) {
+        var evDateISO = ev.start.includes("T") ? ev.start.split("T")[0] : ev.start.split(" ")[0];
+        var evTs = new Date(evDateISO).getTime();
+        if (evTs <= (todayTs + 3 * 86400000)) {
+          window.HubData.URGENT.push({
+            id: "LICH_" + (ev.idLich || ev.id), rawId: ev.idLich || ev.id, type: 'URGENT',
+            title: ev.title || "Nhắc hạn ra Quyết định",
+            desc: (ev.soTL ? "[" + ev.soTL + "] " : "") + (ev.duongSuText || ev.ghiChu || "Hết thời hạn tố tụng"),
+            caseNo: ev.soTL || "Mốc tố tụng", idVuAn: ev.idVuAn || "GENERAL", time: evDateISO.split('-').reverse().join('/'), dateISO: evDateISO, raw: ev, unread: true
+          });
+        }
+      }
+    });
 
-    // Fetch Hàng đợi in từ Server
-    google.script.run
-      .withSuccessHandler(function(printItems) {
-        // ... [Giữ nguyên logic nạp printItems] ...
-        window.renderHubStream();
-      })
-      .api_LayDanhSachHangDoiIn();
+    (window.G_An || window.G_Cases || []).forEach(function(an) {
+      if (an.liveStatus === "Đã giải quyết" || an.trangThai === "Đã giải quyết" || an.liveStatus === "Tạm đình chỉ") return;
+      if (!an.rawHanDate) return;
+      var hanDate = new Date(an.rawHanDate);
+      hanDate.setHours(0, 0, 0, 0);
+      var diffDays = Math.ceil((hanDate.getTime() - todayTs) / 86400000);
+      if (diffDays < 0) {
+        window.HubData.URGENT.push({
+          id: "AN_OVERDUE_" + an.id, rawId: an.id, type: 'URGENT',
+          title: "Quá hạn " + Math.abs(diffDays) + " ngày!",
+          desc: (an.quanHe || "") + " (" + (an.nguyenDon || "") + " v. " + (an.biDon || "") + ")",
+          caseNo: an.soTL || "Án quá hạn", idVuAn: an.id, time: "Quá hạn", dateISO: todayStr, raw: an, unread: true
+        });
+      } else if (diffDays <= 15) {
+        window.HubData.URGENT.push({
+          id: "AN_EXPIRING_" + an.id, rawId: an.id, type: 'URGENT',
+          title: "Hạn giải quyết còn " + diffDays + " ngày",
+          desc: (an.quanHe || "") + " (" + (an.nguyenDon || "") + " v. " + (an.biDon || "") + ")",
+          caseNo: an.soTL || "Sắp hết hạn", idVuAn: an.id, time: "Còn " + diffDays + "N", dateISO: todayStr, raw: an, unread: true
+        });
+      }
+    });
+
+    // 4. HÀNG ĐỢI IN ẤN
+    function mapPrintQueueItems(items) {
+      window.HubData.PRINT = (items || []).map(function(p) {
+        var createdDate = p.thoiGianTao ? new Date(p.thoiGianTao) : new Date();
+        var pDateISO = window.formatDateToYMD ? window.formatDateToYMD(createdDate) : todayStr;
+        var pTime = ("0" + createdDate.getHours()).slice(-2) + ":" + ("0" + createdDate.getMinutes()).slice(-2);
+        return {
+          id: "PRINT_" + p.id, rawId: p.id, type: 'PRINT',
+          title: "Văn bản chờ in: " + (p.tenVanBan || "Tài liệu tố tụng"),
+          desc: "Vụ án: " + (p.soTL || "Chưa có số"),
+          caseNo: p.soTL || "Văn bản", idVuAn: p.idVuAn || "", time: pTime, dateISO: pDateISO, raw: p, unread: true
+        };
+      });
+    }
+
+    if (window.G_HangDoiIn && window.G_HangDoiIn.length > 0) mapPrintQueueItems(window.G_HangDoiIn);
+    window.renderHubStream();
+
+    if (isForceRefresh || !window.G_HangDoiIn || window.G_HangDoiIn.length === 0) {
+      google.script.run
+        .withSuccessHandler(function(printItems) {
+          window.G_HangDoiIn = printItems || [];
+          mapPrintQueueItems(window.G_HangDoiIn);
+          window.renderHubStream();
+        })
+        .api_LayDanhSachHangDoiIn();
+    }
   };
 
-  /**
-   * RENDER DANH SÁCH STREAM THEO BLACKBERRY HUB DATE SEPARATORS
-   */
   window.renderHubStream = function() {
-    window.HubData.ALL = [].concat(
-      window.HubData.URGENT, 
-      window.HubData.PRINT, 
-      window.HubData.SCHEDULE, 
-      window.HubData.NEW
-    );
-
-    // Cập nhật số đếm Pane 1
-    var countAll = window.HubData.ALL.length;
+    window.HubData.ALL = [].concat(window.HubData.URGENT, window.HubData.PRINT, window.HubData.SCHEDULE, window.HubData.NEW);
+    
     var countPrint = window.HubData.PRINT.length;
     var countUrgent = window.HubData.URGENT.length;
-    var countSchedule = window.HubData.SCHEDULE.length;
-    var countNew = window.HubData.NEW.length;
 
-    var elAll = document.getElementById('hub-count-all'); if (elAll) elAll.innerText = countAll;
+    var elAll = document.getElementById('hub-count-all'); if (elAll) elAll.innerText = window.HubData.ALL.length;
     var elPrint = document.getElementById('hub-count-print'); if (elPrint) elPrint.innerText = countPrint;
     var elUrgent = document.getElementById('hub-count-urgent'); if (elUrgent) elUrgent.innerText = countUrgent;
-    var elSchedule = document.getElementById('hub-count-schedule'); if (elSchedule) elSchedule.innerText = countSchedule;
-    var elNew = document.getElementById('hub-count-new'); if (elNew) elNew.innerText = countNew;
+    var elSchedule = document.getElementById('hub-count-schedule'); if (elSchedule) elSchedule.innerText = window.HubData.SCHEDULE.length;
+    var elNew = document.getElementById('hub-count-new'); if (elNew) elNew.innerText = window.HubData.NEW.length;
 
-    // Quản lý Dấu hoa thị đỏ Splat
     var splatPrint = document.getElementById('hub-splat-print');
     if (splatPrint) splatPrint.style.display = countPrint > 0 ? 'inline' : 'none';
     var splatUrgent = document.getElementById('hub-splat-urgent');
     if (splatUrgent) splatUrgent.style.display = countUrgent > 0 ? 'inline' : 'none';
 
-    // Cập nhật Dấu hoa thị ngoài menu chính sidebar (UI_Chinh.html)
-    var menuHubSplat = document.querySelector('#menu-view-hub .hub-splat, #menu-view-hub span[style*="color: #dc2626"]');
-    if (menuHubSplat) {
-      menuHubSplat.style.display = (countPrint > 0 || countUrgent > 0) ? 'inline' : 'none';
-    }
+    var menuHubSplat = document.querySelector('#menu-view-hub .hub-splat');
+    if (menuHubSplat) menuHubSplat.style.display = (countPrint > 0 || countUrgent > 0) ? 'inline-block' : 'none';
 
     var listToRender = window.HubData[window.currentHubFilter] || window.HubData.ALL;
-
-    // Lọc theo từ khóa tìm kiếm nếu có
     if (window.currentHubSearchKeyword) {
       var q = window.currentHubSearchKeyword.toLowerCase();
       listToRender = listToRender.filter(function(it) {
-        return (it.title && it.title.toLowerCase().includes(q)) ||
-               (it.caseNo && it.caseNo.toLowerCase().includes(q)) ||
-               (it.desc && it.desc.toLowerCase().includes(q));
+        return (it.title && it.title.toLowerCase().includes(q)) || (it.caseNo && it.caseNo.toLowerCase().includes(q)) || (it.desc && it.desc.toLowerCase().includes(q));
       });
     }
 
-    // Sắp xếp thứ tự thời gian giảm dần
     listToRender.sort(function(a, b) {
       if (a.dateISO !== b.dateISO) return b.dateISO.localeCompare(a.dateISO);
       return b.time.localeCompare(a.time);
@@ -561,37 +636,26 @@
     if (listToRender.length === 0) {
       container.innerHTML = `
         <div class="text-center p-5 text-muted fst-italic" style="font-size: 12.5px;">
-          <i class="fas fa-check-circle fa-2x mb-2 d-block text-success opacity-50"></i>
-          Không có tác vụ nào cần xử lý trong mục này.
+          <i class="fas fa-check-circle fa-2x mb-2 d-block text-success opacity-50"></i>Không có tác vụ nào cần xử lý trong mục này.
         </div>`;
       var reader = document.getElementById('hub-reading-content');
-      if (reader) {
-        reader.innerHTML = `
-          <div class="text-center p-5 text-muted fst-italic mt-5">
-            <i class="fas fa-inbox fa-3x mb-3 text-secondary opacity-25"></i><br>
-            Chọn một công việc bên danh sách để xem chi tiết và xử lý.
-          </div>`;
-      }
+      if (reader) reader.innerHTML = `<div class="text-center p-5 text-muted fst-italic mt-5"><i class="fas fa-inbox fa-3x mb-3 text-secondary opacity-25"></i><br>Chọn một công việc bên danh sách để xem chi tiết và xử lý.</div>`;
       return;
     }
 
     var html = "";
     var currentDateHeader = "";
     var todayStr = window.formatDateToYMD ? window.formatDateToYMD() : "";
-    
-    var yest = new Date(); 
-    yest.setDate(yest.getDate() - 1);
+    var yest = new Date(); yest.setDate(yest.getDate() - 1);
     var yestStr = yest.getFullYear() + "-" + ("0" + (yest.getMonth() + 1)).slice(-2) + "-" + ("0" + yest.getDate()).slice(-2);
 
-    listToRender.forEach(function(item) {
-      // Vách ngăn ngày tháng BlackBerry style
+    listToRender.slice(0, 100).forEach(function(item) {
       if (item.dateISO !== currentDateHeader) {
         currentDateHeader = item.dateISO;
         var headerLabel = item.dateISO.split('-').reverse().join('/');
         if (item.dateISO === todayStr) headerLabel = "Hôm nay, " + headerLabel;
         else if (item.dateISO === yestStr) headerLabel = "Hôm qua, " + headerLabel;
         else headerLabel = "Ngày " + headerLabel;
-        
         html += `<div class="hub-date-header">${headerLabel}</div>`;
       }
 
@@ -604,7 +668,6 @@
       var isSelected = (item.id === window.currentSelectedHubItemId);
       var unreadClass = item.unread ? "unread" : "";
       var selectedClass = isSelected ? "selected" : "";
-      var splatIndicator = item.unread ? '<span class="hub-splat" style="font-size: 11px; top: 0; left: 0;">✻</span>' : '';
 
       html += `
         <div class="hub-list-item ${unreadClass} ${selectedClass}" id="item_${item.id}" onclick="window.selectHubItem('${item.id}')">
@@ -612,7 +675,6 @@
           <div class="hub-item-body">
             <div class="hub-item-top">
               <div class="hub-item-title-wrapper">
-                ${splatIndicator}
                 <div class="hub-item-title" title="${item.title}">${item.title}</div>
               </div>
               <div class="hub-item-time">${item.time}</div>
@@ -624,127 +686,111 @@
       `;
     });
 
-    container.innerHTML = html;
-
-    // Giữ hoặc tự động chọn phần tử đầu tiên
-    if (!window.currentSelectedHubItemId && listToRender.length > 0) {
-      window.selectHubItem(listToRender[0].id);
-    } else if (window.currentSelectedHubItemId) {
-      window.selectHubItem(window.currentSelectedHubItemId);
+    if (listToRender.length > 100) {
+      html += `<div class="text-center p-3 text-muted small border-top" style="font-size: 11px; background: #f8fafc;">Đang hiển thị <b>100/${listToRender.length}</b> mục mới nhất.</div>`;
     }
+
+    container.innerHTML = html;
+    if (!window.currentSelectedHubItemId && listToRender.length > 0) window.selectHubItem(listToRender[0].id);
+    else if (window.currentSelectedHubItemId) window.selectHubItem(window.currentSelectedHubItemId);
   };
 
   /**
-   * CHỌN SỰ KIỆN TRONG STREAM VÀ NẠP KHUNG XỬ LÝ (PANE 3)
+   * ĐÁNH DẤU ĐƠN ĐÃ XEM VÀ XÓA KHỎI HUB (NEW)
    */
+  window.markDonAsSeen = function(idDon) {
+    if (typeof AppUI !== 'undefined') AppUI.showToast("Đang cập nhật...", "");
+    var idx = (window.G_Don || []).findIndex(function(d) { return d.id === idDon; });
+    if (idx > -1) {
+      window.G_Don[idx].trangThai = "Đang xem xét";
+      window.G_Don[idx].huongXuLy = "Đang xem xét";
+      google.script.run.api_LuuThongTinDon({
+        info: window.G_Don[idx],
+        ds: window.G_Don[idx].chiTietDuongSu
+      });
+    }
+    window.HubData.NEW = window.HubData.NEW.filter(function(x) { return x.rawId !== idDon; });
+    window.renderHubStream();
+    if (typeof AppUI !== 'undefined') AppUI.showToast("Đã chuyển Đơn sang Đang xem xét!", "success");
+  };
+
+  /**
+   * TẠM ẨN THÔNG BÁO ÁN KHẨN (URGENT)
+   */
+  window.dismissUrgentItem = function(id) {
+    window.HubData.URGENT = window.HubData.URGENT.filter(function(x) { return x.id !== id; });
+    window.renderHubStream();
+    if (typeof AppUI !== 'undefined') AppUI.showToast("Đã tạm ẩn thông báo khẩn.", "info");
+  };
+
   window.selectHubItem = function(id) {
     window.currentSelectedHubItemId = id;
-    
-    document.querySelectorAll('.hub-list-item').forEach(el => el.classList.remove('selected'));
+    document.querySelectorAll('.hub-list-item').forEach(function(el) { el.classList.remove('selected'); });
     var currentEl = document.getElementById('item_' + id);
     if (currentEl) {
       currentEl.classList.add('selected');
       currentEl.classList.remove('unread');
-      var splat = currentEl.querySelector('.hub-splat');
-      if (splat) splat.remove();
     }
 
-    var item = window.HubData.ALL.find(x => x.id === id);
+    var item = window.HubData.ALL.find(function(x) { return x.id === id; });
     var reader = document.getElementById('hub-reading-content');
     if (!item || !reader) return;
-
     item.unread = false;
 
-    // 1. DẠNG THẺ: VĂN BẢN CHỜ IN ẤN
     if (item.type === 'PRINT') {
       var p = item.raw;
-      var docxUrl = p.linkDocx || `https://docs.google.com/document/d/${p.linkDocs}/export?format=docx`;
-      
+      var docxUrl = p.linkDocx || (p.linkDocs ? p.linkDocs.replace(/\/edit.*$/, '/export?format=docx') : '');
       reader.innerHTML = `
         <div class="hub-reader-header">
-          <div class="hub-reader-meta"><i class="fas fa-print text-info"></i> VĂN BẢN CHỜ IN ĐÓNG DẤU</div>
-          <div class="hub-reader-title">${item.title}</div>
-          
+          <div class="hub-reader-meta"><i class="fas fa-print text-info"></i> VĂN BẢN CHỜ IN & PHÁT HÀNH</div>
+          <div class="hub-reader-title">${p.tenVanBan || item.title}</div>
           <div class="hub-reader-toolbar">
-            <a href="${p.linkDocs}" target="_blank" class="btn-hub-tool primary"><i class="fas fa-print"></i> Mở Docs (In ngay)</a>
-            <a href="${docxUrl}" target="_blank" class="btn-hub-tool"><i class="fas fa-download text-secondary"></i> Tải .docx</a>
-            ${p.idVuAn ? `<button class="btn-hub-tool" onclick="window.appNavigate('view-detail'); window.moChiTiet('${p.idVuAn}');"><i class="fas fa-folder-open text-warning"></i> Mở hồ sơ án</button>` : ''}
+            <a href="${p.linkDocs}" target="_blank" class="btn-hub-tool primary"><i class="fas fa-print"></i> Mở Google Docs (In ngay)</a>
+            ${docxUrl ? `<a href="${docxUrl}" target="_blank" class="btn-hub-tool"><i class="fas fa-download text-secondary"></i> Tải file .docx</a>` : ''}
+            ${p.idVuAn ? `<button class="btn-hub-tool" onclick="window.appNavigate('view-detail'); window.moChiTiet('${p.idVuAn}');"><i class="fas fa-folder-open text-warning"></i> Mở hồ sơ vụ án</button>` : ''}
             <button class="btn-hub-tool success" onclick="window.markPrintDone('${p.id}')"><i class="fas fa-check"></i> Đã in xong</button>
           </div>
         </div>
-        
         <div class="hub-reader-body hub-scroll">
-          <div class="mb-3">
-            <span class="badge bg-light text-primary border px-2 py-1" style="font-size: 11px;">${item.caseNo}</span>
-          </div>
-          
+          <div class="mb-3"><span class="badge bg-light text-primary border px-2 py-1" style="font-size: 11px;">${item.caseNo}</span></div>
           <div class="hub-data-box">
-            <div class="hub-data-row">
-              <div class="hub-data-label">Thời gian tạo:</div>
-              <div class="hub-data-value">${new Date(p.thoiGianTao).toLocaleString('vi-VN')}</div>
-            </div>
-            <div class="hub-data-row">
-              <div class="hub-data-label">Tình trạng:</div>
-              <div class="hub-data-value text-success fw-bold">Đã trộn văn bản hoàn chỉnh, sẵn sàng phát hành</div>
-            </div>
+            <div class="hub-data-row"><div class="hub-data-label">Vụ việc:</div><div class="hub-data-value text-primary">${p.soTL || 'Chưa có số thụ lý'}</div></div>
+            <div class="hub-data-row"><div class="hub-data-label">Thời gian tạo:</div><div class="hub-data-value">${p.thoiGianTao ? new Date(p.thoiGianTao).toLocaleString('vi-VN') : 'Mới tạo'}</div></div>
+            <div class="hub-data-row"><div class="hub-data-label">Tình trạng:</div><div class="hub-data-value text-success fw-bold">Sẵn sàng ký duyệt và ban hành</div></div>
           </div>
-          
-          <p class="text-muted small" style="line-height: 1.6;">
-            * Văn bản được xuất lưu trực tiếp trong thư mục Google Drive của hồ sơ vụ việc. Sau khi in và đóng dấu hoàn tất, Thẩm phán nhấn <b>"Đã in xong"</b> để loại bỏ văn bản khỏi danh sách chờ.
-          </p>
-        </div>
-      `;
+        </div>`;
     }
-    // 2. DẠNG THẺ: MỐC KHẨN CẤP & MỐC 24H
     else if (item.type === 'URGENT') {
       var isMilestone24h = item.id.startsWith("LICH_");
-      
       var actionBtn = isMilestone24h
-        ? `<button class="btn-hub-tool primary" onclick="window.openDraftingModal('${item.idVuAn}', { autoSelectKeywordsArray: ['25. quyết định công nhận', '45. quyết định công nhận', '62. quyết định công nhận'] })"><i class="fas fa-file-signature"></i> Soạn ngay QĐ công nhận</button>`
-        : `<button class="btn-hub-tool primary" onclick="window.openDraftingModal('${item.idVuAn}', { autoSelectKeywordsArray: ['26. quyết định gia hạn', '31. quyết định đưa vụ án'] })"><i class="fas fa-file-signature"></i> Soạn QĐ gia hạn / Xét xử</button>`;
+        ? `<button class="btn-hub-tool primary" onclick="window.openDraftingModal('${item.idVuAn}', { autoSelectKeywordsArray: ['25. quyết định công nhận', '45. quyết định công nhận', '62. quyết định công nhận'] })"><i class="fas fa-file-signature"></i> Soạn QĐ công nhận</button>`
+        : `<button class="btn-hub-tool primary" onclick="window.openDraftingModal('${item.idVuAn}', { autoSelectKeywordsArray: ['26. quyết định gia hạn', '31. quyết định đưa vụ án'] })"><i class="fas fa-file-signature"></i> Soạn QĐ Gia hạn / Xét xử</button>`;
 
       reader.innerHTML = `
         <div class="hub-reader-header">
-          <div class="hub-reader-meta"><i class="fas fa-bell text-danger"></i> MỐC THỜI HẠN TỐ TỤNG KHẨN</div>
-          <div class="hub-reader-title">${item.title}</div>
-          
+          <div class="hub-reader-meta"><i class="fas fa-bell text-danger"></i> CẢNH BÁO MỐC THỜI HẠN TỐ TỤNG</div>
+          <div class="hub-reader-title text-danger">${item.title}</div>
           <div class="hub-reader-toolbar">
-            ${actionBtn}
-            <button class="btn-hub-tool" onclick="window.appNavigate('view-detail'); window.moChiTiet('${item.idVuAn}');"><i class="fas fa-folder-open text-warning"></i> Mở hồ sơ án</button>
+            ${item.idVuAn && item.idVuAn !== 'GENERAL' ? actionBtn : ''}
+            ${item.idVuAn && item.idVuAn !== 'GENERAL' ? `<button class="btn-hub-tool" onclick="window.appNavigate('view-detail'); window.moChiTiet('${item.idVuAn}');"><i class="fas fa-folder-open text-warning"></i> Xem hồ sơ vụ án</button>` : ''}
+            <button class="btn-hub-tool" onclick="window.dismissUrgentItem('${item.id}')"><i class="fas fa-eye-slash text-secondary"></i> Ẩn cảnh báo</button>
             ${isMilestone24h ? `<button class="btn-hub-tool success" onclick="window.markScheduleDone('${item.rawId}')"><i class="fas fa-check"></i> Đã giải quyết</button>` : ''}
           </div>
         </div>
-        
         <div class="hub-reader-body hub-scroll">
-          <div class="mb-3">
-            <span class="badge bg-danger-subtle text-danger border border-danger px-2 py-1" style="font-size: 11px;">${item.caseNo}</span>
-          </div>
-          
+          <div class="mb-3"><span class="badge bg-danger-subtle text-danger border border-danger px-2 py-1" style="font-size: 11px;">${item.caseNo}</span></div>
           <div class="hub-data-box">
-            <div class="hub-data-row">
-              <div class="hub-data-label">Chi tiết:</div>
-              <div class="hub-data-value">${item.desc}</div>
-            </div>
-            <div class="hub-data-row">
-              <div class="hub-data-label">Thời hạn:</div>
-              <div class="hub-data-value text-danger fw-bold">${item.time}</div>
-            </div>
+            <div class="hub-data-row"><div class="hub-data-label">Chi tiết nội dung:</div><div class="hub-data-value">${item.desc}</div></div>
+            <div class="hub-data-row"><div class="hub-data-label">Mốc thời gian:</div><div class="hub-data-value text-danger fw-bold">${item.time}</div></div>
           </div>
-          
-          <p class="text-muted small" style="line-height: 1.6;">
-            * Thẩm phán cần lưu ý hoàn tất thủ tục tố tụng trong ngày làm việc để bảo đảm đúng thời hạn theo quy định của Bộ luật Tố tụng Dân sự.
-          </p>
-        </div>
-      `;
+        </div>`;
     }
-    // 3. DẠNG THẺ: LỊCH TRÌNH LÀM VIỆC HÔM NAY
     else if (item.type === 'SCHEDULE') {
       var ev = item.raw;
       reader.innerHTML = `
         <div class="hub-reader-header">
           <div class="hub-reader-meta"><i class="fas fa-calendar-check text-success"></i> LỊCH LÀM VIỆC HÔM NAY</div>
-          <div class="hub-reader-title">${item.title}</div>
-          
+          <div class="hub-reader-title text-success">${item.title}</div>
           <div class="hub-reader-toolbar">
             ${item.idVuAn && item.idVuAn !== 'GENERAL' ? `
               <button class="btn-hub-tool primary" onclick="window.openDraftingModal('${item.idVuAn}', { trieuTapDate: '${item.dateISO}', trieuTapTime: '${item.time}', noiDungThem: '${item.title.replace(/'/g, "\\'")}' })"><i class="fas fa-file-signature"></i> Soạn văn bản</button>
@@ -753,139 +799,80 @@
             <button class="btn-hub-tool success" onclick="window.markScheduleDone('${item.rawId}')"><i class="fas fa-check"></i> Đã hoàn thành</button>
           </div>
         </div>
-        
         <div class="hub-reader-body hub-scroll">
-          <div class="mb-3">
-            <span class="badge bg-success-subtle text-success border border-success px-2 py-1" style="font-size: 11px;">${item.caseNo}</span>
-          </div>
-          
+          <div class="mb-3"><span class="badge bg-success-subtle text-success border border-success px-2 py-1" style="font-size: 11px;">${item.caseNo}</span></div>
           <div class="hub-data-box">
-            <div class="hub-data-row">
-              <div class="hub-data-label">Thời gian:</div>
-              <div class="hub-data-value text-danger fw-bold">${item.time} - Hôm nay</div>
-            </div>
-            <div class="hub-data-row">
-              <div class="hub-data-label">Địa điểm:</div>
-              <div class="hub-data-value">${ev.ghiChu || "Trụ sở Tòa án"}</div>
-            </div>
-            <div class="hub-data-row">
-              <div class="hub-data-label">Thành phần:</div>
-              <div class="hub-data-value">${ev.duongSuText || "Đương sự theo vụ việc"}</div>
-            </div>
+            <div class="hub-data-row"><div class="hub-data-label">Giờ bắt đầu:</div><div class="hub-data-value text-danger fw-bold">${item.time} hôm nay</div></div>
+            <div class="hub-data-row"><div class="hub-data-label">Địa điểm:</div><div class="hub-data-value">${ev.ghiChu || "Trụ sở Tòa án"}</div></div>
+            <div class="hub-data-row"><div class="hub-data-label">Đương sự tham gia:</div><div class="hub-data-value">${ev.duongSuText || "Đương sự theo vụ việc"}</div></div>
           </div>
-        </div>
-      `;
+        </div>`;
     }
-    // 4. DẠNG THẺ: ĐƠN TIẾP NHẬN MỚI
     else if (item.type === 'NEW') {
       var d = item.raw;
       reader.innerHTML = `
         <div class="hub-reader-header">
           <div class="hub-reader-meta"><i class="fas fa-envelope-open-text text-warning"></i> ĐƠN KHỞI KIỆN TIẾP NHẬN</div>
           <div class="hub-reader-title">${item.title}</div>
-          
           <div class="hub-reader-toolbar">
-            <button class="btn-hub-tool primary" onclick="window.chuyenDonSangThuLy('${d.id}')"><i class="fas fa-folder-plus"></i> Chuyển thụ lý</button>
-            <button class="btn-hub-tool" onclick="window.sendQuickSMS('${d.id}')"><i class="fas fa-sms text-info"></i> Hẹn lịch & SMS</button>
+            <button class="btn-hub-tool primary" onclick="window.chuyenDonSangThuLy('${d.id}')"><i class="fas fa-folder-plus"></i> Chuyển thụ lý vụ án</button>
+            <button class="btn-hub-tool" onclick="window.sendQuickSMS('${d.id}')"><i class="fas fa-sms text-info"></i> Hẹn lịch & Gửi SMS</button>
             <button class="btn-hub-tool" onclick="window.moChiTietDon('${d.id}')"><i class="fas fa-eye text-primary"></i> Xem chi tiết đơn</button>
+            <button class="btn-hub-tool success" onclick="window.markDonAsSeen('${d.id}')"><i class="fas fa-check-double"></i> Đã xem</button>
           </div>
         </div>
-        
         <div class="hub-reader-body hub-scroll">
-          <div class="mb-3">
-            <span class="badge bg-warning-subtle text-dark border border-warning px-2 py-1" style="font-size: 11px;">${item.caseNo}</span>
-          </div>
-          
+          <div class="mb-3"><span class="badge bg-warning-subtle text-dark border border-warning px-2 py-1" style="font-size: 11px;">${item.caseNo}</span></div>
           <div class="hub-data-box">
-            <div class="hub-data-row">
-              <div class="hub-data-label">Người nộp đơn:</div>
-              <div class="hub-data-value text-primary fw-bold">${d.nguoiKhoiKien || "Chưa rõ"}</div>
-            </div>
-            <div class="hub-data-row">
-              <div class="hub-data-label">Người bị kiện:</div>
-              <div class="hub-data-value">${d.nguoiBiKien || "Chưa rõ"}</div>
-            </div>
-            <div class="hub-data-row">
-              <div class="hub-data-label">Ngày nhận đơn:</div>
-              <div class="hub-data-value">${d.ngayNhan || "---"}</div>
-            </div>
-            <div class="hub-data-row">
-              <div class="hub-data-label">Phân loại:</div>
-              <div class="hub-data-value">${d.loaiAn || "2. Dân sự"}</div>
-            </div>
+            <div class="hub-data-row"><div class="hub-data-label">Người khởi kiện:</div><div class="hub-data-value text-primary">${d.nguoiKhoiKien || "Chưa rõ"}</div></div>
+            <div class="hub-data-row"><div class="hub-data-label">Người bị kiện:</div><div class="hub-data-value">${d.nguoiBiKien || "Chưa rõ"}</div></div>
+            <div class="hub-data-row"><div class="hub-data-label">Ngày nhận đơn:</div><div class="hub-data-value">${d.ngayNhan || "---"}</div></div>
+            <div class="hub-data-row"><div class="hub-data-label">Lĩnh vực:</div><div class="hub-data-value">${d.loaiAn || "2. Dân sự"}</div></div>
           </div>
-        </div>
-      `;
+        </div>`;
     }
   };
 
-  /**
-   * LỌC TRIAGE THEO DANH MỤC SIDEBAR (PANE 1)
-   */
   window.filterHubStream = function(type, el) {
-    document.querySelectorAll('.hub-nav-item').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.hub-nav-item').forEach(function(b) { b.classList.remove('active'); });
     if (el) el.classList.add('active');
-    
     window.currentHubFilter = type || 'ALL';
     window.currentSelectedHubItemId = null;
     window.renderHubStream();
   };
 
-  /**
-   * TÌM KIẾM TRONG HUB STREAM
-   */
   window.handleHubSearch = function(keyword) {
     window.currentHubSearchKeyword = String(keyword || '').trim();
     window.renderHubStream();
   };
 
-  /**
-   * ĐÁNH DẤU VĂN BẢN ĐÃ IN XONG
-   */
   window.markPrintDone = function(id) {
-    AppUI.showToast("Đang dọn văn bản khỏi hàng đợi...", "");
+    if (typeof AppUI !== 'undefined') AppUI.showToast("Đang dọn văn bản khỏi hàng đợi in...", "");
+    window.G_HangDoiIn = (window.G_HangDoiIn || []).filter(function(x) { return x.id !== id; });
+    window.HubData.PRINT = window.HubData.PRINT.filter(function(x) { return x.rawId !== id; });
+    window.renderHubStream();
     google.script.run
       .withSuccessHandler(function(res) {
-        if (res && res.success) {
-          AppUI.showToast("Đã dọn dẹp xong!", "success");
-          window.HubData.PRINT = window.HubData.PRINT.filter(x => x.rawId !== id);
-          window.loadHubData();
-        } else {
-          AppUI.showToast("Lỗi dọn văn bản: " + (res ? res.error : ""), "error");
-        }
-      })
-      .withFailureHandler(function(err) {
-        AppUI.showToast("Lỗi kết nối: " + err.message, "error");
+        if (res && res.success && typeof AppUI !== 'undefined') AppUI.showToast("Đã dọn dẹp xong hàng đợi in!", "success");
       })
       .api_XoaHangDoiIn(id);
   };
 
-  /**
-   * ĐÁNH DẤU LỊCH TRÌNH HOÀN THÀNH
-   */
   window.markScheduleDone = function(idLich) {
-    AppUI.showToast("Đang cập nhật lịch trình...", "");
+    if (typeof AppUI !== 'undefined') AppUI.showToast("Đang cập nhật lịch trình...", "");
+    if (window.G_LichTrinh) {
+      var ev = window.G_LichTrinh.find(function(l) { return (l.idLich === idLich || l.id === idLich); });
+      if (ev) ev.trangThai = "Hoàn thành";
+    }
+    window.HubData.SCHEDULE = window.HubData.SCHEDULE.filter(function(x) { return x.rawId !== idLich; });
+    window.HubData.URGENT = window.HubData.URGENT.filter(function(x) { return x.rawId !== idLich; });
+    window.renderHubStream();
     google.script.run
       .withSuccessHandler(function(res) {
-        if (res && res.success) {
-          AppUI.showToast("Đã hoàn thành công việc!", "success");
-          if (window.G_LichTrinh) {
-            var ev = window.G_LichTrinh.find(l => (l.idLich === idLich || l.id === idLich));
-            if (ev) ev.trangThai = "Hoàn thành";
-          }
-          window.loadHubData();
-        } else {
-          AppUI.showToast("Lỗi: " + (res ? res.error : ""), "error");
-        }
-      })
-      .withFailureHandler(function(err) {
-        AppUI.showToast("Lỗi kết nối: " + err.message, "error");
+        if (res && res.success && typeof AppUI !== 'undefined') AppUI.showToast("Đã đánh dấu hoàn thành công việc!", "success");
       })
       .api_CapNhatTrangThaiLich(idLich, "Hoàn thành");
   };
 
-  // Tự động nạp dữ liệu khi mở giao diện Hub
-  setTimeout(function() {
-    window.loadHubData();
-  }, 150);
+  setTimeout(function() { window.loadHubData(); }, 100);
 </script>

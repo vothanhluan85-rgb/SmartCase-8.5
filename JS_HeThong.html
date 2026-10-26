@@ -1086,7 +1086,7 @@ window.appNavigate = function(viewId) {
     if(menuAnDetail) menuAnDetail.style.display = 'none';
   }
 
-  if (viewId === 'view-list' || viewId === 'view-schedule' || viewId === 'view-stats') {
+  if (viewId === 'view-list' || viewId === 'view-schedule' || viewId === 'view-stats' || viewId === 'view-hub') {
     window.CURRENT_APP_CONTEXT.scope = "GLOBAL";
     window.CURRENT_APP_CONTEXT.caseInfo = null;
     window.CURRENT_APP_CONTEXT.donInfo = null;
@@ -1094,6 +1094,7 @@ window.appNavigate = function(viewId) {
   if (typeof window.updateCopilotScopeBadge === 'function') window.updateCopilotScopeBadge();
 
   var titles = {
+    'view-hub': 'TRUNG TÂM HỢP NHẤT TỐ TỤNG (SMARTCASE HUB)',
     'view-danh-sach-don': 'SỔ NHẬN ĐƠN ĐIỆN TỬ',
     'view-chi-tiet-don': 'CHI TIẾT ĐƠN KHỞI KIỆN',
     'view-list': 'SỔ THỤ LÝ ĐIỆN TỬ',
@@ -1107,7 +1108,11 @@ window.appNavigate = function(viewId) {
     titleEl.innerText = titles[viewId] || "TRỢ LÝ 8.5";
   }
 
-  if (viewId === 'view-danh-sach-don') {
+  // Điều hướng kích hoạt dữ liệu tương ứng 0ms từ RAM
+  if (viewId === 'view-hub') {
+    if (typeof window.loadHubData === 'function') window.loadHubData();
+  }
+  else if (viewId === 'view-danh-sach-don') {
     if (window.G_Don && window.G_Don.length > 0 && typeof window.runFilterDonEngine === 'function') window.runFilterDonEngine(); 
     else if (typeof window.loadDanhSachDon === 'function') window.loadDanhSachDon(true);
   }
@@ -1199,6 +1204,10 @@ window.loadCaseList = function(isForceRefresh) {
       
       window.requestAnimationFrame(function() {
         window.runFilterEngine();
+        // Tự động đẩy số liệu sang Hub ngay khi RAM Sổ thụ lý đã sẵn sàng
+        if (typeof window.loadHubData === 'function') {
+          window.loadHubData();
+        }
       });
     })
     .withFailureHandler(function(err) {
@@ -2099,17 +2108,21 @@ window.onload = function() {
     if (document.getElementById('don_filter_start')) document.getElementById('don_filter_start').value = "";
     if (document.getElementById('don_filter_end')) document.getElementById('don_filter_end').value = "";
 
-    window.appNavigate('view-list'); 
+    // Mở ngay SmartCase Hub làm trung tâm điều phối tác nghiệp đầu tiên
+    window.appNavigate('view-hub'); 
 
-    // 1. Nạp Sổ thụ lý án
+    // 1. Nạp Sổ thụ lý án ngầm
     window.loadCaseList(true);
 
-    // 2. Nạp Lịch công tác
+    // 2. Nạp Lịch công tác & đồng bộ sang Hub
     google.script.run
       .withSuccessHandler(function(events) {
         window.G_LichTrinh = events || [];
         if (window.G_An && window.G_An.length > 0) {
           window.runFilterEngine();
+        }
+        if (typeof window.loadHubData === 'function') {
+          window.loadHubData();
         }
       })
       .withFailureHandler(function(err) {
@@ -2117,7 +2130,7 @@ window.onload = function() {
       })
       .api_LayLichTrinhCongTac();
 
-    // 3. Nạp Sổ nhận đơn
+    // 3. Nạp Sổ nhận đơn & đồng bộ sang Hub
     google.script.run
       .withSuccessHandler(function(data) {
         if (!data || data.error) return;
@@ -2125,6 +2138,9 @@ window.onload = function() {
         var viewDon = document.getElementById('view-danh-sach-don');
         if (viewDon && viewDon.style.display === 'block' && typeof window.runFilterDonEngine === 'function') {
           window.runFilterDonEngine();
+        }
+        if (typeof window.loadHubData === 'function') {
+          window.loadHubData();
         }
       })
       .withFailureHandler(function(err) {
