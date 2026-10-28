@@ -1567,6 +1567,137 @@
 </div>
 
 <!-- ======================================================= -->
+<!-- 21. MODAL ONBOARDING WIZARD: THIẾT LẬP DỰ ÁN CHO THẨM PHÁN MỚI -->
+<!-- ======================================================= -->
+<div class="modal fade" id="modalOnboardingWizard" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+      
+      <!-- HEADER WIZARD -->
+      <div class="modal-header py-3 px-4" style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); color: #ffffff;">
+        <div class="d-flex align-items-center gap-2">
+          <div class="rounded-circle d-flex align-items-center justify-content-center bg-white text-primary" style="width: 36px; height: 36px; font-size: 16px;">
+            <i class="fas fa-wand-magic-sparkles"></i>
+          </div>
+          <div>
+            <h6 class="modal-title fw-bold text-white m-0" style="font-size: 15px; letter-spacing: 0.4px;">
+              WIZARD THIẾT LẬP HỆ THỐNG TRỢ LÝ THẨM PHÁN V8.5
+            </h6>
+            <span style="font-size: 11px; opacity: 0.85;">Khởi tạo cây thư mục Google Drive, nhân bản kho mẫu và phân quyền Thư ký</span>
+          </div>
+        </div>
+        <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body p-4 bg-light">
+        
+        <!-- BƯỚC 1: XÁC THỰC GOOGLE VÀ THÔNG TIN ĐƠN VỊ -->
+        <div class="modal-inner-card mb-3 p-3 bg-white">
+          <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+            <span class="badge rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center" style="width: 24px; height: 24px; font-size: 12px;">1</span>
+            <span class="fw-bold text-dark text-uppercase" style="font-size: 12.5px;">Thông tin Thẩm phán & Đơn vị Tòa án</span>
+            <span class="badge bg-light text-primary border ms-auto" id="wiz_user_email_badge">Google: Đang nhận diện...</span>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="small-label">Họ và tên Thẩm phán *</label>
+              <input type="text" id="wiz_tenTP" class="form-control form-control-sm fw-bold text-primary" placeholder="Ví dụ: Võ Thành Luân" autocomplete="off">
+            </div>
+            <div class="col-md-4">
+              <label class="small-label">Tên đơn vị Tòa án *</label>
+              <input type="text" id="wiz_tenToa" class="form-control form-control-sm fw-bold text-dark" placeholder="Ví dụ: Tòa án nhân dân tỉnh Lâm Đồng" autocomplete="off">
+            </div>
+            <div class="col-md-4">
+              <label class="small-label">Địa chỉ trụ sở Tòa án *</label>
+              <input type="text" id="wiz_diaChiToa" class="form-control form-control-sm" placeholder="Địa chỉ trụ sở Tòa án..." autocomplete="off">
+            </div>
+          </div>
+        </div>
+
+        <!-- BƯỚC 2: TỰ ĐỘNG KHỞI TẠO CÂY THƯ MỤC DRIVE & SAO CHÉP MẪU -->
+        <div class="modal-inner-card mb-3 p-3 bg-white">
+          <div class="d-flex align-items-center gap-2 mb-2 pb-2 border-bottom">
+            <span class="badge rounded-circle bg-success text-white d-inline-flex align-items-center justify-content-center" style="width: 24px; height: 24px; font-size: 12px;">2</span>
+            <span class="fw-bold text-dark text-uppercase" style="font-size: 12.5px;">Cây thư mục Google Drive & Kho biểu mẫu chuẩn</span>
+          </div>
+          <p class="text-muted small mb-2" style="font-size: 12px; line-height: 1.5;">
+            Hệ thống sẽ <b>tự động khởi tạo 4 thư mục tác nghiệp</b> trên Google Drive của Thẩm phán (<code>01_HỒ SƠ ÁN</code>, <code>02_HỒ SƠ ĐƠN</code>, <code>03_KHO MẪU ÁN</code>, <code>04_KHO MẪU ĐƠN</code>) và sao chép toàn bộ các biểu mẫu chuẩn từ kho gốc sang để phục vụ trộn văn bản độc lập.
+          </p>
+          <div class="alert alert-info py-2 px-3 border-0 small m-0 d-flex align-items-center gap-2" style="font-size: 11.5px;">
+            <i class="fas fa-check-circle text-primary"></i>
+            <span>Toàn bộ quá trình tạo thư mục và nhân bản kho mẫu diễn ra tự động 100% khi Thẩm phán bấm <b>"Hoàn tất thiết lập"</b>.</span>
+          </div>
+        </div>
+
+        <!-- BƯỚC 3: PHÂN QUYỀN THƯ KÝ QUA GMAIL -->
+        <div class="modal-inner-card mb-3 p-3 bg-white">
+          <div class="d-flex align-items-center gap-2 mb-2 pb-2 border-bottom">
+            <span class="badge rounded-circle bg-warning text-dark d-inline-flex align-items-center justify-content-center" style="width: 24px; height: 24px; font-size: 12px;">3</span>
+            <span class="fw-bold text-dark text-uppercase" style="font-size: 12.5px;">Phân quyền Thư ký giúp việc qua Gmail</span>
+          </div>
+          <p class="text-muted small mb-2" style="font-size: 12px;">
+            Nhập danh sách Thư ký giúp việc. Hệ thống sẽ <b>tự động phân quyền chỉnh sửa Drive</b> cho các email này:
+          </p>
+          
+          <div class="table-responsive border rounded-3 mb-2">
+            <table class="table table-sm align-middle m-0" style="font-size: 12.5px;">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 18%;">Danh xưng</th>
+                  <th style="width: 42%;">Họ và tên Thư ký</th>
+                  <th style="width: 32%;">Tài khoản Gmail</th>
+                  <th style="width: 8%;" class="text-center">Xóa</th>
+                </tr>
+              </thead>
+              <tbody id="wiz_table_thuky_body">
+                <tr>
+                  <td><select class="form-select form-select-sm fw-bold wiz-tk-xh"><option value="Bà">Bà</option><option value="Ông">Ông</option></select></td>
+                  <td><input type="text" class="form-control form-control-sm fw-bold wiz-tk-ten" placeholder="Họ và tên Thư ký..."></td>
+                  <td><input type="email" class="form-control form-control-sm wiz-tk-email" placeholder="thuky@gmail.com..."></td>
+                  <td class="text-center"><button type="button" class="btn btn-sm text-danger p-0 shadow-none" onclick="this.closest('tr').remove()"><i class="fas fa-times"></i></button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <button type="button" class="btn btn-sm btn-action-tonal" onclick="window.addWizardClerkRow()">
+            <i class="fas fa-plus me-1"></i> Thêm Thư ký
+          </button>
+        </div>
+
+        <!-- BƯỚC 4: CẤU HÌNH GOOGLE GEMINI AI (TÙY CHỌN) -->
+        <div class="modal-inner-card mb-0 p-3 bg-white">
+          <div class="d-flex align-items-center gap-2 mb-2 pb-2 border-bottom">
+            <span class="badge rounded-circle bg-secondary text-white d-inline-flex align-items-center justify-content-center" style="width: 24px; height: 24px; font-size: 12px;">4</span>
+            <span class="fw-bold text-dark text-uppercase" style="font-size: 12.5px;">Cấu hình Google Gemini AI Studio (Tùy chọn)</span>
+          </div>
+          <p class="text-muted small mb-2" style="font-size: 12px; line-height: 1.5;">
+            Dán mã API Key để kích hoạt Trợ lý Thẩm phán Copilot và OCR bóc tách tài liệu. <i>Nếu chưa có API Key, bạn có thể bỏ trống và cập nhật sau trong Cài đặt (các tính năng nghiệp vụ khác vẫn hoạt động đầy đủ 100%).</i>
+          </p>
+          <div class="row g-2 align-items-center">
+            <div class="col-md-9">
+              <input type="password" id="wiz_gemini_key" class="form-control form-control-sm font-monospace" placeholder="Dán mã API Key bắt đầu bằng AIzaSy...">
+            </div>
+            <div class="col-md-3">
+              <a href="https://aistudio.google.com/app/apikey" target="_blank" class="btn btn-sm btn-action-outline w-100 justify-content-center" style="font-size: 11.5px; height: 32px;">
+                <i class="fas fa-key text-warning me-1"></i> Lấy Key miễn phí
+              </a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer bg-white py-3 px-4 justify-content-between">
+        <button type="button" class="btn btn-action-outline px-4" data-bs-dismiss="modal">Để sau</button>
+        <button type="button" class="btn btn-action-primary px-4 shadow" onclick="window.submitFirstTimeOnboardingWizard()">
+          <i class="fas fa-circle-check me-2"></i> HOÀN TẤT THIẾT LẬP DỰ ÁN
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+<!-- ======================================================= -->
 <!-- DATALISTS TĨNH TOÀN DIỆN CHO TOÀN HỆ THỐNG -->
 <!-- ======================================================= -->
 

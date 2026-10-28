@@ -6,6 +6,7 @@
   - BẢN HOÀN THIỆN 100%: HIỂN THỊ ĐẦY ĐỦ TÊN BIỂU MẪU RÕ RÀNG, KHÔNG BỊ NUỐT CHỮ.
   - CỐ ĐỊNH CHUẨN XÁC 4 CỘT: STT | TÊN BIỂU MẪU | TÌNH TRẠNG | THAO TÁC.
   - BẢNG QUẢN TRỊ DANH SÁCH THƯ KÝ ĐỘNG (INLINE-EDIT TRỰC TIẾP TRÊN DÒNG).
+  - TÍCH HỢP ĐỒNG BỘ QUYỀN TRUY CẬP GOOGLE DRIVE CHO THƯ KÝ THEO GMAIL.
   - TÍCH HỢP ĐỘNG CƠ AI TỰ SOẠN MẪU (NO-UPLOAD) VỚI CẢNH BÁO BẢO VỆ CHỐNG ĐÈ.
   - NÚT TEST KẾT NỐI GEMINI API KEY THỜI GIAN THỰC & CHẨN ĐOÁN KHO MẪU.
   =========================================================================
@@ -169,16 +170,21 @@
           <h6 class="set-card-title text-primary">
             <i class="fas fa-id-card"></i> 1. Thông tin Thẩm phán & Đơn vị Tòa án
           </h6>
-          <span class="badge bg-light text-primary border" style="font-size: 10.5px;">Tài khoản sử dụng</span>
+          <span class="badge bg-light text-primary border" style="font-size: 10.5px;">Tài khoản Quản trị</span>
         </div>
         <div class="p-3 p-md-4">
           <div class="row g-3">
-            <div class="col-12 col-md-8">
+            <div class="col-12 col-md-5">
               <label class="set-field-label">Họ và tên Thẩm phán *</label>
-              <input type="text" id="set_tenTP" class="form-control set-field-control fw-bold text-primary" placeholder="Ví dụ: Võ Thành Luân (hoặc Ông Võ Thành Luân)" autocomplete="off">
-              <span class="set-hint">Hệ thống sẽ tự động bóc tách danh xưng ({Danh xưng Thẩm phán} = Ông/Bà) và tên mộc in chữ ký ({Thẩm phán} = Võ Thành Luân).</span>
+              <input type="text" id="set_tenTP" class="form-control set-field-control fw-bold text-primary" placeholder="Ví dụ: Võ Thành Luân" autocomplete="off">
+              <span class="set-hint">Hệ thống tự động tách danh xưng ({Danh xưng Thẩm phán} = Ông/Bà) và tên in chân chữ ký ({Thẩm phán} = Võ Thành Luân).</span>
             </div>
             <div class="col-12 col-md-4">
+              <label class="set-field-label">Tài khoản Google / Gmail Thẩm phán (Owner) *</label>
+              <input type="email" id="set_emailTP" class="form-control set-field-control fw-bold text-dark" placeholder="gmail.thamphan@gmail.com" autocomplete="off">
+              <span class="set-hint">Dùng để xác thực vai trò Thẩm phán (Quản trị tối cao) khi đăng nhập vào hệ thống.</span>
+            </div>
+            <div class="col-12 col-md-3">
               <label class="set-field-label">Chức vụ tố tụng</label>
               <input type="text" id="set_chucVu" class="form-control set-field-control" value="Thẩm phán">
             </div>
@@ -194,52 +200,58 @@
         </div>
       </div>
 
-      <!-- KHỐI 2: QUẢN LÝ DANH SÁCH THƯ KÝ TÒA ÁN (INLINE EDIT 100%) -->
+      <!-- KHỐI 2: QUẢN LÝ DANH SÁCH THƯ KÝ & PHÂN QUYỀN DRIVE (INLINE EDIT 100%) -->
       <div class="set-card" id="card_quanly_thuky">
         <div class="set-card-header">
           <h6 class="set-card-title text-success">
-            <i class="fas fa-users-gear"></i> 2. Quản lý Danh sách Thư ký Tòa án trong đơn vị
+            <i class="fas fa-users-gear"></i> 2. Quản lý Danh sách Thư ký & Phân quyền Google Drive
           </h6>
-          <span class="badge bg-light text-success border" style="font-size: 10.5px;">Sửa trực tiếp trên dòng</span>
+          <button type="button" class="btn btn-action-tonal btn-action-tool" onclick="syncClerkDrivePermissions()" title="Cấp quyền chỉnh sửa Drive cho toàn bộ Thư ký">
+            <i class="fas fa-shield-halved text-success"></i> Đồng bộ quyền Drive
+          </button>
         </div>
         <div class="p-3 p-md-4">
           <p class="text-muted small mb-3" style="line-height: 1.5;">
-            Danh sách Thư ký dưới đây sẽ được <b>tự động nạp vào ô chọn Thư ký</b> trong Modal Soạn thảo văn bản. Thẩm phán có thể đổi danh xưng (Ông/Bà) hoặc sửa trực tiếp Họ tên trên từng dòng.
+            Thẩm phán chỉ cần nhập <b>Email Google (Gmail)</b> của Thư ký giúp việc. Hệ thống sẽ <b>tự động phân quyền</b> cho Thư ký đăng nhập vào phần mềm và được quyền mở sửa trực tiếp toàn bộ văn bản Google Docs đã xuất mà không bị Google Drive chặn quyền (*Permission Denied*).
           </p>
 
-          <!-- BẢNG DANH SÁCH THƯ KÝ -->
-          <div class="table-responsive border rounded-3 bg-white mb-3" style="max-height: 240px; overflow-y: auto;">
+          <!-- BẢNG DANH SÁCH THƯ KÝ KÈM EMAIL -->
+          <div class="table-responsive border rounded-3 bg-white mb-3" style="max-height: 280px; overflow-y: auto;">
             <table class="table table-hover align-middle m-0" style="font-size: 13px;">
               <thead class="table-light">
                 <tr>
-                  <th style="width: 8%;" class="text-center">STT</th>
-                  <th style="width: 22%;">DANH XƯNG</th>
-                  <th style="width: 58%;">HỌ VÀ TÊN THƯ KÝ (SỬA TRỰC TIẾP)</th>
-                  <th style="width: 12%;" class="text-center">XÓA</th>
+                  <th style="width: 6%;" class="text-center">STT</th>
+                  <th style="width: 16%;">DANH XƯNG</th>
+                  <th style="width: 36%;">HỌ VÀ TÊN THƯ KÝ</th>
+                  <th style="width: 34%;">TÀI KHOẢN GMAIL ĐĂNG NHẬP</th>
+                  <th style="width: 8%;" class="text-center">XÓA</th>
                 </tr>
               </thead>
               <tbody id="table_thuky_body">
-                <tr><td colspan="4" class="text-center p-3 text-muted small"><div class="spinner-border spinner-border-sm me-2 text-primary"></div>Đang nạp danh sách Thư ký...</td></tr>
+                <tr><td colspan="5" class="text-center p-3 text-muted small"><div class="spinner-border spinner-border-sm me-2 text-primary"></div>Đang nạp danh sách Thư ký...</td></tr>
               </tbody>
             </table>
           </div>
 
           <!-- KHUNG THÊM THƯ KÝ MỚI -->
           <div class="p-3 bg-light rounded-3 border" style="border-color: #e2e8f0 !important;">
-            <span class="small-label text-primary mb-2"><i class="fas fa-plus-circle me-1"></i> Thêm Thư ký mới vào danh sách:</span>
+            <span class="small-label text-primary mb-2"><i class="fas fa-plus-circle me-1"></i> Thêm Thư ký mới vào hệ thống:</span>
             <div class="row g-2 align-items-center">
-              <div class="col-md-3 col-4">
+              <div class="col-md-2 col-4">
                 <select id="new_tk_xh" class="form-select form-select-sm fw-bold">
                   <option value="Bà">Bà</option>
                   <option value="Ông">Ông</option>
                 </select>
               </div>
-              <div class="col-md-6 col-8">
-                <input type="text" id="new_tk_ten" class="form-control form-control-sm fw-bold" placeholder="Nhập họ và tên Thư ký mới..." autocomplete="off">
+              <div class="col-md-4 col-8">
+                <input type="text" id="new_tk_ten" class="form-control form-control-sm fw-bold" placeholder="Họ và tên Thư ký..." autocomplete="off">
               </div>
-              <div class="col-md-3 col-12">
+              <div class="col-md-4 col-12">
+                <input type="email" id="new_tk_email" class="form-control form-control-sm" placeholder="Email Google (ví dụ: thuky@gmail.com)..." autocomplete="off">
+              </div>
+              <div class="col-md-2 col-12">
                 <button type="button" class="btn btn-sm btn-action-primary w-100 justify-content-center py-1" onclick="addSecretaryRow()">
-                  <i class="fas fa-user-plus me-1"></i> Thêm vào DS
+                  <i class="fas fa-user-plus me-1"></i> Thêm
                 </button>
               </div>
             </div>
@@ -338,7 +350,7 @@
               </div>
               <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
                 <span class="set-hint m-0">
-                  <i class="fas fa-info-circle text-primary me-1"></i> Dùng cho Copilot Trợ lý ảo, OCR bóc tách tài liệu & Tự động soạn thảo biểu mẫu.
+                  <i class="fas fa-info-circle text-primary me-1"></i> Dùng cho Copilot Trợ lý thẩm phán, OCR bóc tách tài liệu & Tự động soạn thảo biểu mẫu.
                 </span>
                 <a href="https://aistudio.google.com/app/apikey" target="_blank" class="fw-bold text-primary small text-decoration-none" style="font-size: 12px;">
                   <i class="fas fa-arrow-up-right-from-square me-1"></i> Lấy API Key miễn phí tại Google AI Studio
@@ -497,26 +509,30 @@
   function testGeminiAPIConnection() {
     var key = document.getElementById('set_geminiKey') ? document.getElementById('set_geminiKey').value.trim() : "";
     if (!key) {
-      AppUI.alert("Thiếu API Key", "Vui lòng nhập mã Gemini API Key trước khi kiểm tra!");
+      if (typeof AppUI !== 'undefined') AppUI.alert("Thiếu API Key", "Vui lòng nhập mã Gemini API Key trước khi kiểm tra!");
       return;
     }
 
-    AppUI.showToast("Đang kiểm tra kết nối Google AI Studio...", "");
+    if (typeof AppUI !== 'undefined') AppUI.showToast("Đang kiểm tra kết nối Google AI Studio...", "");
     
     google.script.run
       .withSuccessHandler(function() {
         google.script.run
           .withSuccessHandler(function(res) {
-            AppUI.hideToast();
-            if (res && res.success) {
-              AppUI.alert("KẾT NỐI THÀNH CÔNG!", "✅ Khóa API của bạn hoạt động hoàn hảo với Google Gemini Flash Engine.");
-            } else {
-              AppUI.alert("KẾT NỐI THẤT BẠI", "❌ Lỗi: " + (res ? res.error : "Không thể kết nối đến máy chủ AI."));
+            if (typeof AppUI !== 'undefined') {
+              AppUI.hideToast();
+              if (res && res.success) {
+                AppUI.alert("KẾT NỐI THÀNH CÔNG!", "✅ Khóa API của bạn hoạt động hoàn hảo với Google Gemini Flash Engine.");
+              } else {
+                AppUI.alert("KẾT NỐI THẤT BẠI", "❌ Lỗi: " + (res ? res.error : "Không thể kết nối đến máy chủ AI."));
+              }
             }
           })
           .withFailureHandler(function(err) {
-            AppUI.hideToast();
-            AppUI.alert("Lỗi kết nối", "Không thể kết nối: " + err.message);
+            if (typeof AppUI !== 'undefined') {
+              AppUI.hideToast();
+              AppUI.alert("Lỗi kết nối", "Không thể kết nối: " + err.message);
+            }
           })
           .api_AskGeminiCopilot("ping", { scope: "GLOBAL" });
       })
@@ -532,13 +548,16 @@
       .replace(/Đ/g, 'D');
   }
 
-  // QUẢN LÝ DANH SÁCH THƯ KÝ ĐỘNG (INLINE EDIT TRỰC TIẾP)
+  // =========================================================================
+  // QUẢN LÝ DANH SÁCH THƯ KÝ ĐỘNG & GMAIL ĐĂNG NHẬP (INLINE EDIT TRỰC TIẾP)
+  // =========================================================================
+
   function renderSecretaryTable() {
     var tbody = document.getElementById('table_thuky_body');
     if (!tbody) return;
 
     if (!window.localDsThuKy || window.localDsThuKy.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" class="text-center p-3 text-muted small fst-italic">Chưa có Thư ký nào trong danh sách. Hãy thêm Thư ký ở ô bên dưới.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center p-3 text-muted small fst-italic">Chưa có Thư ký nào trong danh sách. Hãy thêm Thư ký ở ô bên dưới.</td></tr>';
       return;
     }
 
@@ -557,6 +576,9 @@
           </td>
           <td>
             <input type="text" class="form-control form-control-sm fw-bold text-dark" value="${tk.ten || ''}" placeholder="Họ và tên Thư ký..." oninput="updateSecretaryName(${idx}, this.value)" onblur="this.value = window.toTitleCase ? window.toTitleCase(window.cleanHonorificFromName ? window.cleanHonorificFromName(this.value) : this.value) : this.value; updateSecretaryName(${idx}, this.value)">
+          </td>
+          <td>
+            <input type="email" class="form-control form-control-sm text-primary fw-semibold" value="${tk.email || ''}" placeholder="thuky@gmail.com..." oninput="updateSecretaryEmail(${idx}, this.value)">
           </td>
           <td class="text-center">
             <button type="button" class="btn btn-sm btn-outline-danger p-0 d-inline-flex align-items-center justify-content-center shadow-none" style="width: 26px; height: 26px; border-radius: 6px;" onclick="removeSecretaryRow(${idx})" title="Xóa Thư ký này">
@@ -582,10 +604,18 @@
     }
   }
 
+  function updateSecretaryEmail(idx, val) {
+    if (window.localDsThuKy && window.localDsThuKy[idx]) {
+      window.localDsThuKy[idx].email = (val || "").trim();
+    }
+  }
+
   function addSecretaryRow() {
     var xh = document.getElementById('new_tk_xh').value;
     var tenInput = document.getElementById('new_tk_ten');
+    var emailInput = document.getElementById('new_tk_email');
     var rawTen = tenInput ? tenInput.value.trim() : "";
+    var rawEmail = emailInput ? emailInput.value.trim() : "";
 
     if (!rawTen) {
       if (typeof AppUI !== 'undefined') AppUI.alert("Thiếu thông tin", "Vui lòng nhập Họ và tên Thư ký!");
@@ -598,8 +628,9 @@
     }
 
     if (!window.localDsThuKy) window.localDsThuKy = [];
-    window.localDsThuKy.push({ xh: xh, ten: properTen });
+    window.localDsThuKy.push({ xh: xh, ten: properTen, email: rawEmail });
     tenInput.value = "";
+    if (emailInput) emailInput.value = "";
     renderSecretaryTable();
   }
 
@@ -609,6 +640,32 @@
     renderSecretaryTable();
   }
 
+  function syncClerkDrivePermissions() {
+    if (typeof AppUI !== 'undefined') AppUI.showToast("Đang đồng bộ quyền truy cập Drive cho Thư ký...", "");
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (typeof AppUI !== 'undefined') {
+          AppUI.hideToast();
+          if (res && res.success) {
+            AppUI.alert("ĐỒNG BỘ THÀNH CÔNG", "✅ " + res.message);
+          } else {
+            AppUI.alert("Lỗi cấp quyền", res ? res.error : "Không thể cấp quyền Drive.");
+          }
+        }
+      })
+      .withFailureHandler(function(err) {
+        if (typeof AppUI !== 'undefined') {
+          AppUI.hideToast();
+          AppUI.alert("Lỗi kết nối", err.message);
+        }
+      })
+      .api_SyncClerkPermissions();
+  }
+
+  // =========================================================================
+  // NẠP VÀ LƯU CẤU HÌNH HỆ THỐNG
+  // =========================================================================
+
   function loadSettingsData() {
     if (typeof AppUI !== 'undefined') AppUI.showToast("Đang nạp cấu hình hệ thống...", "");
     google.script.run
@@ -616,6 +673,7 @@
         if (typeof AppUI !== 'undefined') AppUI.hideToast();
         if (config) {
           if (document.getElementById('set_tenTP')) document.getElementById('set_tenTP').value = config.TEN_THAM_PHAN || "";
+          if (document.getElementById('set_emailTP')) document.getElementById('set_emailTP').value = config.EMAIL_THAM_PHAN || "";
           if (document.getElementById('set_tenToa')) document.getElementById('set_tenToa').value = config.TEN_TOA_AN || "";
           if (document.getElementById('set_diaChiToa')) document.getElementById('set_diaChiToa').value = config.DIA_CHI_TOA || "";
           if (document.getElementById('set_chucVu')) document.getElementById('set_chucVu').value = config.CHUC_VU || "Thẩm phán";
@@ -634,8 +692,8 @@
             } catch(e) { window.localDsThuKy = []; }
           } else {
             window.localDsThuKy = [
-              { xh: "Bà", ten: "Lường Thị Phương" },
-              { xh: "Ông", ten: "Hoàng Rung K’Tuấn" }
+              { xh: "Bà", ten: "Lường Thị Phương", email: "" },
+              { xh: "Ông", ten: "Hoàng Rung K’Tuấn", email: "" }
             ];
           }
           renderSecretaryTable();
@@ -650,6 +708,7 @@
   function saveSettingsData() {
     var data = {
       TEN_THAM_PHAN: document.getElementById('set_tenTP') ? document.getElementById('set_tenTP').value.trim() : "",
+      EMAIL_THAM_PHAN: document.getElementById('set_emailTP') ? document.getElementById('set_emailTP').value.trim() : "",
       TEN_TOA_AN: document.getElementById('set_tenToa') ? document.getElementById('set_tenToa').value.trim() : "",
       DIA_CHI_TOA: document.getElementById('set_diaChiToa') ? document.getElementById('set_diaChiToa').value.trim() : "",
       CHUC_VU: document.getElementById('set_chucVu') ? document.getElementById('set_chucVu').value.trim() : "Thẩm phán",
@@ -672,6 +731,9 @@
           try { sessionStorage.setItem('judgeConfigV78', JSON.stringify(data)); } catch(e){}
           if (typeof loadJudgeIdentity === 'function') loadJudgeIdentity();
           if (typeof window.populateSecretaryDropdown === 'function') window.populateSecretaryDropdown();
+
+          // Tự động đồng bộ quyền Drive cho các Thư ký mới thêm
+          google.script.run.api_SyncClerkPermissions();
         } else {
           if (typeof AppUI !== 'undefined') AppUI.showToast("Lỗi: Không thể lưu dữ liệu.", "error");
         }
@@ -705,7 +767,10 @@
       .backend_GetAllPlaceholders();
   }
 
-  // CHẨN ĐOÁN LỖI BIỂU MẪU DRIVE
+  // =========================================================================
+  // CHẨN ĐOÁN LỖI PLACEHOLDER TRONG KHO MẪU DRIVE
+  // =========================================================================
+
   function runTemplateDiagnostics() {
     var container = document.getElementById('scan_report_container');
     var tbody = document.getElementById('scan_report_body');
@@ -840,7 +905,6 @@
                 '<button class="btn btn-sm btn-action-outline flex-grow-1 justify-content-center py-1" style="font-size: 11px; height: 28px;" onclick="triggerAITraining(\'' + t.id + '\', \'' + t.name.replace(/'/g, "\\'") + '\')" title="Cập nhật bằng file Word tải lên"><i class="fas fa-file-word me-1"></i> Sửa File</button>' +
               '</div>';
 
-          // BẢNG 4 CỘT HIỂN THỊ NGUYÊN VẸN TÊN BIỂU MẪU MÀU XANH DƯƠNG RÕ RÀNG, KHÔNG BỊ NUỐT CHỮ
           return '<tr class="ai-manager-row">' +
                    '<td class="text-center fw-bold text-secondary" style="width: 60px; vertical-align: middle;">' + num + '</td>' +
                    '<td style="vertical-align: middle;">' +
@@ -875,7 +939,6 @@
     });
   }
 
-  // CƠ CHẾ 1: TẢI FILE LÊN CHO AI CẤY BIẾN
   function triggerAITraining(templateId, templateName) {
     window.currentTrainTplId = templateId;
     window.currentTrainTplName = templateName;
@@ -916,7 +979,6 @@
     reader.readAsDataURL(file);
   }
 
-  // CƠ CHẾ 2: AI TỰ ĐỘNG VIẾT TỪ ĐẦU (CÓ BẢO VỆ CHỐNG GHI ĐÈ)
   function triggerAIAutoGenerate(templateId, templateName, isEmpty) {
     if (typeof AppUI === 'undefined') return;
     

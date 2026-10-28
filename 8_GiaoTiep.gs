@@ -8,6 +8,7 @@
  *   2. PHÒNG VỆ TRIỆT ĐỂ: Bọc try-catch và kiểm tra typeof an toàn cho 100% API.
  *   3. CẮT ĐỨT HOÀN TOÀN LỖI ĐỆ QUY TRÀN BỘ NHỚ (MAXIMUM CALL STACK EXCEEDED).
  *   4. BẢO VỆ DỮ LIỆU ĐƯƠNG SỰ: Đồng bộ mảng đương sự A4 nguyên vẹn xuống 2_DuongSu.
+ *   5. XÁC THỰC GOOGLE & PHÂN QUYỀN THƯ KÝ: Thêm api_GetCurrentUserIdentity & api_SyncClerkPermissions.
  * =========================================================================
  */
 
@@ -375,7 +376,6 @@ function api_CreateTemplateFromDoc(fileName, mimeType, base64Data, targetFileId,
   }
 }
 
-// BỔ SUNG ĐIỀU PHỐI AI SOẠN BIỂU MẪU RỖNG
 function api_AutoGenerateEmptyTemplate(templateId, templateName) {
   try {
     return (typeof backend_AutoGenerateEmptyTemplate === 'function')
@@ -520,7 +520,6 @@ function api_RunMailMergeDon(input) {
   }
 }
 
-// QUÉT THÔNG MINH MỐC TỐ TỤNG TỪ DRIVE
 function api_ScanCaseDriveSmartMilestone(idVuAn) {
   try {
     if (!idVuAn) return { success: false, error: "Chưa chọn vụ án." };
@@ -550,7 +549,6 @@ function api_ScanCaseDriveSmartMilestone(idVuAn) {
       return { success: false, error: "Không tìm thấy tệp văn bản hoặc PDF nào trong thư mục vụ án." };
     }
 
-    // Sắp xếp tệp mới cập nhật nhất lên đầu
     candidates.sort(function(a, b) {
       return b.getLastUpdated().getTime() - a.getLastUpdated().getTime();
     });
@@ -812,8 +810,28 @@ function api_AutoFixTemplatePlaceholders(fileId, fixes) {
 }
 
 // =========================================================================
-// 7. CÀI ĐẶT & ĐỒNG BỘ TOÀN DIỆN (7_DongBo.gs & 1_CauHinh.gs)
+// 7. CÀI ĐẶT, XÁC THỰC GOOGLE & ĐỒNG BỘ TOÀN DIỆN (7_DongBo.gs & 1_CauHinh.gs)
 // =========================================================================
+
+function api_GetCurrentUserIdentity() {
+  try {
+    return (typeof auth_GetCurrentUserIdentity === 'function')
+      ? auth_GetCurrentUserIdentity()
+      : { success: false, error: "Hệ thống xác thực chưa được khởi tạo." };
+  } catch(e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+function api_SyncClerkPermissions() {
+  try {
+    return (typeof syncClerkPermissionsToDrive === 'function')
+      ? syncClerkPermissionsToDrive()
+      : { success: false, error: "Chưa cấu hình hàm đồng bộ quyền Thư ký." };
+  } catch(e) {
+    return { success: false, error: e.toString() };
+  }
+}
 
 function api_SaveAppSettings(settings) { 
   try {
@@ -869,7 +887,7 @@ function api_DonDepDuongSuRac() {
 }
 
 // =========================================================================
-// 8. HTML HELPER
+// 8. HTML HELPER & CỔNG GIAO TIẾP HÀNG ĐỢI IN ẤN (HUB)
 // =========================================================================
 
 function include(filename) { 
@@ -879,7 +897,106 @@ function include(filename) {
     return "<!-- Lỗi nạp file " + filename + ": " + e.message + " -->";
   }
 }
-// CỔNG GIAO TIẾP HÀNG ĐỢI IN ẤN (HUB)
+
 function api_LuuHangDoiIn(payload) { return logic_LuuHangDoiIn(payload); }
 function api_LayDanhSachHangDoiIn() { return logic_LayDanhSachHangDoiIn(); }
 function api_XoaHangDoiIn(id) { return logic_XoaHangDoiIn(id); }
+// =========================================================================
+// 9. CỔNG API XÁC THỰC GOOGLE, PHÂN QUYỀN GMAIL & NHÂN BẢN DỰ ÁN
+// =========================================================================
+
+function api_GetCurrentUserIdentity() {
+  try {
+    return (typeof auth_GetCurrentUserIdentity === 'function')
+      ? auth_GetCurrentUserIdentity()
+      : { success: false, error: "Hệ thống xác thực chưa được khởi tạo." };
+  } catch(e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+function api_SyncClerkPermissions() {
+  try {
+    return (typeof syncClerkPermissionsToDrive === 'function')
+      ? syncClerkPermissionsToDrive()
+      : { success: false, error: "Chưa cấu hình hàm đồng bộ quyền Thư ký." };
+  } catch(e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+function api_CheckSetupStatus() {
+  try {
+    var config = (typeof getConfigFromSheet === 'function') ? getConfigFromSheet() : {};
+    var currentEmail = Session.getEffectiveUser().getEmail() || "";
+    var isConfigured = Boolean(config["TEN_THAM_PHAN"] && config["ID_THUMUC_AN"] && config["ID_THUMUC_MAU"]);
+    
+    return {
+      success: true,
+      needsSetup: !isConfigured,
+      currentEmail: currentEmail,
+      judgeName: config["TEN_THAM_PHAN"] || "",
+      courtName: config["TEN_TOA_AN"] || "Tòa án nhân dân",
+      courtAddress: config["DIA_CHI_TOA"] || "",
+      hasAI: Boolean(config["GEMINI_API_KEY"] && config["GEMINI_API_KEY"].trim().length > 10)
+    };
+  } catch(e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+function api_ExecuteFirstTimeSetup(payload) {
+  try {
+    // Chỉ chủ tài khoản hoặc Thẩm phán mới có quyền chạy thiết lập ban đầu
+    var auth = (typeof auth_GetCurrentUserIdentity === 'function') ? auth_GetCurrentUserIdentity() : {};
+    if (auth.role === 'CLERK') {
+      return { success: false, error: "Chỉ Thẩm phán mới có quyền thực hiện thiết lập hệ thống!" };
+    }
+
+    // 1. Cập nhật thông tin Thẩm phán & Đơn vị Tòa án
+    var settings = {
+      "TEN_THAM_PHAN": payload.tenThamPhan || "",
+      "EMAIL_THAM_PHAN": Session.getEffectiveUser().getEmail() || "",
+      "TEN_TOA_AN": payload.tenToaAn || "Tòa án nhân dân",
+      "DIA_CHI_TOA": payload.diaChiToa || "",
+      "CHUC_VU": payload.chucVu || "Thẩm phán",
+      "DS_THU_KY": JSON.stringify(payload.dsThuKy || [])
+    };
+
+    if (payload.geminiApiKey) {
+      settings["GEMINI_API_KEY"] = payload.geminiApiKey.trim();
+    }
+
+    updateConfigInSheet(settings);
+
+    // 2. Tự động khởi tạo cây 4 thư mục Drive và sao chép mẫu từ kho nguồn
+    var folderRes = setup_AutoCreateFoldersAndCloneTemplates();
+    if (!folderRes.success) {
+      return { success: false, error: "Lỗi tạo thư mục: " + folderRes.error };
+    }
+
+    // 3. Đồng bộ phân quyền chỉnh sửa Drive cho toàn bộ email Thư ký
+    var shareRes = syncClerkPermissionsToDrive();
+
+    return {
+      success: true,
+      message: "Thiết lập môi trường làm việc mới thành công!",
+      folderInfo: folderRes,
+      shareInfo: shareRes
+    };
+  } catch(e) {
+    return { success: false, error: "Lỗi thiết lập dự án: " + e.toString() };
+  }
+}
+
+function api_ResetToFactorySettings() {
+  try {
+    var auth = (typeof auth_GetCurrentUserIdentity === 'function') ? auth_GetCurrentUserIdentity() : {};
+    if (auth.role === 'CLERK') {
+      return { success: false, error: "Thư ký không có quyền tẩy trắng cơ sở dữ liệu!" };
+    }
+    return setup_ResetToFactorySettings();
+  } catch(e) {
+    return { success: false, error: e.toString() };
+  }
+}

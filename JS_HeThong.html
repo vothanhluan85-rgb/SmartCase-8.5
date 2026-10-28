@@ -936,8 +936,10 @@ window.clearAllFilters = window.resetFilter = function() {
 };
 
 // =========================================================================
-// 8. ĐIỀU HƯỚNG SPA & TIỆN ÍCH NGÀY THÁNG
+// 8. ĐIỀU HƯỚNG SPA, TIỆN ÍCH NGÀY THÁNG, XÁC THỰC GOOGLE IDENTITY & ONBOARDING
 // =========================================================================
+
+window.CURRENT_USER_AUTH = null;
 
 var dateVN = function(ts) {
   if (!ts) return "---";
@@ -959,42 +961,251 @@ function formatDateToYMD(d) {
 }
 window.formatDateToYMD = formatDateToYMD;
 
+/**
+ * XÁC THỰC GOOGLE ACCOUNT & PHÂN QUYỀN VAI TRÒ (THẨM PHÁN / THƯ KÝ)
+ */
 function loadJudgeIdentity() {
-  try {
-    const cachedConfig = sessionStorage.getItem('judgeConfigV78');
-    if (cachedConfig) {
-      const config = JSON.parse(cachedConfig);
-      if (document.getElementById('header-ten-tp')) document.getElementById('header-ten-tp').innerText = config.TEN_THAM_PHAN || "Thẩm phán";
-      if (document.getElementById('header-ten-toa')) document.getElementById('header-ten-toa').innerText = config.TEN_TOA_AN || "Tòa án...";
-      return; 
-    }
-  } catch(e) {}
-
   google.script.run
-    .withSuccessHandler(function(config) {
-      if (config) {
-        if (document.getElementById('header-ten-tp')) document.getElementById('header-ten-tp').innerText = config.TEN_THAM_PHAN || "Thẩm phán";
-        if (document.getElementById('header-ten-toa')) document.getElementById('header-ten-toa').innerText = config.TEN_TOA_AN || "Tòa án...";
-        try { sessionStorage.setItem('judgeConfigV78', JSON.stringify(config)); } catch(e) {}
+    .withSuccessHandler(function(auth) {
+      if (!auth) return;
+      window.CURRENT_USER_AUTH = auth;
+
+      // TRƯỜNG HỢP 1: TÀI KHOẢN KHÔNG CÓ QUYỀN TRUY CẬP (KHÓA TOÀN BỘ ỨNG DỤNG)
+      if (!auth.success || auth.role === 'UNAUTHORIZED') {
+        var splash = document.getElementById('splash-screen');
+        if (splash) {
+          splash.style.display = 'flex';
+          splash.style.opacity = '1';
+          splash.style.pointerEvents = 'auto';
+          splash.innerHTML = `
+            <div class="p-4 p-md-5 bg-white rounded-4 shadow-lg border text-center animate-fadeIn" style="max-width: 520px; margin: 15px; border-color: #cbd5e1 !important;">
+              <div class="mb-3">
+                <i class="fas fa-user-lock fa-3x text-danger" style="filter: drop-shadow(0 4px 6px rgba(220, 38, 38, 0.2));"></i>
+              </div>
+              <h5 class="fw-bold text-dark text-uppercase mb-2" style="letter-spacing: 0.5px;">TRUY CẬP BỊ TỪ CHỐI</h5>
+              <p class="text-secondary small mb-3" style="line-height: 1.6;">
+                Tài khoản Google <b>${auth.email || 'Ẩn danh'}</b> chưa được phân quyền trong hệ thống của Thẩm phán.
+              </p>
+              <div class="alert alert-warning border-0 small text-start mb-3" style="background-color: #fffbeb; color: #b45309; line-height: 1.5; border-radius: 8px;">
+                <i class="fas fa-info-circle me-1"></i> <b>Dành cho Thư ký giúp việc:</b><br>
+                Vui lòng liên hệ Thẩm phán phụ trách để thêm địa chỉ Gmail này vào danh sách phân quyền tại mục <b>Cài đặt &gt; Quản lý Thư ký</b>.
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-secondary px-4 fw-bold" onclick="location.reload()">
+                <i class="fas fa-rotate me-1"></i> Tải lại trang sau khi được cấp quyền
+              </button>
+            </div>
+          `;
+        }
+        return;
+      }
+
+      // TRƯỜNG HỢP 2: TÀI KHOẢN HỢP LỆ -> CẬP NHẬT HEADER & GIAO DIỆN
+      var headerTP = document.getElementById('header-ten-tp');
+      var headerToa = document.getElementById('header-ten-toa');
+      var aiBadge = document.getElementById('header-ai-status-badge');
+
+      if (auth.role === 'JUDGE') {
+        if (headerTP) headerTP.innerHTML = `<span class="badge bg-primary me-1" style="font-size: 9.5px; vertical-align: middle;">Thẩm phán</span> ${auth.displayName}`;
+        if (headerToa) headerToa.innerText = auth.courtName;
+      } else if (auth.role === 'CLERK') {
+        if (headerTP) headerTP.innerHTML = `<span class="badge bg-success me-1" style="font-size: 9.5px; vertical-align: middle;">Thư ký</span> ${auth.displayName}`;
+        if (headerToa) headerToa.innerText = `Giúp việc cho Thẩm phán ${auth.judgeName || ''}`;
+      }
+
+      // Cập nhật trạng thái kích hoạt Gemini AI trên Header
+      if (aiBadge) {
+        if (auth.hasAI) {
+          aiBadge.className = 'badge bg-success-subtle text-success border border-success px-2 py-1 d-none d-sm-inline-flex align-items-center';
+          aiBadge.innerHTML = '<i class="fas fa-robot me-1"></i> AI Sẵn sàng';
+          aiBadge.title = 'Google Gemini Flash Engine đang hoạt động';
+        } else {
+          aiBadge.className = 'badge bg-secondary-subtle text-muted border px-2 py-1 d-none d-sm-inline-flex align-items-center';
+          aiBadge.innerHTML = '<i class="fas fa-robot me-1"></i> AI Chưa bật';
+          aiBadge.title = 'Chưa cấu hình GEMINI_API_KEY. Vào Cài đặt để kích hoạt';
+        }
+      }
+
+      // Áp dụng giới hạn quyền trên các nút thao tác
+      applyRolePermissions(auth);
+
+      // KIỂM TRA BẢN SAO MỚI (CHƯA CẤU HÌNH) -> TỰ ĐỘNG BẬT ONBOARDING WIZARD
+      if (auth.role === 'JUDGE') {
+        google.script.run
+          .withSuccessHandler(function(setupStatus) {
+            if (setupStatus && setupStatus.needsSetup) {
+              window.openOnboardingWizard(setupStatus);
+            }
+          })
+          .api_CheckSetupStatus();
       }
     })
-    .withFailureHandler(function() {})
-    .api_GetAppIdentity();
+    .withFailureHandler(function(err) {
+      console.warn("Lỗi kiểm tra phiên đăng nhập:", err);
+    })
+    .api_GetCurrentUserIdentity();
 }
+
+/**
+ * GIỚI HẠN GIAO DIỆN THEO VAI TRÒ (BẢO VỆ DỮ LIỆU CỦA THẨM PHÁN)
+ */
+function applyRolePermissions(auth) {
+  if (!auth) return;
+
+  // Nếu là Thư ký: Ẩn các chức năng quản trị nhạy cảm
+  if (auth.role === 'CLERK') {
+    // 1. Không cho xóa vĩnh viễn hồ sơ vụ án ngoài danh sách
+    var btnBulkDelete = document.getElementById('btn-bulk-delete-case');
+    if (btnBulkDelete) btnBulkDelete.style.display = 'none';
+
+    // 2. Ẩn khối Quản lý Thư ký trong Cài đặt (Thư ký không thêm/xóa thư ký khác)
+    var cardThuKy = document.getElementById('card_quanly_thuky');
+    if (cardThuKy) cardThuKy.style.display = 'none';
+
+    // 3. Khóa ô nhập API Key trong Cài đặt (tránh lộ hoặc sửa key của Thẩm phán)
+    var keyInput = document.getElementById('set_geminiKey');
+    if (keyInput) {
+      var cardAI = keyInput.closest('.set-card');
+      if (cardAI) cardAI.style.display = 'none';
+    }
+
+    // 4. Ẩn nút Reset tẩy trắng dữ liệu
+    var btnReset = document.getElementById('btn-factory-reset');
+    if (btnReset) btnReset.style.display = 'none';
+  }
+}
+
+/**
+ * BẬT MODAL ONBOARDING WIZARD (THIẾT LẬP DỰ ÁN CHO THẨM PHÁN MỚI)
+ */
+window.openOnboardingWizard = function(prefillData) {
+  prefillData = prefillData || {};
+
+  var elEmail = document.getElementById('wiz_user_email_badge');
+  if (elEmail) elEmail.innerText = `Google: ${prefillData.currentEmail || 'Chủ tài khoản'}`;
+
+  if (prefillData.judgeName && document.getElementById('wiz_tenTP')) {
+    document.getElementById('wiz_tenTP').value = prefillData.judgeName;
+  }
+  if (prefillData.courtName && document.getElementById('wiz_tenToa')) {
+    document.getElementById('wiz_tenToa').value = prefillData.courtName;
+  }
+  if (prefillData.courtAddress && document.getElementById('wiz_diaChiToa')) {
+    document.getElementById('wiz_diaChiToa').value = prefillData.courtAddress;
+  }
+
+  var modalEl = document.getElementById('modalOnboardingWizard');
+  if (modalEl && typeof bootstrap !== 'undefined') {
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+  }
+};
+
+window.addWizardClerkRow = function() {
+  var tbody = document.getElementById('wiz_table_thuky_body');
+  if (!tbody) return;
+  var tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><select class="form-select form-select-sm fw-bold wiz-tk-xh"><option value="Bà">Bà</option><option value="Ông">Ông</option></select></td>
+    <td><input type="text" class="form-control form-control-sm fw-bold wiz-tk-ten" placeholder="Họ và tên Thư ký..."></td>
+    <td><input type="email" class="form-control form-control-sm wiz-tk-email" placeholder="thuky@gmail.com..."></td>
+    <td class="text-center"><button type="button" class="btn btn-sm text-danger p-0 shadow-none" onclick="this.closest('tr').remove()"><i class="fas fa-times"></i></button></td>
+  `;
+  tbody.appendChild(tr);
+};
+
+window.submitFirstTimeOnboardingWizard = function() {
+  var tenTP = document.getElementById('wiz_tenTP') ? document.getElementById('wiz_tenTP').value.trim() : "";
+  var tenToa = document.getElementById('wiz_tenToa') ? document.getElementById('wiz_tenToa').value.trim() : "";
+  var diaChiToa = document.getElementById('wiz_diaChiToa') ? document.getElementById('wiz_diaChiToa').value.trim() : "";
+  var geminiKey = document.getElementById('wiz_gemini_key') ? document.getElementById('wiz_gemini_key').value.trim() : "";
+
+  if (!tenTP || !tenToa) {
+    if (typeof AppUI !== 'undefined') AppUI.alert("Thiếu thông tin", "Vui lòng nhập Họ tên Thẩm phán và Tên đơn vị Tòa án!");
+    else alert("Vui lòng nhập Họ tên Thẩm phán và Tên đơn vị Tòa án!");
+    return;
+  }
+
+  var dsThuKy = [];
+  var rows = document.querySelectorAll('#wiz_table_thuky_body tr');
+  rows.forEach(function(r) {
+    var xh = r.querySelector('.wiz-tk-xh') ? r.querySelector('.wiz-tk-xh').value : "Bà";
+    var ten = r.querySelector('.wiz-tk-ten') ? r.querySelector('.wiz-tk-ten').value.trim() : "";
+    var email = r.querySelector('.wiz-tk-email') ? r.querySelector('.wiz-tk-email').value.trim() : "";
+    if (ten) {
+      dsThuKy.push({
+        xh: xh,
+        ten: typeof window.toTitleCase === 'function' ? window.toTitleCase(typeof window.cleanHonorificFromName === 'function' ? window.cleanHonorificFromName(ten) : ten) : ten,
+        email: email
+      });
+    }
+  });
+
+  var payload = {
+    tenThamPhan: tenTP,
+    tenToaAn: tenToa,
+    diaChiToa: diaChiToa,
+    chucVu: "Thẩm phán",
+    dsThuKy: dsThuKy,
+    geminiApiKey: geminiKey
+  };
+
+  var modalEl = document.getElementById('modalOnboardingWizard');
+  if (modalEl && typeof bootstrap !== 'undefined') {
+    var inst = bootstrap.Modal.getInstance(modalEl);
+    if (inst) inst.hide();
+  }
+
+  if (typeof AppUI !== 'undefined') AppUI.showToast("Đang tạo cây thư mục Drive và nhân bản kho mẫu chuẩn...", "");
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      if (typeof AppUI !== 'undefined') AppUI.hideToast();
+      if (res && res.success) {
+        var msg = `✅ THIẾT LẬP THÀNH CÔNG DỰ ÁN CHO THẨM PHÁN: <b>${tenTP}</b>!<br><br>` +
+                  `- Đã tự động tạo 4 thư mục tác nghiệp trên Google Drive.<br>` +
+                  `- Đã sao chép <b>${res.folderInfo.copiedAn}</b> biểu mẫu Án & <b>${res.folderInfo.copiedDon}</b> biểu mẫu Đơn.<br>` +
+                  `- Đã chia sẻ quyền chỉnh sửa Drive cho <b>${dsThuKy.length}</b> Thư ký.<br><br>` +
+                  `Ứng dụng đã sẵn sàng tác nghiệp!`;
+        if (typeof AppUI !== 'undefined') AppUI.alert("HOÀN TẤT THIẾT LẬP", msg);
+        else alert("Thiết lập dự án thành công!");
+        loadJudgeIdentity();
+      } else {
+        if (typeof AppUI !== 'undefined') AppUI.alert("Lỗi thiết lập", res ? res.error : "Không thể hoàn tất cài đặt.");
+        else alert("Lỗi thiết lập: " + (res ? res.error : ""));
+      }
+    })
+    .withFailureHandler(function(err) {
+      if (typeof AppUI !== 'undefined') {
+        AppUI.hideToast();
+        AppUI.alert("Lỗi kết nối", err.message);
+      } else {
+        alert("Lỗi kết nối: " + err.message);
+      }
+    })
+    .api_ExecuteFirstTimeSetup(payload);
+};
 
 function startSplashScreen() {
   const splash = document.getElementById('splash-screen');
   const msgEl = document.getElementById('splash-message');
   if (!splash || !msgEl) return;
   setTimeout(function() { msgEl.innerText = "Chào mừng bạn đến với Trợ lý Thẩm phán V8.5"; }, 0);
-  setTimeout(function() { msgEl.innerText = "Đang kết nối hệ thống dữ liệu nghiệp vụ..."; }, 1000);
+  setTimeout(function() { msgEl.innerText = "Đang kiểm tra quyền và nạp dữ liệu nghiệp vụ..."; }, 1000);
 }
 
 function hideSplashScreen() {
+  // KHÓA BẢO VỆ: Nếu chưa xác thực hoặc bị TỪ CHỐI thì tuyệt đối không được ẩn splash-screen
+  if (window.CURRENT_USER_AUTH && window.CURRENT_USER_AUTH.role === 'UNAUTHORIZED') {
+    return;
+  }
+
   const splash = document.getElementById('splash-screen');
   if (splash && splash.style.display !== 'none') {
     splash.style.opacity = '0';
-    setTimeout(function() { splash.style.display = 'none'; }, 300);
+    setTimeout(function() { 
+      if (!window.CURRENT_USER_AUTH || window.CURRENT_USER_AUTH.role !== 'UNAUTHORIZED') {
+        splash.style.display = 'none'; 
+      }
+    }, 300);
   }
 }
 
@@ -1041,6 +1252,11 @@ function safeParseDateTS(val) {
 }
 
 window.appNavigate = function(viewId) {
+  // Nếu bị từ chối truy cập thì chặn điều hướng
+  if (window.CURRENT_USER_AUTH && window.CURRENT_USER_AUTH.role === 'UNAUTHORIZED') {
+    return;
+  }
+
   if (window.a4AutoSaveTimer) { clearTimeout(window.a4AutoSaveTimer); window.a4AutoSaveTimer = null; }
   if (window.openCanvasAutoSaveTimer) { clearTimeout(window.openCanvasAutoSaveTimer); window.openCanvasAutoSaveTimer = null; }
   if (window.donAutoSaveTimer) { clearTimeout(window.donAutoSaveTimer); window.donAutoSaveTimer = null; }

@@ -953,8 +953,12 @@ function processDocumentBodyAndHeaders(doc, roleClusterMap, fullMap, parties, cl
 function api_RunMailMergeV3_Logic(input) {
   var finalFiles = [];
   try {
-    if (!input || !input.templateIds || input.templateIds.length === 0) return { success: false, error: "Vui lòng chọn ít nhất một biểu mẫu." };
-    if (!input.idVuAn) return { success: false, error: "Vui lòng chọn một hồ sơ vụ án." };
+    if (!input || !input.templateIds || input.templateIds.length === 0) {
+      return { success: false, error: "Vui lòng chọn ít nhất một biểu mẫu." };
+    }
+    if (!input.idVuAn) {
+      return { success: false, error: "Vui lòng chọn một hồ sơ vụ án." };
+    }
 
     var caseData = (typeof layDuLieuChiTiet === 'function') ? layDuLieuChiTiet(input.idVuAn) : {};
     if (caseData.error) return { success: false, error: caseData.error };
@@ -977,8 +981,10 @@ function api_RunMailMergeV3_Logic(input) {
     var isViecDS = (acronymCase === "VHN" || acronymCase === "VDS");
     var initMonths = isViecDS ? 1 : ((typeof APP_CONFIG !== 'undefined' && APP_CONFIG.DEADLINES_INIT) ? (APP_CONFIG.DEADLINES_INIT[info.loaiAn] || 4) : 4);
     
-    var dHan = new Date(dThuly); dHan.setMonth(dHan.getMonth() + initMonths);
-    var dGiaHan = new Date(dHan); dGiaHan.setDate(dGiaHan.getDate() - 5);
+    var dHan = new Date(dThuly); 
+    dHan.setMonth(dHan.getMonth() + initMonths);
+    var dGiaHan = new Date(dHan); 
+    dGiaHan.setDate(dGiaHan.getDate() - 5);
     while (typeof LibDate !== 'undefined' && typeof LibDate.isWeekendOrHoliday === 'function' && LibDate.isWeekendOrHoliday(dGiaHan)) {
       dGiaHan.setDate(dGiaHan.getDate() - 1);
     }
@@ -1204,7 +1210,11 @@ function api_RunMailMergeV3_Logic(input) {
     if (input.trieuTapDate && input.trieuTapTime && typeof api_LuuLichMoi_Logic === 'function') {
       try {
         var allTasksDesc = [];
-        input.templateIds.forEach(function(tId) { try { allTasksDesc.push(DriveApp.getFileById(tId).getName().replace(/\.(gdoc|docx|doc)$/i, "")); } catch(e) {} });
+        input.templateIds.forEach(function(tId) { 
+          try { 
+            allTasksDesc.push(DriveApp.getFileById(tId).getName().replace(/\.(gdoc|docx|doc)$/i, "")); 
+          } catch(e) {} 
+        });
         api_LuuLichMoi_Logic({ 
           idVuAn: input.idVuAn, 
           soTL: info.soTL, 
@@ -1213,16 +1223,52 @@ function api_RunMailMergeV3_Logic(input) {
           noiDung: `[${extractShortNo(info.soTL)}] ${noiDungLamViec} (${allTasksDesc.join(" + ")})`, 
           ghiChu: diaDiemRaw 
         });
-      } catch(eLich) { console.warn("Lỗi ghi lịch tự động:", eLich.message); }
+      } catch(eLich) { 
+        console.warn("Lỗi ghi lịch tự động:", eLich.message); 
+      }
     }
 
     var roleClusterMap = buildRoleClusterMap(clusters);
 
+    // =========================================================================
+    // QUÉT VÀ THU THẬP DANH SÁCH EMAIL THƯ KÝ ĐỂ CẤP QUYỀN DRIVE TỰ ĐỘNG
+    // =========================================================================
+    var rawClerks = config["DS_THU_KY"];
+    var clerkEmailsToShare = [];
+    try {
+      var parsedClerks = typeof rawClerks === 'string' ? JSON.parse(rawClerks) : rawClerks;
+      if (Array.isArray(parsedClerks)) {
+        parsedClerks.forEach(function(c) {
+          if (c.email && c.email.includes("@")) {
+            var em = c.email.trim().toLowerCase();
+            if (!clerkEmailsToShare.includes(em)) clerkEmailsToShare.push(em);
+          }
+        });
+      }
+    } catch(eClerks) {}
+
+    // TIẾN HÀNH TRỘN TỪNG BIỂU MẪU ĐƯỢC CHỌN
     input.templateIds.forEach(function (templateId) {
       var templateFile = DriveApp.getFileById(templateId);
       var baseExportName = templateFile.getName().replace(/\.(gdoc|docx|doc)$/i, "").trim() + (extractShortNo(info.soTL) ? (" - " + extractShortNo(info.soTL)) : "") + " - " + exportDateStr;
+      
+      // Nhân bản file mẫu vào thư mục vụ án
       var newDocFile = templateFile.makeCopy(baseExportName, destFolder);
-      var doc = DocumentApp.openById(newDocFile.getId()), body = doc.getBody(), docTextContent = body.getText();
+
+      // CẤP QUYỀN CHỈNH SỬA (EDITOR) TỰ ĐỘNG CHO TẤT CẢ THƯ KÝ TRONG HỆ THỐNG
+      if (clerkEmailsToShare.length > 0) {
+        clerkEmailsToShare.forEach(function(cEmail) {
+          try {
+            newDocFile.addEditor(cEmail);
+          } catch(eShare) {
+            console.warn("Không thể cấp quyền cho email Thư ký: " + cEmail + " - Lỗi: " + eShare.message);
+          }
+        });
+      }
+
+      var doc = DocumentApp.openById(newDocFile.getId());
+      var body = doc.getBody();
+      var docTextContent = body.getText();
 
       var isTachTrang = docTextContent.includes("{Họ và tên}") || 
                         docTextContent.includes("{họ và tên}") || 
@@ -1251,7 +1297,10 @@ function api_RunMailMergeV3_Logic(input) {
       });
     });
 
-    if (typeof ghiNhatKy === 'function') ghiNhatKy(input.idVuAn, "Soạn thảo văn bản", "Đã xuất " + finalFiles.length + " tệp văn bản thành công.");
+    if (typeof ghiNhatKy === 'function') {
+      ghiNhatKy(input.idVuAn, "Soạn thảo văn bản", "Đã xuất " + finalFiles.length + " tệp văn bản thành công.");
+    }
+    
     return { success: true, files: finalFiles };
   } catch (e) { 
     return { success: false, error: e.toString() }; 
