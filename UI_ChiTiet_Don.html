@@ -3,10 +3,10 @@
   HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.5 - CHI TIẾT ĐƠN KHỞI KIỆN (TIỀN TỐ TỤNG)
   TỆP: UI_ChiTiet_Don.html - GIAO DIỆN PHẲNG, TÍNH ÁN PHÍ & TRẠM TRỘN VĂN BẢN
   -------------------------------------------------------------------------
-  - THIẾT KẾ: Ngôn ngữ phẳng, viền Hairline 1px, Typography Inter sắc nét.
-  - CHUYỂN THỤ LÝ 1-CLICK: Tự động chuyển toàn bộ dữ liệu đơn sang Thụ lý án mới.
-  - TỰ ĐỘNG LƯU DEBOUNCED & TRẠM TRỘN VĂN BẢN XỬ LÝ ĐƠN TIỆN LỢI.
-  - BẢO TOÀN 100% CHỨC NĂNG: Fast SMS, tính tạm ứng NQ 326, mở kho mẫu Drive.
+  - ĐÃ CẬP NHẬT THEO CÁC CHUYÊN ĐỀ (CHUẨN HÓA 28/10/2026):
+    + Gắn nút "Quét đơn (OCR)" chụp ảnh/scan đơn tự động bóc tách vào hồ sơ.
+    + Bổ sung ô nhập {Người nhận}, {Địa chỉ người nhận} cho Công văn mở.
+    + Bảo toàn 100% cấu trúc và định dạng hiện hữu.
   =========================================================================
 -->
 
@@ -209,6 +209,12 @@
           <i class="fas fa-arrow-right text-primary" style="font-size: 11px;"></i>
         </button>
       </div>
+
+      <!-- NÚT QUÉT ĐƠN BẰNG OCR (MỤC 2 YÊU CẦU 28/10/2026) -->
+      <button class="btn btn-action-tonal btn-action-tool" onclick="document.getElementById('input_ocr_don').click()" title="Chụp ảnh đơn khởi kiện hoặc nạp file PDF/Word để tự động bóc tách thông tin">
+        <i class="fas fa-wand-magic-sparkles text-primary"></i> Quét đơn (OCR)
+      </button>
+      <input type="file" id="input_ocr_don" class="d-none" accept=".pdf,.doc,.docx,image/*" onchange="window.handleScanPetitionOCR(this)">
       
       <!-- Nút Chuyển thụ lý thành Án -->
       <button class="btn btn-action-tonal btn-action-tool" onclick="window.chuyenDonSangThuLy(document.getElementById('don_id').value)" title="Chuyển đơn này sang Thụ lý vụ án chính thức">
@@ -420,6 +426,17 @@
                     <input type="time" id="don_process_time" class="form-control don-field-control fw-bold text-dark" value="08:00" style="width: 45%;">
                     <input type="date" id="don_process_date" class="form-control don-field-control fw-bold text-dark" style="width: 55%;">
                   </div>
+                </div>
+
+                <!-- BỔ SUNG CƠ QUAN / NGƯỜI NHẬN CHO CÔNG VĂN MỞ (CHUYÊN ĐỀ 1 & 2) -->
+                <div class="mb-2" id="don_process_nguoinhan_box">
+                  <label class="small text-muted mb-1 fw-bold" style="font-size: 10px;">Cơ quan / Người nhận {Người nhận} (Nếu là Công văn)</label>
+                  <input type="text" id="don_process_nguoiNhan" class="form-control don-field-control fw-bold" placeholder="VD: UBND huyện Đơn Dương..." list="dl_diadiem_lamviec" autocomplete="off">
+                </div>
+
+                <div class="mb-2" id="don_process_diachinhan_box">
+                  <label class="small text-muted mb-1 fw-bold" style="font-size: 10px;">Địa chỉ cơ quan nhận {Địa chỉ người nhận}</label>
+                  <input type="text" id="don_process_diaChiNhan" class="form-control don-field-control" placeholder="Trụ sở cơ quan nhận..." autocomplete="off">
                 </div>
               </div>
               

@@ -4,10 +4,12 @@
  * HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.5 - MODULE XỬ LÝ ĐƠN (FRONTEND BUSINESS)
  * TỆP: JS_NghiepVu_Don.html - ĐIỀU HÀNH NGHIỆP VỤ SỔ NHẬN ĐƠN, FAST SMS & TRỘN VĂN BẢN
  * -------------------------------------------------------------------------
- * - BẢO TOÀN 100% HÀM VÀ LOGIC GỐC, ĐẢM BẢO KHÔNG PHÁT SINH LỖI CHẮP VÁ.
- * - ĐỒNG BỘ ĐỊNH DẠNG THẺ THÔNG BÁO XUẤT TỆP RỘNG RÃI, CHỐNG KHUẤT CHỮ.
- * - HỖ TRỢ TRỘN VĂN BẢN ĐƠN SIÊU TỐC QUA MASTER MERGE ENGINE.
- * - FAST SMS & LÊN LỊCH TIẾP NHẬN ĐƠN KHỞI KIỆN TỰ ĐỘNG.
+ * - ĐÃ CẬP NHẬT THEO CÁC CHUYÊN ĐỀ (CHUẨN HÓA 28/10/2026):
+ *   + Tích hợp OCR bóc tách Đơn khởi kiện từ ảnh chụp / PDF / Word: handleScanPetitionOCR.
+ *   + Chuẩn hóa tiêu đề lịch hẹn đơn rút gọn: "Báo đơn 2354 – Nhân – Hùng".
+ *   + Tách bạch 2 phần Đánh giá hiện trạng vs Chỉ thị Tòa án trong Sửa đổi bổ sung đơn.
+ *   + Hỗ trợ thực thể mở {Người nhận}, {Địa chỉ người nhận} cho Công văn ngoại tố.
+ *   + Bảo toàn 100% logic nghiệp vụ hiện hữu.
  * =========================================================================
  */
 
@@ -92,7 +94,7 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 /* =========================================================================
-   1. TIỆN ÍCH HỖ TRỢ GIAO DIỆN
+   1. TIỆN ÍCH HỖ TRỢ GIAO DIỆN & OCR BÓC TÁCH ĐƠN
    ========================================================================= */
 
 window.setValueSafe = function(id, val) {
@@ -139,6 +141,79 @@ window.handleDonPartyNameBlur = function(inputEl) {
   var cleaned = typeof window.cleanHonorificFromName === 'function' ? window.cleanHonorificFromName(val) : val;
   var titled = typeof window.toTitleCase === 'function' ? window.toTitleCase(cleaned) : cleaned;
   inputEl.value = titled;
+};
+
+/**
+ * OCR BÓC TÁCH ĐƠN KHỞI KIỆN TỰ ĐỘNG TỪ ẢNH / TỆP (MỤC 2 YÊU CẦU 28/10/2026)
+ */
+window.handleScanPetitionOCR = function(input) {
+  if (!input.files || input.files.length === 0) return;
+  var file = input.files[0];
+
+  if (typeof AppUI !== 'undefined') AppUI.showToast("Trợ lý thẩm phán đang bóc tách nội dung đơn khởi kiện...", "");
+
+  window.compressImageFile(file, 1600, 0.8, function(resFile) {
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (typeof AppUI !== 'undefined') AppUI.hideToast();
+        if (res && res.success && res.data) {
+          var d = res.data;
+
+          if (d.soDon) window.setValueSafe('don_soDon', d.soDon);
+          if (d.ngayNhan) window.setValueSafe('don_ngayNhan', d.ngayNhan);
+          if (d.loaiAn) {
+            window.setValueSafe('don_loaiAn', d.loaiAn);
+            if (typeof window.updateQuanHeDatalist === 'function') window.updateQuanHeDatalist();
+          }
+          if (d.quanHe) window.setValueSafe('don_quanHe', d.quanHe);
+          if (d.giaTri && d.giaTri !== "0") {
+            window.setValueSafe('don_giaTri', String(d.giaTri).replace(/\B(?=(\d{3})+(?!\d))/g, "."));
+            if (typeof window.calculateDonFee === 'function') window.calculateDonFee();
+          }
+
+          // Xóa các dòng đương sự cũ và nạp mới
+          ['nkk', 'nbk', 'nlq'].forEach(function(t) { 
+            var el = document.getElementById('don-party-list-' + t); 
+            if (el) el.innerHTML = ""; 
+          });
+
+          var sec = document.getElementById('nlq-section');
+          if (sec) sec.style.display = 'none';
+
+          if (d.parties && Array.isArray(d.parties) && d.parties.length > 0) {
+            var hasNKK = false, hasNBK = false;
+            d.parties.forEach(function(p) {
+              var tc = String(p.tuCach || "").toLowerCase();
+              if (tc.includes('khởi kiện') || tc.includes('yêu cầu') || tc.includes('nguyên đơn')) {
+                window.addPartyGroupV76('NKK', p);
+                hasNKK = true;
+              } else if (tc.includes('liên quan')) {
+                window.addPartyGroupV76('NLQ', p);
+                if (sec) sec.style.display = 'block';
+              } else {
+                window.addPartyGroupV76('NBK', p);
+                hasNBK = true;
+              }
+            });
+
+            if (!hasNKK) window.addPartyGroupV76('NKK');
+            if (!hasNBK) window.addPartyGroupV76('NBK');
+          }
+
+          if (typeof AppUI !== 'undefined') AppUI.showToast("Bóc tách đơn khởi kiện thành công!", "success");
+        } else {
+          if (typeof AppUI !== 'undefined') AppUI.alert("Lỗi OCR đơn", res ? res.error : "Không thể nhận diện nội dung đơn.");
+        }
+      })
+      .withFailureHandler(function(err) {
+        if (typeof AppUI !== 'undefined') {
+          AppUI.hideToast();
+          AppUI.showToast("Lỗi kết nối máy chủ: " + err.message, "error");
+        }
+      })
+      .api_ParsePetitionScan(resFile.name, resFile.mimeType, resFile.base64);
+  });
+  input.value = "";
 };
 
 /* =========================================================================
@@ -1088,7 +1163,7 @@ window.thucHienDongBoDonNgam = function() {
 };
 
 /* =========================================================================
-   5. GỬI FAST SMS & HẸN LỊCH
+   5. GỬI FAST SMS & HẸN LỊCH (CHUẨN HÓA TIÊU ĐỀ RÚT GỌN 28/10/2026)
    ========================================================================= */
 
 window.sendSMSFromGroup = function(btn) {
@@ -1186,6 +1261,7 @@ window.executeFastSMS = function() {
 
   let donIdx = window.G_Don.findIndex(function(d) { return d.id === idDon; });
   let ngayNhanDon = donIdx > -1 ? window.G_Don[donIdx].ngayNhan : "";
+  let targetDon = donIdx > -1 ? window.G_Don[donIdx] : null;
 
   let msg = "TAND Khu vuc 2 - Lam Dong thong bao: Da nhan don cua " + cleanName + " (So don: " + soDon + (ngayNhanDon ? " - " + ngayNhanDon : "") + "). Vui long lien he To Hanh chinh tu phap - Van phong Toa an " + time + " ngay " + dateVn + " de duoc huong dan. Luu y: He thong khong nhan cuoc goi hoac tin nhan phan hoi.";
 
@@ -1218,8 +1294,20 @@ window.executeFastSMS = function() {
     google.script.run.api_LuuThongTinDon(payloadUpdate);
   }
 
-  let lichContent = "Hẹn làm việc xử lý đơn khởi kiện\nSố đơn: " + soDon + "\nĐương sự: " + fullName + "\nSĐT: " + phone + "\nPhòng số 1 - VP Tòa án";
-  google.script.run.api_LuuLichMoi_Logic({ idVuAn: "GENERAL", ngay: date, gio: time, noiDung: lichContent });
+  // TIÊU ĐỀ LỊCH ĐƠN RÚT GỌN CHUẨN: "Báo đơn [Số đơn] – [Tên NKK] – [Tên NBK]"
+  var nkkShort = fullName;
+  var nbkShort = targetDon ? (targetDon.nguoiBiKien || "") : "";
+  var scheduleTitle = (typeof window.buildDonScheduleTitle === 'function')
+    ? window.buildDonScheduleTitle(soDon, nkkShort, nbkShort)
+    : `Báo đơn ${String(soDon).split('/')[0]} – ${(typeof window.cleanHonorificFromName === 'function' ? window.cleanHonorificFromName(nkkShort) : nkkShort).split(/\s+/).pop()} – ${(typeof window.cleanHonorificFromName === 'function' ? window.cleanHonorificFromName(nbkShort) : nbkShort).split(/\s+/).pop()}`;
+
+  google.script.run.api_LuuLichMoi_Logic({ 
+    idVuAn: "GENERAL", 
+    ngay: date, 
+    gio: time, 
+    noiDung: scheduleTitle,
+    ghiChu: "Tổ Hành chính tư pháp - VP Tòa án" 
+  });
 };
 
 window.openBulkActionModal = function(idDonLe) {
@@ -1264,7 +1352,7 @@ window.executeBulkDonAction = function() {
   }
 
   var danhSachDonStr = window.bulkSelectedDons.map(function(d) { return "- " + d.soDon + ": " + d.nguoiKhoiKien; }).join("\n");
-  let lichContent = "Hẹn làm việc xử lý đơn khởi kiện\nĐịa điểm: " + loc + "\nDanh sách:\n" + danhSachDonStr;
+  let lichContent = "Hẹn làm việc xử lý đơn khởi kiện (" + window.bulkSelectedDons.length + " đơn)\nĐịa điểm: " + loc + "\nDanh sách:\n" + danhSachDonStr;
 
   if (typeof bootstrap !== 'undefined') {
     let m = bootstrap.Modal.getInstance(document.getElementById('modalBulkActionDon'));
@@ -1750,7 +1838,7 @@ window.openDonTemplateFolder = function() {
 };
 
 /* =========================================================================
-   7. SỬA ĐỔI BỔ SUNG ĐƠN
+   7. SỬA ĐỔI BỔ SUNG ĐƠN (TÁCH BẠCH HIỆN TRẠNG VS CHỈ THỊ - MỤC 3 YÊU CẦU 28/10)
    ========================================================================= */
 
 window.prepareDraftingLogicForDetail = function(templateIds, idDonFromUI) {
@@ -1772,33 +1860,23 @@ window.prepareDraftingLogicForDetail = function(templateIds, idDonFromUI) {
 };
 
 window.toggleSbsFields = function() {
-  let htStat = document.getElementById('sbs_hinhThuc_status').value;
-  let tlStat = document.getElementById('sbs_taiLieu_status').value;
+  let htEl = document.getElementById('sbs_hinhThuc_status');
+  let tlEl = document.getElementById('sbs_taiLieu_status');
+  if (!htEl || !tlEl) return;
+
+  let htStat = htEl.value;
+  let tlStat = tlEl.value;
+
+  let isHtSai = (htStat === "SAI" || htStat.includes("Chưa đúng"));
+  let isTlThieu = (tlStat === "THIEU" || tlStat.includes("Chưa đủ"));
 
   let cHt = document.getElementById('sbs_hinhThuc_yeuCau_container');
   let cNd = document.getElementById('sbs_noiDung_yeuCau_container');
   let cTl = document.getElementById('sbs_taiLieu_yeuCau_container');
 
-  let count = 1;
-
-  if (htStat === "Đã đúng hình thức đơn") {
-    cHt.style.display = 'none';
-  } else {
-    cHt.style.display = 'block';
-    document.getElementById('lbl_sbs_hinhThuc').innerText = count + ". Về hình thức đơn khởi kiện:";
-    count++;
-  }
-
-  cNd.style.display = 'block';
-  document.getElementById('lbl_sbs_noiDung').innerText = count + ". Về nội dung đơn khởi kiện:";
-  count++;
-
-  if (tlStat === "Đã đủ tài liệu chứng cứ") {
-    cTl.style.display = 'none';
-  } else {
-    cTl.style.display = 'block';
-    document.getElementById('lbl_sbs_taiLieu').innerText = count + ". Về tài liệu chứng cứ:";
-  }
+  if (cHt) cHt.style.display = isHtSai ? 'block' : 'none';
+  if (cNd) cNd.style.display = 'block';
+  if (cTl) cTl.style.display = isTlThieu ? 'block' : 'none';
 };
 
 window.cancelSbsForm = function() {
@@ -1810,39 +1888,52 @@ window.cancelSbsForm = function() {
 };
 
 window.submitSbsForm = function() {
-  let htStat = document.getElementById('sbs_hinhThuc_status').value;
-  let tlStat = document.getElementById('sbs_taiLieu_status').value;
-  let ndNhanXet = document.getElementById('sbs_noiDung_nhanXet').value.trim();
+  let htEl = document.getElementById('sbs_hinhThuc_status');
+  let tlEl = document.getElementById('sbs_taiLieu_status');
+  let htStat = htEl ? htEl.value : "SAI";
+  let tlStat = tlEl ? tlEl.value : "THIEU";
 
-  let b1 = [];
-  if (htStat === "Đã đúng hình thức đơn") {
-    b1.push("- Về hình thức đơn khởi kiện: Đã đảm bảo theo đúng quy định của pháp luật.");
+  let isHtDung = (htStat === "ĐÚNG" || htStat.includes("Đã đúng"));
+  let isTlDu = (tlStat === "DU" || tlStat.includes("Đã nộp đủ") || tlStat.includes("Đã đủ"));
+
+  let ndNhanXet = document.getElementById('sbs_noiDung_nhanXet') ? document.getElementById('sbs_noiDung_nhanXet').value.trim() : "";
+
+  // PHẦN I: {Những vấn đề cần sửa chữa bổ sung} - ĐÁNH GIÁ HIỆN TRẠNG ĐƠN
+  let p1 = [];
+  if (isHtDung) {
+    p1.push("- Về hình thức đơn khởi kiện: Đã đảm bảo theo đúng quy định của pháp luật.");
   } else {
-    b1.push("- Về hình thức đơn khởi kiện: Chưa đúng theo quy định của pháp luật về hình thức đơn khởi kiện.");
+    p1.push("- Về hình thức đơn khởi kiện: Chưa đúng quy định tại Điều 189 Bộ luật Tố tụng dân sự.");
   }
 
-  if (ndNhanXet) b1.push("- Về nội dung đơn khởi kiện: " + ndNhanXet);
-
-  if (tlStat === "Chưa đủ tài liệu chứng cứ") {
-    b1.push("- Về tài liệu chứng cứ kèm theo đơn khởi kiện: Cần bổ sung các tài liệu chứng cứ để chứng minh yêu cầu khởi kiện.");
+  if (ndNhanXet) {
+    p1.push("- Về nội dung đơn khởi kiện: " + ndNhanXet);
   }
 
-  let b2 = [];
+  if (isTlDu) {
+    p1.push("- Về tài liệu, chứng cứ kèm theo: Đã nộp các tài liệu chứng cứ ban đầu.");
+  } else {
+    p1.push("- Về tài liệu, chứng cứ kèm theo đơn khởi kiện: Chưa nộp đủ tài liệu, chứng cứ để chứng minh cho yêu cầu khởi kiện.");
+  }
+
+  // PHẦN II: {Yêu cầu sửa đổi bổ sung} - MỆNH LỆNH CHỈ THỊ CỤ THỂ CỦA TÒA ÁN
+  let p2 = [];
   let count = 1;
-  if (htStat === "Chưa đúng hình thức đơn") {
-    b2.push(count + ". Về hình thức đơn khởi kiện: " + document.getElementById('sbs_hinhThuc_yeuCau').value.trim());
+  if (!isHtDung) {
+    let htYeuCau = document.getElementById('sbs_hinhThuc_yeuCau') ? document.getElementById('sbs_hinhThuc_yeuCau').value.trim() : "";
+    p2.push(count + ". Sửa đổi, hoàn thiện hình thức đơn: " + (htYeuCau || "Làm lại đơn khởi kiện theo đúng Mẫu số 23-DS ban hành kèm Nghị quyết số 01/2017/NQ-HĐTP."));
     count++;
   }
 
-  let ndYeuCau = document.getElementById('sbs_noiDung_yeuCau').value.trim();
+  let ndYeuCau = document.getElementById('sbs_noiDung_yeuCau') ? document.getElementById('sbs_noiDung_yeuCau').value.trim() : "";
   if (ndYeuCau) {
-    b2.push(count + ". Về nội dung đơn khởi kiện: " + ndYeuCau);
+    p2.push(count + ". Bổ sung, làm rõ nội dung yêu cầu khởi kiện: " + ndYeuCau);
     count++;
   }
 
-  if (tlStat === "Chưa đủ tài liệu chứng cứ") {
-    let tlYeuCau = document.getElementById('sbs_taiLieu_yeuCau').value.trim();
-    if (tlYeuCau) b2.push(count + ". Về tài liệu chứng cứ: " + tlYeuCau);
+  if (!isTlDu) {
+    let tlYeuCau = document.getElementById('sbs_taiLieu_yeuCau') ? document.getElementById('sbs_taiLieu_yeuCau').value.trim() : "";
+    p2.push(count + ". Giao nộp bổ sung tài liệu, chứng cứ gồm: " + (tlYeuCau || "Giao nộp các tài liệu, chứng cứ để chứng minh cho quyền khởi kiện."));
   }
 
   if (typeof bootstrap !== 'undefined') {
@@ -1851,8 +1942,8 @@ window.submitSbsForm = function() {
   }
 
   let p = window.pendingSBS_Data;
-  if (typeof window.finalizeDraftingLogic === 'function') {
-    window.finalizeDraftingLogic(p.templateIds, p.templateNames, p.idDon, p.isFromQuickModal, b1.join("\n"), b2.join("\n"));
+  if (p && typeof window.finalizeDraftingLogic === 'function') {
+    window.finalizeDraftingLogic(p.templateIds, p.templateNames, p.idDon, p.isFromQuickModal, p1.join("\n"), p2.join("\n"));
   }
 };
 
@@ -2073,6 +2164,9 @@ window.finalizeDraftingLogic = function(templateIds, templateNames, idDon, isFro
       ds: don.chiTietDuongSu 
     };
 
+    var valNguoiNhan = document.getElementById('don_process_nguoiNhan') ? document.getElementById('don_process_nguoiNhan').value.trim() : "";
+    var valDiaChiNhan = document.getElementById('don_process_diaChiNhan') ? document.getElementById('don_process_diaChiNhan').value.trim() : "";
+
     var payloadMerge = {
       idDon: idDon,
       soDon: don.soDon,
@@ -2083,6 +2177,8 @@ window.finalizeDraftingLogic = function(templateIds, templateNames, idDon, isFro
       trieuTapTime: tTime,
       diaDiemLamViec: "Trụ sở Tòa án",
       noiDungThem: "Làm rõ một số vấn đề liên quan đến đơn khởi kiện",
+      nguoiNhan: valNguoiNhan,
+      diaChiNhan: valDiaChiNhan,
       sbsVanDe: phSbsVanDe || "",
       sbsYeuCau: phSbsYeuCau || "",
       partiesOverride: don.chiTietDuongSu,
@@ -2119,11 +2215,8 @@ window.finalizeDraftingLogic = function(templateIds, templateNames, idDon, isFro
         unlockButtons();
         
         if (res && res.success) {
-          // Rút gọn chỉ hiển thị [STT. Tên biểu mẫu] trên đúng 1 dòng, cắt sạch phần '- [Số đơn]'
           let linksHtml = (res.files || []).map(function(f) {
             let rawName = (f.name || '').replace(/\.(docx|doc|gdoc)$/i, '').trim();
-            
-            // Cắt bỏ phần đuôi "- [Số đơn]" hoặc "- [Số] - [Ngày]"
             rawName = rawName.replace(/\s*-\s*[\w\d\/]+(\s*-\s*\d{1,2}\.\d{1,2}\.\d{2,4})?$/i, '').trim();
             let dashIdx = rawName.indexOf(' - ');
             let shortTitle = (dashIdx !== -1) ? rawName.substring(0, dashIdx).trim() : rawName;

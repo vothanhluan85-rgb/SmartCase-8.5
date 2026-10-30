@@ -1,6 +1,6 @@
 /**
  * =========================================================================
- * HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.0 - MASTER UTILITIES CORE
+ * HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.5 - MASTER UTILITIES CORE
  * TỆP: 2_TienIch.gs - TIỆN ÍCH HỆ THỐNG, ĐỊNH DẠNG & THUẬT TOÁN TỐ TỤNG
  * -------------------------------------------------------------------------
  * - SINGLE SOURCE OF TRUTH: Nơi duy nhất định nghĩa các hàm xử lý văn bản,
@@ -8,7 +8,8 @@
  * - CHUẨN HÓA QUY TẮC TÍNH NGÀY TỐ TỤNG ĐỦ 24H (ĐIỀU 147, 148 BLDS & ĐIỀU 212 BLTTDS).
  * - TỰ ĐỘNG NHẬN DIỆN MÃ VIỆC HÔN NHÂN (VHN) CHO THUẬN TÌNH LY HÔN.
  * - TÍNH ÁN PHÍ, TẠM ỨNG & ĐỌC TIỀN THÀNH CHỮ CHUẨN NGHỊ QUYẾT 326/2016/UBTVQH14.
- * - CÔNG CỤ QUẢN TRỊ VÀ ĐÁNH SỐ TỰ ĐỘNG TỪ 01 ĐẾN 64 CHO BIỂU MẪU TÒA ÁN.
+ * - THUẬT TOÁN SINH CÂU THỎA THUẬN ÁN PHÍ THEO TOÁN TỬ CẤN TRỪ Δ = T - A (CHUYÊN ĐỀ 1).
+ * - CHUẨN HÓA TIÊU ĐỀ LỊCH CÔNG TÁC & THÔNG BÁO RÚT GỌN (CHUẨN 28/10/2026).
  * =========================================================================
  */
 
@@ -131,7 +132,7 @@ var LibDate = {
     if (!start || isNaN(start.getTime())) return null;
 
     var period = parseInt(daysPeriod, 10) || 7;
-    // Ngày lập + 7 ngày = Đúng Ngày thứ 8 có quyền ban hành Quyết định
+    // Ngày lập + period = Đúng ngày hành động có quyền ban hành Quyết định
     var actionDate = new Date(start.getFullYear(), start.getMonth(), start.getDate() + period);
 
     // Tịnh tiến nếu ngày ra quyết định rơi vào ngày nghỉ
@@ -232,6 +233,52 @@ function toTitleCase(str) {
 function cleanHonorificFromName(name) {
   if (!name) return "";
   return String(name).replace(/^(Ông\/bà|Ông|Bà|Anh|Chị|Cháu|ông|bà|anh|chị|cháu)\s*[:.\-]?\s*/i, '').trim();
+}
+
+/**
+ * Rút trích tên mộc ngắn nhất (từ cuối cùng của họ tên, ví dụ: "Nguyễn Văn Tâm" -> "Tâm")
+ */
+function getLastNameOnly(fullName) {
+  if (!fullName) return "";
+  var clean = cleanHonorificFromName(fullName).replace(/\(.*?\)/g, '').trim();
+  var parts = clean.split(/\s+/);
+  return parts[parts.length - 1] || "";
+}
+
+/**
+ * CHUẨN HÓA TIÊU ĐỀ LỊCH CÔNG TÁC & THÔNG BÁO VỤ ÁN RÚT GỌN (CHUẨN 28/10/2026)
+ * Cú pháp: [Công việc] vụ [Loại án] [Tên NĐ] – [Tên BĐ] ([Số TL rút gọn])
+ * Ví dụ: "Hòa giải vụ hôn nhân Tâm – Vũ (340)"
+ */
+function buildCaseScheduleTitle(actionVerb, loaiAn, nguyenDon, biDon, soTL) {
+  var action = (actionVerb || "Làm việc").trim();
+  var loai = String(loaiAn || "dân sự").toLowerCase();
+  var loaiText = "dân sự";
+  if (loai.includes("hôn nhân") || loai.includes("hngđ") || loai.includes("3.")) loaiText = "hôn nhân";
+  else if (loai.includes("hình sự") || loai.includes("1.")) loaiText = "hình sự";
+  else if (loai.includes("kinh doanh") || loai.includes("thương mại") || loai.includes("4.")) loaiText = "kinh doanh";
+  else if (loai.includes("lao động") || loai.includes("5.")) loaiText = "lao động";
+  else if (loai.includes("hành chính") || loai.includes("6.")) loaiText = "hành chính";
+  else if (loai.includes("việc") || loai.includes("7.")) loaiText = "việc DS";
+  else if (loai.includes("hòa giải") || loai.includes("đối thoại") || loai.includes("8.")) loaiText = "đối thoại";
+
+  var ndName = getLastNameOnly(nguyenDon) || "NĐ";
+  var bdName = getLastNameOnly(biDon) || "BĐ";
+  var cleanNo = extractShortNo(soTL) || String(soTL || "").split('/')[0].trim() || "---";
+
+  return `${action} vụ ${loaiText} ${ndName} – ${bdName} (${cleanNo})`;
+}
+
+/**
+ * CHUẨN HÓA TIÊU ĐỀ LỊCH HẸN & THÔNG BÁO ĐƠN RÚT GỌN (CHUẨN 28/10/2026)
+ * Cú pháp: Báo đơn [Số đơn] – [Tên NKK] – [Tên NBK]
+ * Ví dụ: "Báo đơn 2354 – Nhân – Hùng"
+ */
+function buildDonScheduleTitle(soDon, nkkName, nbkName) {
+  var cleanSoDon = String(soDon || "---").split('/')[0].trim();
+  var nkk = getLastNameOnly(nkkName) || "NKK";
+  var nbk = getLastNameOnly(nbkName) || "NBK";
+  return `Báo đơn ${cleanSoDon} – ${nkk} – ${nbk}`;
 }
 
 /**
@@ -429,6 +476,55 @@ function calculateCourtFee(loaiAn, giaTriRaw) {
     tamUngSo: Math.round(tamUng).toLocaleString('vi-VN'), 
     tamUngChu: numberToWordsVi(Math.round(tamUng)) 
   }; 
+}
+
+/**
+ * THUẬT TOÁN KIẾN TẠO CÂU VĂN ÁN PHÍ CHUẨN TƯ PHÁP (CHUYÊN ĐỀ 1)
+ * Mô hình toán tử cấn trừ: Δ = Tạm ứng đã nộp - Nghĩa vụ án phí thỏa thuận
+ */
+function buildProceduralCourtFeeText(p) {
+  p = p || {};
+  var loai = String(p.loaiAn || "").toLowerCase();
+  var isHNGD = loai.includes("hôn nhân") || loai.includes("hngđ") || loai.includes("3.");
+  var tenNganhAn = isHNGD ? "hôn nhân và gia đình sơ thẩm" : "dân sự sơ thẩm";
+  if (loai.includes("kinh doanh") || loai.includes("4.")) tenNganhAn = "kinh doanh, thương mại sơ thẩm";
+  if (loai.includes("lao động") || loai.includes("5.")) tenNganhAn = "lao động sơ thẩm";
+
+  var whoPays = p.whoPays || "Nguyên đơn";
+  var whoAdvanced = p.whoAdvanced || whoPays;
+  var feeNum = parseInt(String(p.feeAmount || 0).replace(/\D/g, ''), 10) || 0;
+  var advNum = parseInt(String(p.advanceAmount || 0).replace(/\D/g, ''), 10) || 0;
+  var receiptStr = p.receiptText ? ` đã nộp theo ${p.receiptText}` : " đã nộp";
+
+  // TRƯỜNG HỢP 1: HÔN NHÂN VÀ GIA ĐÌNH ĐIỂN HÌNH (RẬP KHUÔN 300.000Đ)
+  if (isHNGD && (!feeNum || feeNum === 300000) && (!advNum || advNum === 300000)) {
+    if (p.isShared) {
+      var otherParty = p.otherParty || "bị đơn";
+      return `${whoPays} và ${otherParty} mỗi người thỏa thuận chịu 150.000 đồng (Một trăm năm mươi nghìn đồng) án phí ${tenNganhAn}; được trừ vào số tiền 300.000 đồng (Ba trăm nghìn đồng) tạm ứng án phí ${whoAdvanced}${receiptStr}. ${otherParty} có nghĩa vụ hoàn trả cho ${whoAdvanced} số tiền 150.000 đồng (Một trăm năm mươi nghìn đồng).`;
+    }
+    return `${whoPays} thỏa thuận chịu 300.000 đồng (Ba trăm nghìn đồng) án phí ${tenNganhAn}; được trừ vào số tiền 300.000 đồng (Ba trăm nghìn đồng) tạm ứng án phí đã nộp theo ${p.receiptText || "{Biên lai tạm ứng án phí}"}. ${whoPays} đã nộp đủ án phí.`;
+  }
+
+  // TRƯỜNG HỢP 2: BỊ ĐƠN NHẬN CHỊU TOÀN BỘ (HOÀN TRẢ NGUYÊN ĐƠN)
+  if (whoPays !== whoAdvanced && advNum > 0) {
+    return `${whoPays} thỏa thuận có nghĩa vụ chịu ${feeNum.toLocaleString('vi-VN')} đồng (${numberToWordsVi(feeNum)}) án phí ${tenNganhAn}. Hoàn trả cho ${whoAdvanced} số tiền ${advNum.toLocaleString('vi-VN')} đồng (${numberToWordsVi(advNum)}) tiền tạm ứng án phí${receiptStr}.`;
+  }
+
+  // TRƯỜNG HỢP 3: CẤN TRỪ VÀ TÍNH TOÁN ĐỘ LỆCH (Δ = T - A)
+  var diff = advNum - feeNum;
+  var feeText = `${feeNum.toLocaleString('vi-VN')} đồng (${numberToWordsVi(feeNum)})`;
+  var advText = `${advNum.toLocaleString('vi-VN')} đồng (${numberToWordsVi(advNum)})`;
+
+  if (diff === 0) {
+    return `${whoPays} thỏa thuận chịu ${feeText} án phí ${tenNganhAn}; được trừ vào số tiền ${advText} tạm ứng án phí${receiptStr}. ${whoPays} đã nộp đủ án phí.`;
+  } else if (diff > 0) {
+    var refundText = `${diff.toLocaleString('vi-VN')} đồng (${numberToWordsVi(diff)})`;
+    return `${whoPays} thỏa thuận chịu ${feeText} án phí ${tenNganhAn}; được trừ vào số tiền ${advText} tạm ứng án phí${receiptStr}; hoàn trả lại cho ${whoPays} số tiền ${refundText} tạm ứng án phí còn lại.`;
+  } else {
+    var remainPay = Math.abs(diff);
+    var remainText = `${remainPay.toLocaleString('vi-VN')} đồng (${numberToWordsVi(remainPay)})`;
+    return `${whoPays} thỏa thuận chịu ${feeText} án phí ${tenNganhAn}; được trừ vào số tiền ${advText} tạm ứng án phí${receiptStr}; ${whoPays} còn phải nộp tiếp số tiền ${remainText} án phí còn thiếu.`;
+  }
 }
 
 // =========================================================================

@@ -1,16 +1,17 @@
 /**
  * =========================================================================
  * HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN - TÒA ÁN NHÂN DÂN
- * TỆP: 6_VanBan.gs - MASTER DOCUMENT MERGE ENGINE (BẢN TINH CHỈNH NGỮ PHÁP V8.7)
+ * TỆP: 6_VanBan.gs - MASTER DOCUMENT MERGE ENGINE (PHIÊN BẢN CHUẨN HÓA V8.5)
  * -------------------------------------------------------------------------
- * - ĐÃ TINH CHỈNH NGỮ PHÁP CHUẨN MỰC TÒA ÁN:
- *   + Chuẩn hóa danh sách đương sự theo Phương án nguyên thủy: [Danh xưng A, năm sinh A; danh xưng B, năm sinh B; địa chỉ...],
- *     phân tách bằng dấu chấm phẩy (;), triệt tiêu hoàn toàn từ "và" thừa và cụm "Các ông/bà" dư thừa.
- *   + Xử lý triệt để thẻ {Xưng hô...} khi là Tổ chức hoặc đứng độc lập trong câu:
- *     * Khi đi kèm tên tổ chức: triệt tiêu tự nhiên (Kính gửi: Ngân hàng TMCP...).
- *     * Khi đứng độc lập làm chủ ngữ/đại từ: tự động điền "Người khởi kiện" / "Bị đơn" / "Các đương sự",
- *       chấm dứt hoàn toàn tình trạng bị khuyết rỗng chủ ngữ trong câu.
- *   + Đồng bộ chuẩn hóa trên cả Header, Footer và Body cho cả Án và Đơn.
+ * - ĐÃ NÂNG CẤP THEO CHUYÊN ĐỀ 1, 2, 3:
+ *   + Chuẩn hóa tiêu đề lịch công tác tự động theo cú pháp rút gọn (28/10/2026):
+ *     * Vụ án: "Hòa giải vụ hôn nhân Tâm – Vũ (340)"
+ *     * Đơn: "Báo đơn 2354 – Nhân – Hùng"
+ *   + Tích hợp thuật toán sinh {Thỏa thuận án phí} chuẩn tư pháp theo Δ = T - A.
+ *   + Tích hợp thực thể mở {Người nhận}, {Địa chỉ người nhận} cho Công văn/Phiếu chuyển.
+ *   + Chèn khối đa dòng bảo toàn định dạng: {Lời khai đương sự}, {Nội dung thỏa thuận}.
+ *   + Phân luồng chính xác: SPLIT_PAGE (Tách trang) vs BATCH_MERGE (Gộp phán quyết/Công văn).
+ *   + Kỹ thuật in đậm chính xác (Precision Bolding) và chống in đậm lan tỏa (Anti-Bleeding).
  * =========================================================================
  */
 
@@ -283,7 +284,7 @@ function buildShortPartyStringBackend(groups, isLowerXungHo) {
     }
     return (xh + toTitleCase(cleanHonorificFromName(m.hoTen))).trim();
   });
-  // Nối danh sách tên bằng dấu chấm phẩy (; ) chuẩn mực
+  // Nối danh sách tên bằng dấu chấm phẩy (; ) chuẩn Option B
   return names.join("; ");
 }
 
@@ -427,7 +428,7 @@ function backend_buildExactPlaceholders(phMap, roleKey, groups) {
       phMap[xhKeyHoa] = singleXhRaw.charAt(0).toUpperCase() + singleXhRaw.slice(1).toLowerCase();
       phMap[xhKeyThuong] = singleXhRaw.toLowerCase();
     } else {
-      // Khi là Tổ chức đứng một mình trong câu: Lấy chính tư cách tố tụng làm chủ ngữ (Người khởi kiện / Bị đơn...)
+      // Khi là Tổ chức đứng một mình trong câu: Lấy chính tư cách tố tụng làm chủ ngữ
       phMap[xhKeyHoa] = roleKey;
       phMap[xhKeyThuong] = rLow;
     }
@@ -607,7 +608,6 @@ function resolvePairedNameAndYearTags(container, roleGroupsMap, containerText) {
     try { container.replaceText(reversePattern, joinedWithYear); } catch(e) {}
 
     // 4. Cặp {Xưng hô ROLE} {Họ và tên ROLE} (khi không có Năm sinh):
-    // Triệt tiêu danh xưng thừa nếu là tổ chức
     var duoPattern = "(?i)\\{\\s*Xưng hô\\s+" + escapeRegex(roleName) + "\\s*\\}\\s*[:,-]?\\s*\\{\\s*Họ và tên\\s+" + escapeRegex(roleName) + "\\s*\\}";
     try { container.replaceText(duoPattern, joinedNameOnly); } catch(e) {}
   });
@@ -777,7 +777,6 @@ function sanitizeMergedDocument(body) {
       body.replaceText("(?i)\\b" + prep + "\\s+Chị\\b", prep + " chị");
     });
 
-    // Làm sạch dấu câu bị cụt sau dấu hai chấm
     body.replaceText(":\\s*[ \\t\\u00A0]{2,}", ": ");
     body.replaceText(":\\s*[ \\t\\u00A0]+", ": ");
     body.replaceText("(?i)địa chỉ:\\s*cùng địa chỉ:", "cùng địa chỉ:");
@@ -916,17 +915,39 @@ function processDocumentBodyAndHeaders(doc, roleClusterMap, fullMap, parties, cl
   replaceBlockParties(body, "{Người có quyền lợi, nghĩa vụ liên quan chi tiết}", getPartyDetailItems(clusters.groupsNLQ));
   replaceBlockParties(body, "{Người làm chứng chi tiết}", getPartyDetailItems(clusters.groupsNLC));
 
+  // Chèn khối đa dòng bảo toàn định dạng: Lời khai & Nội dung vụ án (Chuyên đề 3 & 4)
   [
-    "{Nội dung thỏa thuận}", 
-    "{Nội dung hòa giải thành}"
+    "{Lời khai đương sự}",
+    "{lời khai đương sự}",
+    "{LỜI KHAI ĐƯƠNG SỰ}",
+    "{Nội dung vụ án}",
+    "{nội dung vụ án}",
+    "{NỘI DUNG VỤ ÁN}"
   ].forEach(function(synTag) {
-    if (fullMap["{Nội dung thỏa thuận}"]) {
-      replaceBlockMultiline(body, synTag, fullMap["{Nội dung thỏa thuận}"], allCasePartyNames || []);
+    if (fullMap[synTag]) {
+      replaceBlockMultiline(body, synTag, fullMap[synTag], allCasePartyNames || []);
     }
   });
 
+  // Chèn khối đa dòng thỏa thuận hòa giải thành
+  [
+    "{Nội dung thỏa thuận}", 
+    "{nội dung thỏa thuận}",
+    "{NỘI DUNG THỎA THUẬN}",
+    "{Nội dung hòa giải thành}",
+    "{nội dung hòa giải thành}",
+    "{NỘI DUNG HÒA GIẢI THÀNH}"
+  ].forEach(function(synTag) {
+    if (fullMap[synTag]) {
+      replaceBlockMultiline(body, synTag, fullMap[synTag], allCasePartyNames || []);
+    }
+  });
+
+  // Chèn khối danh mục tài liệu chứng cứ kèm đơn
   [
     "{Tài liệu kèm theo đơn khởi kiện}",
+    "{tài liệu kèm theo đơn khởi kiện}",
+    "{TÀI LIỆU KÈM THEO ĐƠN KHỞI KIỆN}",
     "{Tài liệu kèm đơn khởi kiện}",
     "{Tài liệu chứng cứ kèm theo}",
     "{Danh mục chứng cứ}"
@@ -936,6 +957,7 @@ function processDocumentBodyAndHeaders(doc, roleClusterMap, fullMap, parties, cl
     }
   });
 
+  // Chèn khối sửa đổi bổ sung đơn
   if (fullMap["{Những vấn đề cần sửa chữa bổ sung}"]) {
     replaceBlockMultiline(body, "{Những vấn đề cần sửa chữa bổ sung}", fullMap["{Những vấn đề cần sửa chữa bổ sung}"]);
   }
@@ -1062,7 +1084,41 @@ function api_RunMailMergeV3_Logic(input) {
     var valCapDuong = cleanChildSlotPrefix(customVars["{Cấp dưỡng nuôi con}"] || customVars["{Cấp dưỡng con chung}"] || (hasCapDuongTien ? "" : "Các bên không tranh chấp về cấp dưỡng nuôi con chung."));
     var valTS = cleanChildSlotPrefix(customVars["{Tài sản chung}"] || "Các bên tự thỏa thuận, không yêu cầu Tòa án giải quyết.");
     var valNo = cleanChildSlotPrefix(customVars["{Nợ chung}"] || "Các bên xác nhận không có nợ chung.");
-    var valAP = cleanChildSlotPrefix(customVars["{Thỏa thuận án phí}"] || customVars["{Án phí}"] || `Thỏa thuận chịu án phí hôn nhân và gia đình sơ thẩm theo quy định; được trừ vào số tiền tạm ứng án phí đã nộp theo biên lai.`);
+
+    var giaTriTranhChapRaw = customVars["{Giá trị tranh chấp}"] || customVars["{Giá trị}"] || info.giaTri || "0";
+    var feeCalc = calculateCourtFee(info.loaiAn, giaTriTranhChapRaw);
+    var valTamUngSo = customVars["{Tạm ứng án phí bằng số}"] || (feeCalc.tamUngSo + " đồng");
+    var valTamUngChu = customVars["{Tạm ứng án phí bằng chữ}"] || feeCalc.tamUngChu;
+    var valAnPhiSo = customVars["{Án phí bằng số}"] || (feeCalc.anPhiSo + " đồng");
+    var valAnPhiChu = customVars["{Án phí bằng chữ}"] || feeCalc.anPhiChu;
+
+    // THUẬT TOÁN TẠO CÂU ÁN PHÍ CHUẨN XÁC THEO Δ = T - A (CHUYÊN ĐỀ 1)
+    var valAP = "";
+    if (customVars["{Thỏa thuận án phí}"] && String(customVars["{Thỏa thuận án phí}"]).trim() !== "") {
+      valAP = cleanChildSlotPrefix(customVars["{Thỏa thuận án phí}"]);
+    } else if (customVars["{Án phí}"] && String(customVars["{Án phí}"]).trim() !== "") {
+      valAP = cleanChildSlotPrefix(customVars["{Án phí}"]);
+    } else if (typeof buildProceduralCourtFeeText === 'function') {
+      var whoPaysDefault = isThuanTinhLyHon ? buildShortPartyStringBackend(groupsNKK, false) : (ndFullStr || "Nguyên đơn");
+      var whoAdvDefault = whoPaysDefault;
+      var advAmountVal = parseInt(String(valTamUngSo).replace(/\D/g, ''), 10) || 300000;
+      var feeAmountVal = parseInt(String(valAnPhiSo).replace(/\D/g, ''), 10) || 300000;
+      var receiptCitation = customVars["{Biên lai tạm ứng án phí}"] || customVars["{Thông tin biên lai án phí}"] || "";
+
+      valAP = buildProceduralCourtFeeText({
+        loaiAn: info.loaiAn,
+        whoPays: whoPaysDefault,
+        whoAdvanced: whoAdvDefault,
+        feeAmount: feeAmountVal,
+        advanceAmount: advAmountVal,
+        receiptText: receiptCitation,
+        isShared: false
+      });
+    } else {
+      valAP = isHNGD 
+        ? `Thỏa thuận chịu 300.000 đồng án phí hôn nhân và gia đình sơ thẩm; được trừ vào số tiền 300.000 đồng tạm ứng án phí đã nộp theo biên lai. Đã nộp đủ án phí.`
+        : `Thỏa thuận chịu án phí dân sự sơ thẩm theo quy định của pháp luật.`;
+    }
 
     var valTaiLieuKiemTheo = customVars["{Tài liệu kèm theo đơn khởi kiện}"] || customVars["{Tài liệu kèm đơn khởi kiện}"] || customVars["{Tài liệu chứng cứ kèm theo}"] || customVars["{Danh mục chứng cứ}"] || "";
     if (!valTaiLieuKiemTheo || valTaiLieuKiemTheo.trim() === "") {
@@ -1106,16 +1162,12 @@ function api_RunMailMergeV3_Logic(input) {
     var valNgayHetHanHoa = (typeof LibDate !== 'undefined') ? LibDate.toVNText(dHan, true) : "";
     var valNgayHetHanThuong = valNgayHetHanHoa ? (valNgayHetHanHoa.charAt(0).toLowerCase() + valNgayHetHanHoa.slice(1)) : "";
 
-    var giaTriTranhChapRaw = customVars["{Giá trị tranh chấp}"] || customVars["{Giá trị}"] || info.giaTri || "0";
-    var feeCalc = calculateCourtFee(info.loaiAn, giaTriTranhChapRaw);
-
-    var valTamUngSo = customVars["{Tạm ứng án phí bằng số}"] || (feeCalc.tamUngSo + " đồng");
-    var valTamUngChu = customVars["{Tạm ứng án phí bằng chữ}"] || feeCalc.tamUngChu;
-    var valAnPhiSo = customVars["{Án phí bằng số}"] || (feeCalc.anPhiSo + " đồng");
-    var valAnPhiChu = customVars["{Án phí bằng chữ}"] || feeCalc.anPhiChu;
+    // BỔ SUNG THỰC THỂ KHÁCH THỂ NGOẠI TỐ (CÔNG VĂN MỞ)
+    var valNguoiNhan = input.nguoiNhan || customVars["{Người nhận}"] || "";
+    var valDiaChiNhan = input.diaChiNhan || customVars["{Địa chỉ người nhận}"] || "";
 
     var commonMap = {
-      "{Số thụ lý}": String(info.soTL), "{số thụ lý}": String(info.soTL).toLowerCase(), "{SỐ THỤ LÝ}": String(info.soTL).toUpperCase(),
+      "{Số thụ lý}": String(info.soTL), "{số thụ lý}": String(info.soTL), "{SỐ THỤ LÝ}": String(info.soTL).toUpperCase(),
       "{Số thụ lý rút gọn}": extractShortNo(info.soTL), "{số thụ lý rút gọn}": extractShortNo(info.soTL),
       "{Số đơn}": extractShortNo(info.soTL), "{số đơn}": extractShortNo(info.soTL),
       "{Loại án}": loaiAnChuan, "{loại án}": loaiAnChuan.toLowerCase(), "{LOẠI ÁN}": loaiAnChuan.toUpperCase(),
@@ -1127,6 +1179,10 @@ function api_RunMailMergeV3_Logic(input) {
       "{Tòa án}": String(config["TEN_TOA_AN"] || "Tòa án nhân dân"), "{tòa án}": String(config["TEN_TOA_AN"] || "Tòa án nhân dân"), "{TÒA ÁN}": String(config["TEN_TOA_AN"] || "Tòa án nhân dân").toUpperCase(),
       "{Địa chỉ tòa án}": String(config["DIA_CHI_TOA"] || "Trụ sở Tòa án"), "{địa chỉ tòa án}": String(config["DIA_CHI_TOA"] || "Trụ sở Tòa án"),
       "{Chức vụ}": chucVuTP, "{chức vụ}": chucVuTP.toLowerCase(),
+
+      // CƠ QUAN NGOẠI TỐ (CÔNG VĂN / MẪU MỞ)
+      "{Người nhận}": toTitleCase(valNguoiNhan), "{người nhận}": String(valNguoiNhan).toLowerCase(), "{NGƯỜI NHẬN}": String(valNguoiNhan).toUpperCase(),
+      "{Địa chỉ người nhận}": valDiaChiNhan, "{địa chỉ người nhận}": valDiaChiNhan,
 
       "{Danh xưng Thẩm phán}": danhXungTP, "{danh xưng thẩm phán}": danhXungTP.toLowerCase(),
       "{Họ và tên Thẩm phán}": tenTP_Clean, "{họ và tên thẩm phán}": tenTP_Clean,
@@ -1207,20 +1263,36 @@ function api_RunMailMergeV3_Logic(input) {
     }
     fullMap = expandedMap;
 
+    // TỰ ĐỘNG GHI LỊCH CÔNG TÁC VỚI TIÊU ĐỀ RÚT GỌN (CHUẨN 28/10/2026):
+    // Cú pháp: "Hòa giải vụ hôn nhân Tâm – Vũ (340)"
     if (input.trieuTapDate && input.trieuTapTime && typeof api_LuuLichMoi_Logic === 'function') {
       try {
-        var allTasksDesc = [];
-        input.templateIds.forEach(function(tId) { 
-          try { 
-            allTasksDesc.push(DriveApp.getFileById(tId).getName().replace(/\.(gdoc|docx|doc)$/i, "")); 
-          } catch(e) {} 
-        });
+        var ndShort = (groupsNKK.length > 0 && groupsNKK[0].members.length > 0) ? groupsNKK[0].members[0].hoTen : "";
+        var bdShort = (groupsNBK.length > 0 && groupsNBK[0].members.length > 0) ? groupsNBK[0].members[0].hoTen : "";
+        
+        var actionVerb = "Làm việc";
+        var tplNamesJoined = input.templateIds.map(function(tId) {
+          try { return DriveApp.getFileById(tId).getName(); } catch(e) { return ""; }
+        }).join(" ").toLowerCase();
+
+        if (tplNamesJoined.includes("hòa giải")) actionVerb = "Hòa giải";
+        else if (tplNamesJoined.includes("đối thoại")) actionVerb = "Đối thoại";
+        else if (tplNamesJoined.includes("xét xử") || tplNamesJoined.includes("phiên tòa")) actionVerb = "Xét xử";
+        else if (tplNamesJoined.includes("thẩm định") || tplNamesJoined.includes("đo vẽ") || tplNamesJoined.includes("định giá")) actionVerb = "Thẩm định";
+        else if (tplNamesJoined.includes("triệu tập")) actionVerb = "Triệu tập";
+        else if (tplNamesJoined.includes("lời khai")) actionVerb = "Lấy lời khai";
+        else if (tplNamesJoined.includes("đối chất")) actionVerb = "Đối chất";
+
+        var scheduleTitle = (typeof buildCaseScheduleTitle === 'function')
+          ? buildCaseScheduleTitle(actionVerb, info.loaiAn, ndShort, bdShort, info.soTL)
+          : `[${extractShortNo(info.soTL)}] ${noiDungLamViec}`;
+
         api_LuuLichMoi_Logic({ 
           idVuAn: input.idVuAn, 
           soTL: info.soTL, 
           ngay: input.trieuTapDate, 
           gio: input.trieuTapTime, 
-          noiDung: `[${extractShortNo(info.soTL)}] ${noiDungLamViec} (${allTasksDesc.join(" + ")})`, 
+          noiDung: scheduleTitle, 
           ghiChu: diaDiemRaw 
         });
       } catch(eLich) { 
@@ -1230,9 +1302,7 @@ function api_RunMailMergeV3_Logic(input) {
 
     var roleClusterMap = buildRoleClusterMap(clusters);
 
-    // =========================================================================
-    // QUÉT VÀ THU THẬP DANH SÁCH EMAIL THƯ KÝ ĐỂ CẤP QUYỀN DRIVE TỰ ĐỘNG
-    // =========================================================================
+    // Thu thập email thư ký để cấp quyền Drive
     var rawClerks = config["DS_THU_KY"];
     var clerkEmailsToShare = [];
     try {
@@ -1250,18 +1320,17 @@ function api_RunMailMergeV3_Logic(input) {
     // TIẾN HÀNH TRỘN TỪNG BIỂU MẪU ĐƯỢC CHỌN
     input.templateIds.forEach(function (templateId) {
       var templateFile = DriveApp.getFileById(templateId);
-      var baseExportName = templateFile.getName().replace(/\.(gdoc|docx|doc)$/i, "").trim() + (extractShortNo(info.soTL) ? (" - " + extractShortNo(info.soTL)) : "") + " - " + exportDateStr;
+      var templateFileName = templateFile.getName();
+      var baseExportName = templateFileName.replace(/\.(gdoc|docx|doc)$/i, "").trim() + (extractShortNo(info.soTL) ? (" - " + extractShortNo(info.soTL)) : "") + " - " + exportDateStr;
       
-      // Nhân bản file mẫu vào thư mục vụ án
       var newDocFile = templateFile.makeCopy(baseExportName, destFolder);
 
-      // CẤP QUYỀN CHỈNH SỬA (EDITOR) TỰ ĐỘNG CHO TẤT CẢ THƯ KÝ TRONG HỆ THỐNG
       if (clerkEmailsToShare.length > 0) {
         clerkEmailsToShare.forEach(function(cEmail) {
           try {
             newDocFile.addEditor(cEmail);
           } catch(eShare) {
-            console.warn("Không thể cấp quyền cho email Thư ký: " + cEmail + " - Lỗi: " + eShare.message);
+            console.warn("Lỗi share quyền Thư ký: " + cEmail + " - " + eShare.message);
           }
         });
       }
@@ -1270,13 +1339,19 @@ function api_RunMailMergeV3_Logic(input) {
       var body = doc.getBody();
       var docTextContent = body.getText();
 
-      var isTachTrang = docTextContent.includes("{Họ và tên}") || 
+      // KIỂM TRA ĐỊNH NGHĨA VĂN BẢN MỞ (CÔNG VĂN / MẪU MỞ):
+      // Công văn ngoại tố không bao giờ bị ép phân luồng tách trang (SPLIT_PAGE)
+      var isPublicLetter = /^(0*\d+[a-zA-Z]?[\.\-\s]*)?(Công văn|CV|Phiếu chuyển|Yêu cầu cung cấp|Giấy mời)/i.test(templateFileName) ||
+                           docTextContent.includes("{Người nhận}") || docTextContent.includes("{người nhận}") || docTextContent.includes("{NGƯỜI NHẬN}");
+
+      var isTachTrang = !isPublicLetter && (
+                        docTextContent.includes("{Họ và tên}") || 
                         docTextContent.includes("{họ và tên}") || 
                         docTextContent.includes("{HỌ VÀ TÊN}") || 
                         docTextContent.includes("{Tư cách}") || 
                         docTextContent.includes("{tư cách}") ||
                         docTextContent.includes("{Địa chỉ}") ||
-                        docTextContent.includes("{Số điện thoại}");
+                        docTextContent.includes("{Số điện thoại}"));
 
       if (isTachTrang) {
         processDocumentSeparatedPages(body, fullMap, parties, input.selectedIndices);
@@ -1396,7 +1471,6 @@ function api_RunMailMergeDon_Logic(input) {
     var qhRaw = String(info.quanHe || "---").trim();
     var isThuanTinhLyHon = qhRaw.toLowerCase().includes("thuận tình") || qhRaw.toLowerCase().includes("thuan tinh");
 
-    // PHÂN CỤM ĐƯƠNG SỰ ĐƠN BẰNG BỘ LÕI CHUẨN HÓA DÙNG CHUNG
     var clusters = buildPartyClusters(parties, isThuanTinhLyHon, true);
     var groupsNKK = clusters.groupsNKK;
 
@@ -1410,14 +1484,24 @@ function api_RunMailMergeDon_Logic(input) {
     var subFolders = yearFolder.getFoldersByName(folderName);
     var caseFolder = subFolders.hasNext() ? subFolders.next() : yearFolder.createFolder(folderName);
 
+    // TỰ ĐỘNG GHI LỊCH TIẾP NHẬN ĐƠN THEO CÚ PHÁP RÚT GỌN (CHUẨN 28/10/2026):
+    // Cú pháp: "Báo đơn 2354 – Nhân – Hùng"
     if (input.trieuTapDate) {
       try {
         if (typeof api_LuuLichMoi_Logic === 'function') {
+          var firstNBK = "Chưa rõ";
+          var allNBKMembers = extractFlatMembers(clusters.groupsNBK);
+          if (allNBKMembers.length > 0) firstNBK = allNBKMembers[0].hoTen;
+
+          var donScheduleTitle = (typeof buildDonScheduleTitle === 'function')
+            ? buildDonScheduleTitle(cleanNo, firstNKK, firstNBK)
+            : `Báo đơn ${cleanNo} – ${firstNKK} – ${firstNBK}`;
+
           api_LuuLichMoi_Logic({
             idVuAn: "GENERAL",
             ngay: input.trieuTapDate,
             gio: input.trieuTapTime || "08:30",
-            noiDung: `[Đơn ${cleanNo}] Tiếp nhận & Làm việc: ${firstNKK} (${input.noiDungThem || "Xử lý đơn khởi kiện"})`,
+            noiDung: donScheduleTitle,
             ghiChu: input.diaDiemLamViec || config["DIA_CHI_TOA"] || "Trụ sở Tòa án"
           });
         }
@@ -1458,12 +1542,15 @@ function api_RunMailMergeDon_Logic(input) {
 
     var feeCalc = calculateCourtFee(keyLoaiAn, String(info.giaTri || "0"));
 
-    // TỪ ĐIỂN VAI TRÒ CHUẨN DÙNG CHUNG CHO ĐƠN
     var donRoleMap = buildSharedPartyDictionary(clusters, isThuanTinhLyHon);
 
     var tenTP_Clean = toTitleCase(cleanHonorificFromName(info.thamPhan || config["TEN_THAM_PHAN"] || ""));
     var danhXungTP = getOfficerHonorific(tenTP_Clean, "Ông");
     var thamPhanFull = danhXungTP + " " + tenTP_Clean;
+
+    // BỔ SUNG THỰC THỂ KHÁCH THỂ NGOẠI TỐ (CÔNG VĂN / MẪU MỞ ĐƠN)
+    var valNguoiNhan = input.nguoiNhan || (input.customVariables ? input.customVariables["{Người nhận}"] : "") || "";
+    var valDiaChiNhan = input.diaChiNhan || (input.customVariables ? input.customVariables["{Địa chỉ người nhận}"] : "") || "";
 
     var baseDonMap = {
       "{Số đơn}": String(info.soDon || ""),
@@ -1487,6 +1574,13 @@ function api_RunMailMergeDon_Logic(input) {
       "{Quan hệ tranh chấp}": String(info.quanHe || ""),
       "{quan hệ tranh chấp}": String(info.quanHe || "").toLowerCase(),
       "{QUAN HỆ TRANH CHẤP}": String(info.quanHe || "").toUpperCase(),
+
+      // THỰC THỂ KHÁCH THỂ MỞ
+      "{Người nhận}": toTitleCase(valNguoiNhan),
+      "{người nhận}": String(valNguoiNhan).toLowerCase(),
+      "{NGƯỜI NHẬN}": String(valNguoiNhan).toUpperCase(),
+      "{Địa chỉ người nhận}": valDiaChiNhan,
+      "{địa chỉ người nhận}": valDiaChiNhan,
 
       "{Địa điểm}": diaDiemRaw,
       "{địa điểm}": diaDiemRaw,
@@ -1548,7 +1642,8 @@ function api_RunMailMergeDon_Logic(input) {
 
     input.templateIds.forEach(function(templateId) {
       var templateFile = DriveApp.getFileById(templateId);
-      var cleanDocName = templateFile.getName().replace(/\.(gdoc|docx|doc)$/i, "").trim();
+      var templateFileName = templateFile.getName();
+      var cleanDocName = templateFileName.replace(/\.(gdoc|docx|doc)$/i, "").trim();
       var expectedName = `${cleanDocName} - ${cleanNo}`;
 
       var existingFiles = caseFolder.getFilesByName(expectedName);
@@ -1559,13 +1654,17 @@ function api_RunMailMergeDon_Logic(input) {
       var body = doc.getBody();
       var docTextContent = body.getText();
 
-      var isTachTrang = docTextContent.includes("{Họ và tên}") || 
+      var isPublicLetter = /^(0*\d+[a-zA-Z]?[\.\-\s]*)?(Công văn|CV|Phiếu chuyển|Yêu cầu cung cấp|Giấy mời)/i.test(templateFileName) ||
+                           docTextContent.includes("{Người nhận}") || docTextContent.includes("{người nhận}") || docTextContent.includes("{NGƯỜI NHẬN}");
+
+      var isTachTrang = !isPublicLetter && (
+                        docTextContent.includes("{Họ và tên}") || 
                         docTextContent.includes("{họ và tên}") || 
                         docTextContent.includes("{HỌ VÀ TÊN}") || 
                         docTextContent.includes("{Tư cách}") || 
                         docTextContent.includes("{tư cách}") ||
                         docTextContent.includes("{Địa chỉ}") ||
-                        docTextContent.includes("{Số điện thoại}");
+                        docTextContent.includes("{Số điện thoại}"));
 
       if (isTachTrang) {
         processDocumentSeparatedPages(body, fullDonMap, parties, input.selectedIndices);
@@ -1594,6 +1693,7 @@ function api_RunMailMergeDon_Logic(input) {
     lock.releaseLock();
   }
 }
+
 // =========================================================================
 // MỤC 7: QUẢN TRỊ HÀNG ĐỢI IN ẤN (PRINT QUEUE - SMARTCASE HUB)
 // =========================================================================
@@ -1652,7 +1752,6 @@ function logic_LayDanhSachHangDoiIn() {
         thoiGianTao: data[i][6]
       });
     }
-    // Sắp xếp mới nhất lên đầu
     list.sort(function(a, b) { return new Date(b.thoiGianTao) - new Date(a.thoiGianTao); });
     return list;
   } catch (e) { return []; }

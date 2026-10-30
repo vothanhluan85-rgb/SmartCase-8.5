@@ -1,10 +1,11 @@
 <!--
   =========================================================================
-  HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.0 - TRUNG TÂM HỘP THOẠI & MODAL TỐ TỤNG
-  TỆP: UI_HopThoai.html - DANH MỤC 20 MASTER MODALS & 6 BỘ DATALIST TĨNH
+  HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.5 - TRUNG TÂM HỘP THOẠI & MODAL TỐ TỤNG
+  TỆP: UI_HopThoai.html - DANH MỤC 21 MASTER MODALS & 7 BỘ DATALIST TĨNH
   - THIẾT KẾ: HAIRLINE 1PX CRISP BORDERS & MODERN EXECUTIVE WARM SLATE
-  - CHUẨN HÓA WIZARD AI TẠO MẪU VỚI DANH SÁCH CHỌN MẪU TRỰC QUAN
-  - TÍCH HỢP KHỐI BIÊN LAI ÁN PHÍ VÀO FORM THỤ LÝ VỤ ÁN MỚI
+  - TÁCH BẠCH 2 PHẦN HIỆN TRẠNG VS CHỈ THỊ TRONG SỬA ĐỔI BỔ SUNG ĐƠN (MODAL 16)
+  - TRẠM ĐIỀN BÙ DỮ LIỆU TẠI CHỖ & BẢO TOÀN QUYỀN CHỦ ĐỘNG NGƯỜI DÙNG (MODAL 19)
+  - HỖ TRỢ CÔNG VĂN MỞ {Người nhận} & DATALIST CƠ QUAN NGOẠI TỐ (MODAL 5)
   =========================================================================
 -->
 
@@ -195,7 +196,6 @@
   }
   .tpl-item-row:hover { background-color: #f1f5f9 !important; }
 
-  /* Style tùy biến cho danh sách Wizard AI Tạo mẫu */
   .ai-tpl-select-card {
     border: 1px solid #e2e8f0;
     border-radius: 8px;
@@ -617,7 +617,7 @@
             </div>
           </div>
 
-          <!-- CỘT 3: THÔNG SỐ VĂN BẢN & TRÍCH XUẤT TÀI LIỆU TRỰC TIẾP -->
+          <!-- CỘT 3: THÔNG SỐ VĂN BẢN & CÔNG VĂN MỞ -->
           <div class="col-lg-4">
             <div class="modal-inner-card h-100 d-flex flex-column mb-0">
               <div class="card-header-bar">
@@ -659,6 +659,16 @@
                 <div class="mb-2">
                   <span class="small-label">Nội dung làm việc</span>
                   <textarea id="ext_noiDung" class="form-control form-control-sm" rows="2" list="dl_draft_noidung_goiy" placeholder="Làm rõ một số vấn đề liên quan đến vụ án..." autocomplete="off"></textarea>
+                </div>
+
+                <!-- BỔ SUNG CƠ QUAN / NGƯỜI NHẬN CHO CÔNG VĂN MỞ (CHUYÊN ĐỀ 1 & 2) -->
+                <div class="mb-2" id="ext_nguoinhan_box">
+                  <span class="small-label text-primary">Cơ quan / Người nhận {Người nhận} (Nếu là Công văn)</span>
+                  <input type="text" id="ext_nguoiNhan" class="form-control form-control-sm fw-bold" list="dl_coquan_nhan" placeholder="VD: UBND huyện Đơn Dương..." autocomplete="off">
+                </div>
+                <div class="mb-2" id="ext_diachinhan_box">
+                  <span class="small-label text-primary">Địa chỉ cơ quan nhận {Địa chỉ người nhận}</span>
+                  <input type="text" id="ext_diaChiNhan" class="form-control form-control-sm" placeholder="Thị trấn/Xã, Huyện, Tỉnh..." autocomplete="off">
                 </div>
 
                 <!-- Khối trích xuất tài liệu trực tiếp -->
@@ -1310,7 +1320,7 @@
 </div>
 
 <!-- ======================================================= -->
-<!-- 16. MODAL NỘI DUNG SỬA ĐỔI, BỔ SUNG ĐƠN -->
+<!-- 16. MODAL NỘI DUNG SỬA ĐỔI, BỔ SUNG ĐƠN (CHUẨN TANDTC) -->
 <!-- ======================================================= -->
 <div class="modal fade" id="modalSuaDoiBoSungDon" tabindex="-1" data-bs-backdrop="static">
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
@@ -1318,55 +1328,68 @@
       <div class="modal-header">
         <h6 class="modal-title">
           <span class="modal-icon-badge"><i class="fas fa-edit"></i></span>
-          YÊU CẦU SỬA ĐỔI, BỔ SUNG ĐƠN
+          YÊU CẦU SỬA ĐỔI, BỔ SUNG ĐƠN KHỞI KIỆN (MẪU 01 & 10)
         </h6>
         <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="window.cancelSbsForm()"></button>
       </div>
       <div class="modal-body">
-        <div class="modal-inner-card mb-2">
+        
+        <!-- PHẦN I: ĐÁNH GIÁ HIỆN TRẠNG ĐƠN ({Những vấn đề cần sửa chữa bổ sung}) -->
+        <div class="modal-inner-card mb-3 border-primary-subtle">
+          <div class="card-header-bar bg-primary-subtle text-primary">
+            <span class="step-header text-primary"><i class="fas fa-magnifying-glass me-2"></i>PHẦN I: ĐÁNH GIÁ HIỆN TRẠNG ĐƠN ({Những vấn đề cần sửa chữa bổ sung})</span>
+          </div>
           <div class="card-body-content">
-            <label class="small-label mb-1">1. Về hình thức đơn khởi kiện</label>
-            <select id="sbs_hinhThuc_status" class="form-select fw-bold mb-2" onchange="window.toggleSbsFields()">
-              <option value="Đã đúng hình thức đơn">Đã đúng hình thức đơn (Không cần sửa)</option>
-              <option value="Chưa đúng hình thức đơn">Chưa đúng hình thức đơn (Cần sửa đổi)</option>
-            </select>
-            <div id="sbs_hinhThuc_yeuCau_container" style="display:none;">
-              <label id="lbl_sbs_hinhThuc" class="small-label mt-2">Yêu cầu sửa đổi hình thức:</label>
-              <textarea id="sbs_hinhThuc_yeuCau" class="form-control" rows="2" placeholder="Ví dụ: Làm lại đơn theo đúng Mẫu số 23-DS..."></textarea>
+            <div class="mb-2">
+              <label class="small-label">1. Về hình thức đơn khởi kiện:</label>
+              <select id="sbs_hinhThuc_status" class="form-select form-select-sm fw-bold mb-1" onchange="window.toggleSbsFields()">
+                <option value="ĐÚNG">Đã đảm bảo theo đúng quy định của pháp luật</option>
+                <option value="SAI" selected>Chưa đúng theo quy định của pháp luật về hình thức</option>
+              </select>
+            </div>
+
+            <div class="mb-2">
+              <label class="small-label">2. Về nội dung yêu cầu khởi kiện (Hiện trạng):</label>
+              <textarea id="sbs_noiDung_nhanXet" class="form-control form-control-sm" rows="2" placeholder="Nêu rõ điểm chưa rõ trong nội dung đơn (VD: Chưa xác định rõ số tiền nợ gốc, nợ lãi; yêu cầu chia tài sản chưa có sơ đồ...)"></textarea>
+            </div>
+
+            <div>
+              <label class="small-label">3. Về tài liệu, chứng cứ kèm theo đơn:</label>
+              <select id="sbs_taiLieu_status" class="form-select form-select-sm fw-bold mb-1" onchange="window.toggleSbsFields()">
+                <option value="THIEU" selected>Chưa nộp đủ tài liệu, chứng cứ kèm theo để chứng minh</option>
+                <option value="DU">Đã nộp đủ tài liệu, chứng cứ ban đầu</option>
+              </select>
             </div>
           </div>
         </div>
 
-        <div class="modal-inner-card mb-2">
+        <!-- PHẦN II: CHỈ THỊ YÊU CẦU SỬA ĐỔI, BỔ SUNG CỤ THỂ ({Yêu cầu sửa đổi bổ sung}) -->
+        <div class="modal-inner-card mb-0 border-danger-subtle">
+          <div class="card-header-bar bg-danger-subtle text-danger">
+            <span class="step-header text-danger"><i class="fas fa-list-check me-2"></i>PHẦN II: CHỈ THỊ CỤ THỂ CỦA TÒA ÁN ({Yêu cầu sửa đổi bổ sung})</span>
+          </div>
           <div class="card-body-content">
-            <label class="small-label mb-1">2. Về nội dung đơn khởi kiện</label>
-            <label class="small-label">Nhận xét nội dung hiện tại:</label>
-            <textarea id="sbs_noiDung_nhanXet" class="form-control mb-2" rows="2" placeholder="Ví dụ: Đơn chưa ghi rõ giá trị tài sản tranh chấp..."></textarea>
-            
-            <div id="sbs_noiDung_yeuCau_container">
-              <label id="lbl_sbs_noiDung" class="small-label mt-2">Yêu cầu bổ sung nội dung:</label>
-              <textarea id="sbs_noiDung_yeuCau" class="form-control" rows="2" placeholder="Ví dụ: Cần ghi rõ giá trị tài sản tranh chấp là bao nhiêu..."></textarea>
+            <div id="sbs_hinhThuc_yeuCau_container" class="mb-2">
+              <label class="small-label text-danger">1. Yêu cầu sửa đổi về hình thức đơn:</label>
+              <textarea id="sbs_hinhThuc_yeuCau" class="form-control form-control-sm" rows="2" placeholder="Ví dụ: Làm lại đơn khởi kiện theo đúng Mẫu số 23-DS ban hành kèm Nghị quyết số 01/2017/NQ-HĐTP..."></textarea>
+            </div>
+
+            <div id="sbs_noiDung_yeuCau_container" class="mb-2">
+              <label class="small-label text-danger">2. Yêu cầu bổ sung, làm rõ về nội dung:</label>
+              <textarea id="sbs_noiDung_yeuCau" class="form-control form-control-sm" rows="2" placeholder="Ví dụ: Làm rõ yêu cầu đòi tài sản là gì, diện tích đất bao nhiêu, ranh giới giáp những ai, mức lãi suất yêu cầu..."></textarea>
+            </div>
+
+            <div id="sbs_taiLieu_yeuCau_container">
+              <label class="small-label text-danger">3. Yêu cầu giao nộp bổ sung tài liệu, chứng cứ:</label>
+              <textarea id="sbs_taiLieu_yeuCau" class="form-control form-control-sm" rows="2" placeholder="Ví dụ: Nộp bản sao công chứng CCCD, trích lục khai tử, bản sao Giấy chứng nhận quyền sử dụng đất, hợp đồng chuyển nhượng..."></textarea>
             </div>
           </div>
         </div>
 
-        <div class="modal-inner-card mb-0">
-          <div class="card-body-content">
-            <label class="small-label mb-1">3. Về tài liệu chứng cứ kèm theo</label>
-            <select id="sbs_taiLieu_status" class="form-select fw-bold mb-2" onchange="window.toggleSbsFields()">
-              <option value="Đã đủ tài liệu chứng cứ">Đã nộp đủ tài liệu (Không cần bổ sung)</option>
-              <option value="Chưa đủ tài liệu chứng cứ">Chưa đủ tài liệu (Cần bổ sung)</option>
-            </select>
-            <div id="sbs_taiLieu_yeuCau_container" style="display:none;">
-              <label id="lbl_sbs_taiLieu" class="small-label mt-2">Yêu cầu bổ sung tài liệu:</label>
-              <textarea id="sbs_taiLieu_yeuCau" class="form-control" rows="2" placeholder="Ví dụ: Nộp bản sao y công chứng Giấy chứng nhận QSDĐ..."></textarea>
-            </div>
-          </div>
-        </div>
       </div>
       <div class="modal-footer justify-content-end gap-2">
         <button type="button" class="btn btn-outline-secondary px-3" onclick="window.cancelSbsForm()">Hủy</button>
-        <button type="button" class="btn btn-primary px-4" onclick="window.submitSbsForm()"><i class="fas fa-magic me-1"></i> Trộn thư</button>
+        <button type="button" class="btn btn-primary px-4" onclick="window.submitSbsForm()"><i class="fas fa-magic me-1"></i> Trộn văn bản ngay</button>
       </div>
     </div>
   </div>
@@ -1387,7 +1410,6 @@
       </div>
       <div class="modal-body">
         
-        <!-- Khung tệp đã tải -->
         <div class="modal-inner-card mb-3 bg-light border-0">
           <div class="card-body-content py-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
@@ -1400,7 +1422,6 @@
           </div>
         </div>
 
-        <!-- Chế độ 1: Bơm đè vào mẫu có sẵn -->
         <div class="modal-inner-card mb-3">
           <div class="card-body-content">
             <div class="form-check mb-2">
@@ -1411,13 +1432,11 @@
             </div>
             
             <div class="ps-4 mt-2" id="ai_tpl_overwrite_section">
-              <!-- Thanh tìm kiếm mẫu -->
               <div class="position-relative mb-2">
                 <i class="fas fa-search position-absolute text-muted" style="top:50%; left:12px; transform: translateY(-50%); font-size:11px;"></i>
                 <input type="text" id="ai_tpl_search_modal" class="form-control form-control-sm search-pill" placeholder="Tìm nhanh mẫu theo số hoặc tên (VD: 25, 45, thuận tình, đình chỉ...)" autocomplete="off" oninput="window.filterAiOverrideTemplates(this.value)">
               </div>
               
-              <!-- Danh sách mẫu có sẵn -->
               <div id="ai_tpl_list_modal" class="border rounded-3 bg-light overflow-auto p-2" style="max-height: 220px; min-height: 140px;">
                 <div class="p-3 text-center text-muted small"><div class="spinner-border spinner-border-sm me-2 text-primary"></div> Đang nạp danh mục biểu mẫu...</div>
               </div>
@@ -1429,7 +1448,6 @@
           </div>
         </div>
 
-        <!-- Chế độ 2: Tạo mẫu mới hoàn toàn -->
         <div class="modal-inner-card mb-0">
           <div class="card-body-content">
             <div class="form-check mb-2">
@@ -1497,34 +1515,44 @@
 </div>
 
 <!-- ======================================================= -->
-<!-- 19. MODAL CẢNH BÁO TIỀN KIỂM (CẢNH BÁO MỘC MẠC, 2 NÚT TINH GỌN) -->
+<!-- 19. MODAL BỔ SUNG THÔNG TIN THIẾU TRỰC TIẾP (IN-PLACE FILL) -->
 <!-- ======================================================= -->
 <div class="modal fade" id="modalPreflightWarning" tabindex="-1" data-bs-backdrop="static">
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
-      <div class="modal-header">
+      <div class="modal-header bg-warning-subtle py-3">
         <h6 class="modal-title text-warning-emphasis">
-          <span class="modal-icon-badge" style="background:#fffbeb; border-color:#fde68a;"><i class="fas fa-triangle-exclamation text-warning"></i></span>
-          RÀ SOÁT THÔNG TIN TRƯỚC KHI XUẤT VĂN BẢN
+          <span class="modal-icon-badge" style="background:#fff; border-color:#fde68a;"><i class="fas fa-pen-to-square text-warning"></i></span>
+          BỔ SUNG THÔNG TIN CÒN THIẾU ĐỂ XUẤT VĂN BẢN
         </h6>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body">
-        <div class="modal-inner-card mb-3 bg-light border-0">
-          <div class="card-body-content py-2 small text-muted" style="line-height: 1.6;">
-            Hệ thống phát hiện biểu mẫu bạn chọn có <b><span id="preflight_missing_count" class="text-danger fw-bold">0 trường</span></b> chưa có dữ liệu trong hồ sơ.<br>
-            <i>* Bạn có thể chọn Bỏ qua để xuất văn bản với các vị trí trống (dấu ......), hoặc Hủy để bổ sung thông tin vào hồ sơ.</i>
-          </div>
+      <div class="modal-body p-3 bg-light">
+        <div class="alert alert-warning py-2 px-3 border small mb-3">
+          <i class="fas fa-info-circle me-1"></i> Các trường dưới đây chưa có dữ liệu trong hồ sơ. <b>Bạn có thể điền ngay tại đây</b> để hệ thống tự lưu và tiếp tục xuất văn bản mà không cần đóng cửa sổ.
         </div>
 
-        <div class="small-label mb-2">Danh sách các trường chưa có thông tin:</div>
-        <div id="preflight_missing_list_container" class="d-flex flex-column gap-1" style="max-height: 280px; overflow-y: auto;"></div>
+        <div id="preflight_interactive_form" class="d-flex flex-column gap-2 mb-3" style="max-height: 380px; overflow-y: auto;">
+          <!-- Các ô nhập liệu sẽ được render động tại đây -->
+        </div>
+
+        <div class="form-check mt-2 pt-2 border-top">
+          <input class="form-check-input" type="checkbox" id="preflight_sync_db_checkbox" checked style="cursor: pointer;">
+          <label class="form-check-label small fw-bold text-dark" for="preflight_sync_db_checkbox" style="cursor: pointer;">
+            Đồng bộ vĩnh viễn dữ liệu bổ sung này vào Hồ sơ CSDL và Google Drive của vụ án
+          </label>
+        </div>
       </div>
-      <div class="modal-footer justify-content-between">
-        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Hủy xuất văn bản</button>
-        <button type="button" class="btn btn-primary px-4 shadow-sm" onclick="window.proceedDraftingIgnoreWarning()">
-          <i class="fas fa-arrow-right me-1"></i> Bỏ qua & Tiếp tục xuất văn bản
+      <div class="modal-footer justify-content-between p-3 bg-white border-top">
+        <button type="button" class="btn btn-outline-secondary px-3" onclick="window.proceedDraftingIgnoreWarning()">
+          Bỏ qua & Xuất (để trống ......)
         </button>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-outline-secondary px-3" data-bs-dismiss="modal">Hủy</button>
+          <button type="button" class="btn btn-primary px-4 shadow-sm" onclick="window.saveAndProceedDraftingWithFilledData()">
+            <i class="fas fa-check-circle me-1"></i> Lưu & Xuất văn bản ngay
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -1573,7 +1601,6 @@
   <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
       
-      <!-- HEADER WIZARD -->
       <div class="modal-header py-3 px-4" style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); color: #ffffff;">
         <div class="d-flex align-items-center gap-2">
           <div class="rounded-circle d-flex align-items-center justify-content-center bg-white text-primary" style="width: 36px; height: 36px; font-size: 16px;">
@@ -1590,8 +1617,6 @@
       </div>
 
       <div class="modal-body p-4 bg-light">
-        
-        <!-- BƯỚC 1: XÁC THỰC GOOGLE VÀ THÔNG TIN ĐƠN VỊ -->
         <div class="modal-inner-card mb-3 p-3 bg-white">
           <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
             <span class="badge rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center" style="width: 24px; height: 24px; font-size: 12px;">1</span>
@@ -1614,7 +1639,6 @@
           </div>
         </div>
 
-        <!-- BƯỚC 2: TỰ ĐỘNG KHỞI TẠO CÂY THƯ MỤC DRIVE & SAO CHÉP MẪU -->
         <div class="modal-inner-card mb-3 p-3 bg-white">
           <div class="d-flex align-items-center gap-2 mb-2 pb-2 border-bottom">
             <span class="badge rounded-circle bg-success text-white d-inline-flex align-items-center justify-content-center" style="width: 24px; height: 24px; font-size: 12px;">2</span>
@@ -1629,7 +1653,6 @@
           </div>
         </div>
 
-        <!-- BƯỚC 3: PHÂN QUYỀN THƯ KÝ QUA GMAIL -->
         <div class="modal-inner-card mb-3 p-3 bg-white">
           <div class="d-flex align-items-center gap-2 mb-2 pb-2 border-bottom">
             <span class="badge rounded-circle bg-warning text-dark d-inline-flex align-items-center justify-content-center" style="width: 24px; height: 24px; font-size: 12px;">3</span>
@@ -1664,7 +1687,6 @@
           </button>
         </div>
 
-        <!-- BƯỚC 4: CẤU HÌNH GOOGLE GEMINI AI (TÙY CHỌN) -->
         <div class="modal-inner-card mb-0 p-3 bg-white">
           <div class="d-flex align-items-center gap-2 mb-2 pb-2 border-bottom">
             <span class="badge rounded-circle bg-secondary text-white d-inline-flex align-items-center justify-content-center" style="width: 24px; height: 24px; font-size: 12px;">4</span>
@@ -1697,6 +1719,7 @@
     </div>
   </div>
 </div>
+
 <!-- ======================================================= -->
 <!-- DATALISTS TĨNH TOÀN DIỆN CHO TOÀN HỆ THỐNG -->
 <!-- ======================================================= -->
@@ -1785,4 +1808,18 @@
   <option value="Quyết định chuyển hồ sơ vụ án">
   <option value="Quyết định giải quyết việc dân sự">
   <option value="Quyết định công nhận kết quả hòa giải thành tại Tòa án">
+</datalist>
+
+<!-- 6. CƠ QUAN / ĐỐI TƯỢNG TIẾP NHẬN NGOẠI TỐ (CHO CÔNG VĂN MỞ {Người nhận} - CHUYÊN ĐỀ 1) -->
+<datalist id="dl_coquan_nhan">
+  <option value="Ủy ban nhân dân tỉnh Lâm Đồng">
+  <option value="Ủy ban nhân dân huyện Đơn Dương">
+  <option value="Ủy ban nhân dân huyện Đức Trọng">
+  <option value="Ủy ban nhân dân thành phố Đà Lạt">
+  <option value="Văn phòng Đăng ký Đất đai tỉnh Lâm Đồng - Chi nhánh huyện Đơn Dương">
+  <option value="Phòng Tài nguyên và Môi trường huyện Đơn Dương">
+  <option value="Chi cục Thi hành án dân sự huyện Đơn Dương">
+  <option value="Cơ quan Cảnh sát điều tra Công an huyện Đơn Dương">
+  <option value="Bảo hiểm xã hội tỉnh Lâm Đồng">
+  <option value="Ngân hàng Nông nghiệp và Phát triển Nông thôn Việt Nam">
 </datalist>

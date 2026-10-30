@@ -3,20 +3,12 @@
  * HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.5 - MASTER AI ENGINE & TRỢ LÝ THẨM PHÁN
  * TỆP: 9_ModuleAI.gs - ĐỘNG CƠ TRÍ TUỆ NHÂN TẠO PHÂN TẦNG VÀ ĐIỀU HÀNH TỐ TỤNG
  * -------------------------------------------------------------------------
- * - MA TRẬN 3 PHÂN TẦNG ĐÃ ĐƯỢC KIỂM NGHIỆM VÀ ĐO ĐẠC THỰC TẾ:
- *   + TẦNG 1 (FAST / OCR)   : gemini-3.5-flash-lite, gemini-flash-lite-latest,
- *                             gemini-3-flash-preview, gemini-3.1-flash-lite-preview.
- *   + TẦNG 2 (COPILOT)      : gemini-3.5-flash-lite, gemini-3-flash-preview,
- *                             gemini-flash-lite-latest, gemini-3.6-flash.
- *   + TẦNG 3 (REASONING)    : gemini-3.6-flash, gemini-3.5-flash,
- *                             gemini-3.1-flash-lite, gemini-3.5-flash-lite.
- * - CHUẨN HÓA DANH XƯNG DUY NHẤT: "Trợ lý thẩm phán" (không dùng Copilot/Bot/AI Copilot).
- * - TÍCH HỢP HỆ THỐNG TOÀN DIỆN:
- *   + Tự động nhận thức 8 bảng CSDL Sheets, cấu trúc lưu trữ Drive, Calendar tố tụng.
- *   + Nắm vững quy tắc thời hạn tố tụng (BLTTDS, Luật TTHC, Luật HGĐT, BLDS Điều 147-148).
- *   + Áp dụng Nghị quyết 326/2016/UBTVQH14 về án phí, lệ phí Tòa án.
- *   + Mở rộng 15 lệnh điều khiển hệ thống qua cú pháp [ACTION:...].
- * - BÓC TÁCH DỮ LIỆU CHUYÊN SÂU THEO 3 CHẾ ĐỘ: 'PARTIES_ONLY' | 'EVIDENCE_ONLY' | 'FULL'.
+ * - ĐÃ NÂNG CẤP THEO CHUYÊN ĐỀ 1, 4, 5 (CHUẨN HÓA 28/10/2026):
+ *   + Khắc phục triệt để lỗi ghi đè lời khai: Định danh chủ ngôn -> Ghi vào biến Con
+ *     ({Lời khai Nguyên đơn}, {Lời khai Bị đơn}...) -> Tự động biên dịch biến Mẹ {Lời khai đương sự}.
+ *   + Cô lập chứng từ tài chính: Biên lai án phí vào {Biên lai tạm ứng án phí}, không lẫn vào chứng cứ.
+ *   + Bổ sung OCR bóc tách Đơn khởi kiện từ ảnh chụp / scan: ai_ParsePetitionScan.
+ *   + AI Template Builder vĩ mô: Nhận diện và cấy {Đương sự}, {Đương sự thông báo}, {Nội dung thỏa thuận}.
  * =========================================================================
  */
 
@@ -57,18 +49,15 @@ function extractSafeJSON(text) {
   if (!text) return {};
   var str = String(text).trim();
 
-  // 1. Thử parse trực tiếp
   try {
     return JSON.parse(str);
   } catch (e1) {}
 
-  // 2. Gọt sạch các khối markdown code block ```json ... ```
   var clean = str.replace(/```(?:json)?/gi, '').replace(/```/g, '').replace(/^`+|`+$/g, '').trim();
   try {
     return JSON.parse(clean);
   } catch (e2) {}
 
-  // 3. Quét khối ngoặc nhọn ngoài cùng { ... }
   var start = clean.indexOf('{');
   var end = clean.lastIndexOf('}');
   if (start !== -1 && end !== -1 && end > start) {
@@ -157,15 +146,12 @@ function ai_FilterJudicialPersonnel(partyList) {
     var nameLower = cleanName(p.hoTen);
     var tuCachLower = String(p.tuCach || "").toLowerCase();
 
-    // 1. Loại trừ nếu trùng tên Thẩm phán
     if (judgeName && nameLower.includes(cleanName(judgeName))) return false;
 
-    // 2. Loại trừ nếu trùng tên Thư ký trong đơn vị
     for (var i = 0; i < clerkNames.length; i++) {
       if (clerkNames[i] && nameLower.includes(cleanName(clerkNames[i]))) return false;
     }
 
-    // 3. Loại trừ nếu tư cách hoặc tên có chức danh tư pháp/công quyền
     for (var k = 0; k < forbiddenKeywords.length; k++) {
       var kw = forbiddenKeywords[k];
       if (tuCachLower.includes(kw) || nameLower.startsWith(kw + " ") || nameLower === kw) return false;
@@ -214,7 +200,6 @@ function callGeminiByTier(tierName, systemPrompt, userPrompt, attachments, maxTo
   var modelsToTry = ai_GetModelsForTier(tierName);
   var parts = [];
 
-  // Nạp tài liệu đính kèm (Text, PDF, Ảnh, Word)
   if (attachments && Array.isArray(attachments) && attachments.length > 0) {
     attachments.forEach(function(att, idx) {
       var fileName = att.fileName || att.name || ("Tai_lieu_" + (idx + 1));
@@ -356,16 +341,59 @@ TRẢ VỀ ĐỊNH DẠNG JSON:
   }
 }
 
+/**
+ * BÓC TÁCH ĐƠN KHỞI KIỆN TỪ ẢNH / TỆP SCAN CHO SỔ NHẬN ĐƠN (MỤC 2 YÊU CẦU 28/10/2026)
+ */
+function ai_ParsePetitionScan(fileName, mimeType, base64Data) {
+  try {
+    var att = [{ fileName: fileName, mimeType: mimeType, base64Data: base64Data }];
+    var systemPrompt = `BẠN LÀ TRỢ LÝ THẨM PHÁN TÒA ÁN NHÂN DÂN.
+Nhiệm vụ: Phân tích đơn khởi kiện / đơn yêu cầu và trích xuất dữ liệu thụ lý đơn.
+
+QUY TẮC BẮT BUỘC:
+1. Xác định Số đơn (nếu có dấu tiếp nhận của Văn thư hoặc số đơn), ngày nộp đơn (YYYY-MM-DD).
+2. Phân loại chuẩn xác: "1. Hình sự", "2. Dân sự", "3. Hôn nhân", "4. Kinh doanh", "5. Lao động", "6. Hành chính", "7. Việc dân sự", "8. Hòa giải đối thoại".
+3. Trích xuất chính xác Quan hệ pháp luật tranh chấp / Nội dung yêu cầu.
+4. Giá trị tranh chấp (nếu có số tiền yêu cầu bồi thường/thanh toán thì lấy dạng số nguyên, không có để "0").
+5. Phân tách danh sách đương sự thành Người khởi kiện (NKK), Người bị kiện (NBK), Người có quyền lợi nghĩa vụ liên quan (NLQ).
+
+TRẢ VỀ ĐỊNH DẠNG JSON:
+{
+  "soDon": "Số đơn trên dấu tiếp nhận hoặc mã đơn",
+  "ngayNhan": "YYYY-MM-DD",
+  "loaiAn": "2. Dân sự / 3. Hôn nhân / ...",
+  "quanHe": "Tên quan hệ tranh chấp hoặc yêu cầu",
+  "giaTri": "0",
+  "parties": [
+    {
+      "tuCach": "Người khởi kiện / Người bị kiện / Người có quyền lợi, nghĩa vụ liên quan",
+      "xungHo": "Ông / Bà / Tổ chức",
+      "hoTen": "Họ và tên đầy đủ viết hoa chữ cái đầu",
+      "namSinh": "19xx",
+      "diaChi": "Địa chỉ cụ thể",
+      "sdt": "",
+      "cccd": ""
+    }
+  ]
+}`;
+
+    var rawResult = callGeminiByTier("FAST", systemPrompt, "TRÍCH XUẤT THÔNG TIN ĐƠN KHỞI KIỆN:", att, 4096, true);
+    var parsed = extractSafeJSON(rawResult);
+
+    if (parsed.parties && Array.isArray(parsed.parties)) {
+      parsed.parties = ai_FilterJudicialPersonnel(parsed.parties);
+    }
+
+    return { success: true, data: parsed };
+  } catch (e) {
+    return { success: false, error: "Lỗi OCR đơn khởi kiện: " + e.message };
+  }
+}
+
 // =========================================================================
-// 4. NHIỆM VỤ 2: BÓC TÁCH NGUYÊN LIỆU & ĐƯƠNG SỰ THEO CHẾ ĐỘ (TẦNG 1 - FAST)
+// 4. NHIỆM VỤ 2: BÓC TÁCH NGUYÊN LIỆU & ĐỊNH DANH CHỦ NGÔN (CHUYÊN ĐỀ 4)
 // =========================================================================
 
-/**
- * Cổng bóc tách dữ liệu nghiệp vụ:
- * - mode = 'PARTIES_ONLY'  : Chỉ chuyên trách đương sự, đại diện, CCCD/năm sinh, tách dính chùm.
- * - mode = 'EVIDENCE_ONLY' : Chỉ chuyên trách lời khai, hợp đồng, tài sản, thỏa thuận.
- * - mode = 'FULL'          : Bóc tách toàn diện cả hai luồng.
- */
 function ai_ParseEvidenceDocument(idVuAn, fileName, mimeType, base64Data, modeOrTargetKey, rawAttachmentsArray) {
   try {
     var mode = 'FULL';
@@ -438,28 +466,24 @@ function ai_ExecuteStructuredExtraction(soTL, loaiAn, quanHe, folderUrl, idVuAn,
   mode = mode || 'FULL';
 
   var partiesContext = existingParties.map(function(p, idx) {
-    return `[STT ${idx + 1}] ${p.tuCach}: [${p.xungHo || 'Ông/Bà'}] ${p.hoTen} (Năm sinh: ${p.namSinh || 'CHƯA CÓ'}, Địa chỉ: ${p.diaChi || 'CHƯA CÓ'}, SĐT: ${p.sdt || 'CHƯA CÓ'}, CCCD: ${p.cccd || 'CHƯA CÓ'})`;
+    return `[STT ${idx + 1}] ${p.tuCach}: [${p.xungHo || 'Ông/Bà'}] ${p.hoTen} (Năm sinh: ${p.namSinh || 'CHƯA CÓ'}, Địa chỉ: ${p.diaChi || 'CHƯA CÓ'})`;
   }).join("\n");
 
   var systemPrompt = `BẠN LÀ TRỢ LÝ THẨM PHÁN TÒA ÁN NHÂN DÂN CHUYÊN TRÁCH THẨM ĐỊNH HỒ SƠ.
 Nhiệm vụ: Phân tích toàn văn tài liệu tố tụng tố tụng theo chế độ: "${mode}".
 
-QUY ĐỊNH CHẾ ĐỘ XỬ LÝ:
-1. CHẾ ĐỘ "PARTIES_ONLY":
-   - Tập trung 100% vào việc tìm kiếm đương sự, người đại diện theo ủy quyền/pháp luật, luật sư.
-   - Đối soát bổ sung Năm sinh, Địa chỉ, SĐT, CCCD cho đương sự đã có trong danh sách.
-   - Phát hiện và TÁCH TÊN DÍNH CHÙM (Ví dụ: "Nguyễn Văn A Trần Thị B" -> đưa chuỗi cũ vào "replacedJoinedNames", tách thành 2 người vào "newParties").
-   - Đặt "extracted": {} (rỗng).
-2. CHẾ ĐỘ "EVIDENCE_ONLY":
-   - Tập trung 100% vào việc trích xuất nguyên liệu: lời khai, thỏa thuận hòa giải, hợp đồng tín dụng, tài sản tranh chấp, danh mục chứng cứ.
-   - Đặt "updatedExistingParties": [], "newParties": [], "replacedJoinedNames": [].
-3. CHẾ ĐỘ "FULL":
-   - Thực hiện đầy đủ cả 2 nội dung trên.
-
-QUY TẮC PHÁP LÝ BẮT BUỘC:
-- TUYỆT ĐỐI KHÔNG đưa Thẩm phán, Thư ký, Kiểm sát viên, Cán bộ Công an vào danh sách đương sự.
-- Người đại diện (ủy quyền, pháp luật, luật sư): Đưa vào mảng "daiDien" của đương sự đó gồm: type ("uq"|"pl"|"ls"), tuCach, xungHo, hoTen, namSinh, diaChi, sdt, vanBan (văn bản ủy quyền ngày/số).
-- Đối với thỏa thuận hòa giải / đối thoại: Bóc tách thành các điều khoản chuẩn hóa (quan hệ hôn nhân, con chung, cấp dưỡng, tài sản, nợ, án phí, nghĩa vụ trả tiền, phương thức thi hành).
+QUY TẮC ĐỊNH DANH CHỦ NGÔN TỐ TỤNG & BẢO TOÀN LỜI KHAI (CHUYÊN ĐỀ 4):
+1. ĐỐI SOÁT CHỦ NGÔN: Khi bóc tách lời khai (Bản tự khai, Biên bản lấy lời khai):
+   - So khớp căn cước người khai với DANH SÁCH ĐƯƠNG SỰ ĐÃ CÓ bên dưới.
+   - Nếu là lời khai của Nguyên đơn / Người khởi kiện -> Đặt vào "{Lời khai Nguyên đơn}".
+   - Nếu là lời khai của Bị đơn / Người bị kiện -> Đặt vào "{Lời khai Bị đơn}".
+   - Nếu là lời khai của Người liên quan -> Đặt vào "{Lời khai Người có quyền lợi, nghĩa vụ liên quan}".
+   - TUYỆT ĐỐI KHÔNG nạp lời khai của riêng một bên vào placeholder Mẹ "{Lời khai đương sự}".
+2. VÙNG CẤM TUYỆT ĐỐI ĐỐI VỚI BIÊN LAI ÁN PHÍ:
+   - Thông tin biên lai tạm ứng án phí / lệ phí (số biên lai, ngày nộp, cơ quan thu) BẮT BUỘC đưa vào "{Biên lai tạm ứng án phí}" và "{Số biên lai}".
+   - TUYỆT ĐỐI CẤM liệt kê biên lai thu tiền vào "{Tài liệu kèm theo đơn khởi kiện}".
+3. NỘI DUNG THỎA THUẬN HÒA GIẢI:
+   - Nếu tài liệu là Biên bản hòa giải thành: bóc tách thành các điều khoản chuẩn hóa (quan hệ hôn nhân, con chung, cấp dưỡng, tài sản, nợ, án phí) đưa vào "{Nội dung thỏa thuận}".
 
 TRẢ VỀ ĐỊNH DẠNG JSON CHUẨN:
 {
@@ -487,36 +511,30 @@ TRẢ VỀ ĐỊNH DẠNG JSON CHUẨN:
       "diaChi": "Địa chỉ đầy đủ",
       "sdt": "",
       "cccd": "",
-      "daiDien": [
-        {
-          "type": "uq",
-          "tuCach": "Người đại diện theo ủy quyền",
-          "xungHo": "Ông / Bà",
-          "hoTen": "Họ tên người đại diện",
-          "namSinh": "19xx",
-          "diaChi": "",
-          "sdt": "",
-          "vanBan": "Văn bản ủy quyền ngày..."
-        }
-      ]
+      "daiDien": []
     }
   ],
   "extracted": {
-    "{Lời khai đương sự}": "Toàn văn lời khai của các bên...",
-    "{Nội dung vụ án}": "Tóm tắt diễn biến vụ án...",
-    "{Nội dung thỏa thuận}": "Nội dung thỏa thuận hòa giải...",
+    "{Lời khai Nguyên đơn}": "Toàn văn lời khai của Nguyên đơn (nếu văn bản này là của Nguyên đơn)...",
+    "{Lời khai Bị đơn}": "Toàn văn lời khai của Bị đơn (nếu văn bản này là của Bị đơn)...",
+    "{Lời khai Người có quyền lợi, nghĩa vụ liên quan}": "Lời khai người liên quan (nếu có)...",
+    "{Nội dung vụ án}": "Tóm tắt diễn biến vụ án (nếu là bản án/báo cáo án)...",
+    "{Nội dung thỏa thuận}": "Nội dung thỏa thuận hòa giải thành...",
     "{Quan hệ hôn nhân}": "Thỏa thuận quan hệ hôn nhân...",
-    "{Thỏa thuận con chung}": "Thỏa thuận nuôi con chung...",
+    "{Thỏa thuận con chung}": "Thỏa thuận con chung...",
     "{Cấp dưỡng nuôi con}": "Thỏa thuận cấp dưỡng...",
     "{Tài sản chung}": "Thỏa thuận tài sản...",
     "{Nợ chung}": "Thỏa thuận nợ...",
     "{Thỏa thuận án phí}": "Thỏa thuận án phí...",
+    "{Biên lai tạm ứng án phí}": "Số tiền tạm ứng án phí... đã nộp theo Biên lai số... ngày...",
+    "{Số biên lai}": "Số biên lai thu tiền",
+    "{Ngày biên lai}": "Ngày xuất biên lai",
+    "{Cơ quan thu tiền}": "Chi cục THADS...",
     "{Hợp đồng tín dụng}": "Số hợp đồng, ngày ký...",
     "{Dư nợ tín dụng}": "Nợ gốc, nợ lãi...",
-    "{Vị trí tài sản tranh chấp}": "Thửa đất, tờ bản đồ, địa chỉ...",
+    "{Vị trí tài sản tranh chấp}": "Thửa đất, tờ bản đồ...",
     "{Tài sản tranh chấp}": "Mô tả tài sản...",
-    "{Di sản thừa kế}": "Danh mục di sản...",
-    "{Tài liệu kèm theo đơn khởi kiện}": "Danh mục tài liệu chứng cứ kèm đơn..."
+    "{Tài liệu kèm theo đơn khởi kiện}": "Danh mục tài liệu chứng cứ kèm đơn (KHÔNG chứa biên lai án phí)..."
   }
 }
 
@@ -537,7 +555,6 @@ ${partiesContext || "Chưa có đương sự nào"}`;
   if (parsedData.extracted && typeof parsedData.extracted === 'object') {
     extractedFields = parsedData.extracted;
   } else {
-    // Nếu AI trả về phẳng ở root, lọc bỏ các trường kỹ thuật
     extractedFields = Object.assign({}, parsedData);
     delete extractedFields.mode;
     delete extractedFields.isMismatch;
@@ -561,12 +578,38 @@ ${partiesContext || "Chưa có đương sự nào"}`;
     }
   }
 
-  // Tự động bảo lưu dữ liệu vào _case_memory.json trên Google Drive mà không xóa các biến cũ
+  // TỔNG HỢP ĐỘNG VÀ BẢO TOÀN TRẠM BỘ NHỚ TRÊN GOOGLE DRIVE (CHUYÊN ĐỀ 4)
   var currentMemory = {};
   if (folderUrl && typeof readCaseMemoryFromDrive === 'function') {
     currentMemory = readCaseMemoryFromDrive(folderUrl);
     currentMemory.variables = Object.assign({}, currentMemory.variables || {}, currentMemory.placeholders || {}, cleanVariables);
     currentMemory.narratives = Object.assign({}, currentMemory.narratives || {}, cleanNarratives);
+
+    // Tự động tổng hợp biến Mẹ {Lời khai đương sự} từ các biến con hiện có
+    var lkND = currentMemory.variables["{Lời khai Nguyên đơn}"] || currentMemory.variables["{Lời khai Người khởi kiện}"] || "";
+    var lkBD = currentMemory.variables["{Lời khai Bị đơn}"] || currentMemory.variables["{Lời khai Người bị kiện}"] || "";
+    var lkLQ = currentMemory.variables["{Lời khai Người có quyền lợi, nghĩa vụ liên quan}"] || "";
+
+    var synthesizedStatements = [];
+    if (lkND) synthesizedStatements.push("1. Lời khai của Nguyên đơn:\n" + lkND);
+    if (lkBD) synthesizedStatements.push("2. Lời khai của Bị đơn:\n" + lkBD);
+    if (lkLQ) synthesizedStatements.push("3. Lời khai của Người có quyền lợi, nghĩa vụ liên quan:\n" + lkLQ);
+
+    if (synthesizedStatements.length > 0) {
+      currentMemory.variables["{Lời khai đương sự}"] = synthesizedStatements.join("\n\n");
+      cleanVariables["{Lời khai đương sự}"] = currentMemory.variables["{Lời khai đương sự}"];
+    }
+
+    // Làm sạch tuyệt đối Biên lai thu tiền khỏi {Tài liệu kèm theo đơn khởi kiện}
+    if (currentMemory.variables["{Tài liệu kèm theo đơn khởi kiện}"]) {
+      var docsLines = currentMemory.variables["{Tài liệu kèm theo đơn khởi kiện}"].split('\n');
+      var cleanDocsLines = docsLines.filter(function(line) {
+        return !/biên lai|tạm ứng án phí|nộp tiền tạm ứng/i.test(line);
+      });
+      currentMemory.variables["{Tài liệu kèm theo đơn khởi kiện}"] = cleanDocsLines.join('\n').trim();
+      cleanVariables["{Tài liệu kèm theo đơn khởi kiện}"] = currentMemory.variables["{Tài liệu kèm theo đơn khởi kiện}"];
+    }
+
     if (typeof saveCaseMemoryToDrive === 'function') {
       saveCaseMemoryToDrive(folderUrl, currentMemory);
     }
@@ -633,10 +676,6 @@ TRẢ VỀ ĐỊNH DẠNG JSON:
 // 6. NHIỆM VỤ 4: ĐIỀU HÀNH TƯƠNG TÁC THỜI GIAN THỰC (TẦNG 2 - COPILOT)
 // =========================================================================
 
-/**
- * Trợ lý thẩm phán tương tác: nắm rõ toàn bộ hệ sinh thái phần mềm,
- * pháp luật tố tụng và chủ động điều khiển hệ thống qua cú pháp [ACTION:...].
- */
 function ai_ProcessAssistantChat(userMessage, contextData) {
   try {
     contextData = contextData || {};
@@ -673,7 +712,7 @@ function ai_ProcessAssistantChat(userMessage, contextData) {
     if (scope === "CASE" && contextData.caseInfo) {
       var c = contextData.caseInfo;
       var partiesDense = (contextData.caseParties || []).map(function(p) {
-        return `${p.tuCach}: ${p.xungHo || ''} ${p.hoTen} (SN: ${p.namSinh || '---'}, ĐC: ${p.diaChi || '---'}, SĐT: ${p.sdt || '---'}, CCCD: ${p.cccd || '---'})`;
+        return `${p.tuCach}: ${p.xungHo || ''} ${p.hoTen} (SN: ${p.namSinh || '---'}, ĐC: ${p.diaChi || '---'})`;
       }).join(';\n');
 
       var driveMemory = {};
@@ -713,17 +752,16 @@ QUY TẮC PHẢN HỒI:
 HÔM NAY LÀ: ${currentDateStr}.
 
 BẠN ĐƯỢC TÍCH HỢP TOÀN DIỆN VÀO HỆ THỐNG QUẢN TRỊ ÁN VÀ XỬ LÝ ĐƠN:
-1. Quản trị 8 bảng CSDL Google Sheets (Sổ nhận đơn, Sổ thụ lý, Đương sự, Lịch trình, Nhật ký, Cài đặt, Biểu mẫu, Placeholder).
-2. Quản lý cây thư mục Google Drive tự động cho từng vụ việc (Năm / Loại án / [Số TL - Đương sự]).
+1. Quản trị 8 bảng CSDL Google Sheets.
+2. Quản lý cây thư mục Google Drive tự động cho từng vụ việc.
 3. Quản lý Lịch công tác Tòa án và đồng bộ Google Calendar di động.
-4. Điều hành quy trình tiền tố tụng (tiếp nhận đơn, hòa giải đối thoại, sửa đổi bổ sung, trả lại đơn, chuyển thụ lý).
-5. Điều hành quy trình tố tụng (chuẩn bị xét xử, hòa giải, đối chất, thẩm định định giá, ra bản án/quyết định).
-6. Tính án phí, tạm ứng án phí NQ 326/2016/UBTVQH14 và thời hạn tố tụng 24h trọn vẹn.
+4. Điều hành quy trình tiền tố tụng và quy trình giải quyết vụ án.
+5. Tính án phí, tạm ứng án phí NQ 326/2016/UBTVQH14 và thời hạn tố tụng 24h trọn vẹn.
 
 ${systemActions}
 
 QUY TẮC PHẢN HỒI:
-- Tự xưng là "Trợ lý thẩm phán". Tuyệt đối không dùng các danh xưng khác.
+- Tự xưng là "Trợ lý thẩm phán".
 - Ngôn phong trang trọng, chuẩn mực tư pháp, ngắn gọn, súc tích.
 - Khi Thẩm phán hỏi về công việc, tiến độ hoặc tra cứu, luôn viện dẫn điều luật chuẩn xác và chèn ngay nút bấm [ACTION:...] để Thẩm phán thực hiện ngay.`;
     }
@@ -736,7 +774,7 @@ QUY TẮC PHẢN HỒI:
 }
 
 // =========================================================================
-// 7. NHIỆM VỤ 5: CẤY MÃ PLACEHOLDER VÀO PHÔI MẪU WORD (TẦNG 2 - COPILOT)
+// 7. NHIỆM VỤ 5: CẤY MÃ PLACEHOLDER THEO TẦM NHÌN VĨ MÔ (CHUYÊN ĐỀ 5)
 // =========================================================================
 
 function backend_CreateTemplateFromDoc(fileName, mimeType, base64Data, targetFileId, newFileName) {
@@ -757,38 +795,61 @@ function backend_CreateTemplateFromDoc(fileName, mimeType, base64Data, targetFil
     var body = doc.getBody();
     var textContent = body.getText();
 
-    var placeholderDefs = (typeof backend_GetAllPlaceholders === 'function') ? backend_GetAllPlaceholders() : [];
-    var listPlaceholdersText = placeholderDefs.map(function(p) { return `- ${p.name}: ${p.description}`; }).join("\n");
+    // SYSTEM PROMPT CẤY PLACEHOLDER THEO MẪU THỨC VĨ MÔ (CHUYÊN ĐỀ 5)
+    var systemPrompt = `BẠN LÀ CHUYÊN GIA KIẾN TRÚC VĂN BẢN TỐ TỤNG TÒA ÁN NHÂN DÂN VIỆT NAM.
+NHIỆM VỤ: Phân tích tệp văn bản mẫu Word cũ được cung cấp, tìm kiếm các thông tin cá biệt của vụ án cũ để thay thế bằng các mã {Placeholder} chuẩn hóa theo Hệ bản thể học vĩ mô.
 
-    var systemPrompt = `BẠN LÀ TRỢ LÝ THẨM PHÁN CHUYÊN VIÊN THIẾT KẾ BIỂU MẪU TỐ TỤNG TÒA ÁN NHÂN DÂN.
-Nhiệm vụ: Đọc toàn văn bản gốc và tìm các thông tin nhân thân cụ thể (tên người, năm sinh, địa chỉ, số CCCD, số tiền, ngày tháng, số thụ lý) để thay thế bằng mã {Placeholder} chuẩn:
-${listPlaceholdersText}
+QUY TẮC BẮT BUỘC VỀ TẦM NHÌN VĨ MÔ (MACRO-FIRST INDUCTION RULES):
+1. KHỐI ĐƯƠNG SỰ ĐẦU BẢN ÁN / QUYẾT ĐỊNH / BIÊN BẢN (Mẫu 17, 21, 25, 29, 31, 40, 45):
+   - Nếu thấy toàn bộ phần liệt kê nhân thân các bên (gồm Nguyên đơn, Bị đơn, Người liên quan cùng địa chỉ, người đại diện):
+     -> BẮT BUỘC thay thế cả khối đó bằng DUY NHẤT một mã: {Đương sự}.
+     -> TUYỆT ĐỐI CẤM bóc tách vụn vặt thành: "{Họ và tên Nguyên đơn 1}", "{Địa chỉ Nguyên đơn 1}", v.v.
 
-TRẢ VỀ ĐỊNH DẠNG JSON:
+2. KHỐI KÍNH GỬI THÔNG BÁO TỐ TỤNG (Mẫu 03, 18, 41, 53, 54):
+   - Nếu thấy danh sách liệt kê số thứ tự các bên nhận sau từ "Kính gửi:":
+     -> BẮT BUỘC thay thế bằng DUY NHẤT một mã: {Đương sự thông báo}.
+
+3. KHỐI THỎA THUẬN HÒA GIẢI THÀNH / QUYẾT ĐỊNH CÔNG NHẬN (Mẫu 22, 25, 44, 45, 58, 62):
+   - Nếu thấy mục ghi nhận các điều khoản thỏa thuận (quan hệ hôn nhân, con chung, cấp dưỡng, tài sản, nợ, án phí):
+     -> BẮT BUỘC thay thế bằng DUY NHẤT một mã: {Nội dung thỏa thuận} (hoặc {Nội dung hòa giải thành}).
+
+4. KHỐI NỘI DUNG VỤ ÁN TRONG BẢN ÁN (Mẫu 40, 60):
+   - Nếu thấy phần tóm tắt yêu cầu khởi kiện và diễn biến lời khai các bên:
+     -> BẮT BUỘC thay thế bằng: {Nội dung vụ án}.
+
+5. CÁC CÂU NỘI DÒNG THAM CHIẾU:
+   - "Theo đơn khởi kiện của ông/bà [Tên cụ thể]..." -> Thay bằng: "Theo đơn khởi kiện của {Nguyên đơn}..."
+   - "yêu cầu Tòa án giải quyết tranh chấp với ông/bà [Tên cụ thể]..." -> Thay bằng: "...với {Bị đơn}..."
+
+6. VĂN BẢN MỞ (CÔNG VĂN):
+   - Phần Kính gửi cơ quan tiếp nhận -> Thay bằng: {NGƯỜI NHẬN}
+   - Phần địa chỉ cơ quan tiếp nhận -> Thay bằng: {Địa chỉ người nhận}
+
+7. THAM SỐ HÀNH CHÍNH & TƯ PHÁP:
+   - Số hiệu thụ lý -> Thay bằng: {Số thụ lý}
+   - Ngày tháng -> Thay bằng: {ngày thụ lý} hoặc {ngày ban hành}
+   - Tên Thẩm phán chân chữ ký -> Thay bằng: {THẨM PHÁN}
+
+TRẢ VỀ ĐỊNH DẠNG JSON CHUẨN:
 {
-  "summary": "Tóm tắt loại biểu mẫu",
+  "templateType": "DECISION | JUDGMENT | NOTICE | MINUTES | SUMMONS | LETTER",
   "replacements": [
-    { "find": "chuỗi cụ thể trong văn bản", "replace": "{Mã_Placeholder_Chuẩn}" }
+    { "find": "chuỗi cụ thể trong văn bản gốc", "replace": "{Mã_Placeholder_Chuẩn}" }
   ]
 }`;
 
-    var rawResult = callGeminiByTier("COPILOT", systemPrompt, "VĂN BẢN GỐC CẦN CẤY PLACEHOLDER:\n" + textContent, [], 4096, true);
+    var rawResult = callGeminiByTier("COPILOT", systemPrompt, "VĂN BẢN GỐC CẦN CẤY PLACEHOLDER VĨ MÔ:\n" + textContent, [], 4096, true);
     var parsedAI = extractSafeJSON(rawResult);
     var mapping = parsedAI.replacements || [];
-    var validPlaceholderNames = new Set(placeholderDefs.map(function(p) { return p.name.toLowerCase(); }));
     var replacementCount = 0;
 
     function applyReplacementsToContainer(container) {
       if (!container) return;
       mapping.forEach(function(item) {
         if (item.find && item.replace) {
-          var cleanReplace = item.replace.trim();
-          if (cleanReplace.startsWith("{") && cleanReplace.endsWith("}")) {
-            if (!validPlaceholderNames.has(cleanReplace.toLowerCase())) return;
-          }
           try {
             var safeFind = String(item.find).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            var safeReplace = String(cleanReplace).replace(/\$/g, '$$$$');
+            var safeReplace = String(item.replace).replace(/\$/g, '$$$$');
             container.replaceText(safeFind, safeReplace);
             replacementCount++;
           } catch (errRep) {}
@@ -850,17 +911,18 @@ TRẢ VỀ ĐỊNH DẠNG JSON:
 
 function backend_AutoGenerateEmptyTemplate(templateId, templateName) {
   try {
-    var placeholderDefs = (typeof backend_GetAllPlaceholders === 'function') ? backend_GetAllPlaceholders() : [];
-    var listPlaceholdersText = placeholderDefs.map(function(p) { return `- ${p.name}: ${p.description}`; }).join("\n");
-
     var systemPrompt = `BẠN LÀ TRỢ LÝ THẨM PHÁN SOẠN THẢO VĂN BẢN TỐ TỤNG TÒA ÁN NHÂN DÂN.
-Nhiệm vụ: Soạn thảo toàn văn nội dung pháp lý cho biểu mẫu tố tụng: "${templateName}".
+Nhiệm vụ: Soạn thảo toàn văn nội dung pháp lý cho biểu mẫu tố tụng: "${templateName}" theo 64 biểu mẫu chuẩn TANDTC.
 
 YÊU CẦU BẮT BUỘC:
-1. KHÔNG VIẾT Quốc hiệu, Tiêu ngữ, Tên Tòa án và phần Chữ ký vì hệ thống đã in cố định.
-2. Cung cấp Tiêu đề (in hoa), Ký hiệu văn bản rút gọn và mảng các đoạn văn bản chuẩn mực theo Nghị quyết 01/2017/NQ-HĐTP.
-3. Lồng ghép chính xác các mã {Placeholder} chuẩn:
-${listPlaceholdersText}
+1. KHÔNG VIẾT Quốc hiệu, Tiêu ngữ, Tên Tòa án và phần Chữ ký vì hệ thống đã in cố định qua bảng Header/Footer.
+2. TÍCH HỢP CÁC PLACEHOLDER VĨ MÔ CHUẨN XÁC:
+   - Phần Kính gửi Thông báo tố tụng: dùng {Đương sự thông báo}.
+   - Phần đầu Quyết định / Bản án / Biên bản: dùng {Đương sự}.
+   - Phần hòa giải thành: dùng {Nội dung thỏa thuận}.
+   - Phần nội dung vụ án trong bản án: dùng {Nội dung vụ án}.
+   - Phần thông báo đơn: dùng {Những vấn đề cần sửa chữa bổ sung} và {Yêu cầu sửa đổi bổ sung}.
+   - Ký hiệu số: "{Số văn bản}/{Năm ban hành}/QĐST-{Loại án rút gọn}".
 
 TRẢ VỀ ĐỊNH DẠNG JSON:
 {
@@ -872,7 +934,6 @@ TRẢ VỀ ĐỊNH DẠNG JSON:
   ]
 }`;
 
-    // Gọi Tầng 3 (REASONING - gemini-3.6-flash, gemini-3.5-flash) cho soạn thảo văn bản
     var rawResult = callGeminiByTier("REASONING", systemPrompt, "Hãy soạn thảo nội dung biểu mẫu tố tụng: " + templateName, [], 8192, true);
     var parsedAI = extractSafeJSON(rawResult);
 

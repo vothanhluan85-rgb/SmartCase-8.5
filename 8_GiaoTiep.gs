@@ -3,12 +3,10 @@
  * HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.5 - MASTER API GATEWAY & ROUTER (PRODUCTION)
  * TỆP: 8_GiaoTiep.gs - ĐIỀU PHỐI ĐỊNH TUYẾN TOÀN DIỆN, BẢO VỆ CSDL & KHO MẪU
  * -------------------------------------------------------------------------
- * - ĐÃ TÁI CẤU TRÚC TOÀN DIỆN:
- *   1. ĐẤU NỐI ĐẦY ĐỦ CÁC CỔNG AI: Đơn, Thụ lý, Bóc tách chứng cứ, Quét Drive, Copilot.
- *   2. PHÒNG VỆ TRIỆT ĐỂ: Bọc try-catch và kiểm tra typeof an toàn cho 100% API.
- *   3. CẮT ĐỨT HOÀN TOÀN LỖI ĐỆ QUY TRÀN BỘ NHỚ (MAXIMUM CALL STACK EXCEEDED).
- *   4. BẢO VỆ DỮ LIỆU ĐƯƠNG SỰ: Đồng bộ mảng đương sự A4 nguyên vẹn xuống 2_DuongSu.
- *   5. XÁC THỰC GOOGLE & PHÂN QUYỀN THƯ KÝ: Thêm api_GetCurrentUserIdentity & api_SyncClerkPermissions.
+ * - ĐÃ CẬP NHẬT THEO CÁC CHUYÊN ĐỀ:
+ *   + Đấu nối cổng API bóc tách OCR Đơn khởi kiện: api_ParsePetitionScan.
+ *   + Bảo vệ 100% cổng API nghiệp vụ: Án, Đơn, Lịch trình, Merge Engine V3, Print Queue.
+ *   + Dọn dẹp khai báo trùng lặp, bảo đảm tính ổn định tuyệt đối của Gateway.
  * =========================================================================
  */
 
@@ -351,6 +349,19 @@ function api_ParseDocumentForCaseInfo(fileName, mimeType, base64Data) {
     return (typeof ai_ParseDocumentForCaseInfo === 'function') 
       ? ai_ParseDocumentForCaseInfo(fileName, mimeType, base64Data) 
       : { success: false, error: "Chưa cấu hình hàm bóc tách tài liệu." }; 
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+/**
+ * CỔNG BÓC TÁCH ĐƠN KHỞI KIỆN TỪ ẢNH / SCAN (OCR ĐƠN - MỤC 2 YÊU CẦU 28/10/2026)
+ */
+function api_ParsePetitionScan(fileName, mimeType, base64Data) {
+  try {
+    return (typeof ai_ParsePetitionScan === 'function')
+      ? ai_ParsePetitionScan(fileName, mimeType, base64Data)
+      : { success: false, error: "Chưa cấu hình hàm OCR Đơn khởi kiện." };
   } catch (e) {
     return { success: false, error: e.toString() };
   }
@@ -813,26 +824,6 @@ function api_AutoFixTemplatePlaceholders(fileId, fixes) {
 // 7. CÀI ĐẶT, XÁC THỰC GOOGLE & ĐỒNG BỘ TOÀN DIỆN (7_DongBo.gs & 1_CauHinh.gs)
 // =========================================================================
 
-function api_GetCurrentUserIdentity() {
-  try {
-    return (typeof auth_GetCurrentUserIdentity === 'function')
-      ? auth_GetCurrentUserIdentity()
-      : { success: false, error: "Hệ thống xác thực chưa được khởi tạo." };
-  } catch(e) {
-    return { success: false, error: e.toString() };
-  }
-}
-
-function api_SyncClerkPermissions() {
-  try {
-    return (typeof syncClerkPermissionsToDrive === 'function')
-      ? syncClerkPermissionsToDrive()
-      : { success: false, error: "Chưa cấu hình hàm đồng bộ quyền Thư ký." };
-  } catch(e) {
-    return { success: false, error: e.toString() };
-  }
-}
-
 function api_SaveAppSettings(settings) { 
   try {
     var res = updateConfigInSheet(settings); 
@@ -901,6 +892,7 @@ function include(filename) {
 function api_LuuHangDoiIn(payload) { return logic_LuuHangDoiIn(payload); }
 function api_LayDanhSachHangDoiIn() { return logic_LayDanhSachHangDoiIn(); }
 function api_XoaHangDoiIn(id) { return logic_XoaHangDoiIn(id); }
+
 // =========================================================================
 // 9. CỔNG API XÁC THỰC GOOGLE, PHÂN QUYỀN GMAIL & NHÂN BẢN DỰ ÁN
 // =========================================================================
@@ -947,13 +939,11 @@ function api_CheckSetupStatus() {
 
 function api_ExecuteFirstTimeSetup(payload) {
   try {
-    // Chỉ chủ tài khoản hoặc Thẩm phán mới có quyền chạy thiết lập ban đầu
     var auth = (typeof auth_GetCurrentUserIdentity === 'function') ? auth_GetCurrentUserIdentity() : {};
     if (auth.role === 'CLERK') {
       return { success: false, error: "Chỉ Thẩm phán mới có quyền thực hiện thiết lập hệ thống!" };
     }
 
-    // 1. Cập nhật thông tin Thẩm phán & Đơn vị Tòa án
     var settings = {
       "TEN_THAM_PHAN": payload.tenThamPhan || "",
       "EMAIL_THAM_PHAN": Session.getEffectiveUser().getEmail() || "",
@@ -969,13 +959,11 @@ function api_ExecuteFirstTimeSetup(payload) {
 
     updateConfigInSheet(settings);
 
-    // 2. Tự động khởi tạo cây 4 thư mục Drive và sao chép mẫu từ kho nguồn
     var folderRes = setup_AutoCreateFoldersAndCloneTemplates();
     if (!folderRes.success) {
       return { success: false, error: "Lỗi tạo thư mục: " + folderRes.error };
     }
 
-    // 3. Đồng bộ phân quyền chỉnh sửa Drive cho toàn bộ email Thư ký
     var shareRes = syncClerkPermissionsToDrive();
 
     return {

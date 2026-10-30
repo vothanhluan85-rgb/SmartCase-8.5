@@ -1,14 +1,16 @@
 <script>
 /**
  * =========================================================================
- * HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.0 - MASTER BUSINESS CONTROLLER (PRODUCTION)
+ * HỆ THỐNG TRỢ LÝ GIẢI QUYẾT ÁN V8.5 - MASTER BUSINESS CONTROLLER (PRODUCTION)
  * TỆP: JS_NghiepVu.html - ĐIỀU HÀNH NGHIỆP VỤ XỬ LÝ ÁN, SOẠN THẢO, A4 & OCR AI
  * -------------------------------------------------------------------------
- * - ĐÃ ĐỒNG BỘ: Cảnh báo thiếu thông tin soạn thảo văn bản Án nhẹ nhàng qua AppUI.confirm
- *   như phần Đơn, không còn ép buộc quét Drive hay kiểm tra cứng {Nội dung thỏa thuận}.
- * - TỰ ĐỘNG LẤP ĐẦY NĂM SINH, ĐỊA CHỈ, SĐT, CCCD VÀO a4State VÀ CSDL 2_DUONGSU.
- * - KẾT NỐI LIỀN MẠCH: LỊCH CÔNG TÁC ◄──► SOẠN THẢO VĂN BẢN ◄──► GOOGLE CALENDAR.
- * - TRẢI NGHIỆM SOẠN THẢO A4 IN-PLACE VÀ TRỘN THƯ MAIL MERGE V3 TOÀN NĂNG.
+ * - ĐÃ NÂNG CẤP THEO CÁC CHUYÊN ĐỀ (CHUẨN HÓA 28/10/2026):
+ *   + Triệt tiêu lỗi ghi đè lời khai: applyEvidenceDirectToCanvas bảo tồn lời khai
+ *     riêng rẽ và tự hợp nhất vào biến Mẹ {Lời khai đương sự}.
+ *   + Tách bạch Biên lai án phí khỏi Danh mục tài liệu chứng cứ.
+ *   + Nhận diện Công văn mở: Tự động bật/tắt ô nhập {Người nhận}.
+ *   + Thay thế cảnh báo tĩnh bằng Khay điền bù thích ứng tại chỗ (Just-In-Time Fill)
+ *     với khả năng đồng bộ ngược 2 chiều vĩnh viễn.
  * =========================================================================
  */
 
@@ -101,9 +103,6 @@ window.getProceduralRoleInfo = function(loaiAn, quanHe) {
 // 3. CỔNG XỬ LÝ TỆP TIN & TRÍCH XUẤT ĐƯƠNG SỰ / DỮ LIỆU ÁN (TRỢ LÝ THẨM PHÁN)
 // =========================================================================
 
-/**
- * HÀM 3.1: QUÉT ĐƠN KHỞI KIỆN / BÌA HỒ SƠ ĐỂ THỤ LÝ MỚI (HỖ TRỢ ĐA ĐƯƠNG SỰ)
- */
 window.scanDocumentForInfo = function(input) {
   if (!input.files || input.files.length === 0) return;
   var file = input.files[0];
@@ -139,7 +138,6 @@ window.scanDocumentForInfo = function(input) {
             if (el) el.innerHTML = ""; 
           });
 
-          // Nạp toàn bộ danh sách đương sự đa thành phần
           if (d.parties && Array.isArray(d.parties) && d.parties.length > 0) {
             var hasND = false, hasBD = false;
             d.parties.forEach(function(p) {
@@ -176,11 +174,6 @@ window.scanDocumentForInfo = function(input) {
   input.value = "";
 };
 
-/**
- * HÀM 3.2: QUÉT CHUYÊN TRÁCH ĐƯƠNG SỰ (PARTIES_ONLY)
- * - Chỉ đối soát nhân thân, căn cước, tách tên dính chùm, cập nhật đại diện.
- * - Tuyệt đối không can thiệp hay ghi đè lên Dữ liệu vụ án (Canvas).
- */
 window.handleScanPartiesOnly = function(input) {
   if (!input.files || input.files.length === 0) return;
   var file = input.files[0];
@@ -213,11 +206,6 @@ window.handleScanPartiesOnly = function(input) {
   input.value = "";
 };
 
-/**
- * HÀM 3.3: NẠP CHUYÊN TRÁCH DỮ LIỆU VỤ ÁN (EVIDENCE_ONLY)
- * - Bóc tách lời khai, hợp đồng tín dụng, tài sản tranh chấp, thỏa thuận hòa giải.
- * - Đổ trực tiếp vào Vùng dữ liệu án & lưu Drive, không bật popup duyệt đương sự.
- */
 window.handleUploadEvidenceOnly = function(input) {
   if (!input.files || input.files.length === 0) return;
   var file = input.files[0];
@@ -251,9 +239,6 @@ window.handleUploadEvidenceOnly = function(input) {
   input.value = "";
 };
 
-/**
- * HÀM 3.4: TRÍCH XUẤT TOÀN DIỆN TỪ TỆP TIN GOOGLE DRIVE (FULL)
- */
 window.extractDataFromSingleDriveFile = function(fileId, fileName) {
   var idVuAn = window.currentCaseId;
   if (!idVuAn || !fileId) return;
@@ -276,16 +261,12 @@ window.extractDataFromSingleDriveFile = function(fileId, fileName) {
     .api_ParseEvidenceDocument(idVuAn, fileName, "application/octet-stream", fileId, 'FULL');
 };
 
-/**
- * HÀM 3.5: ĐIỀU HƯỚNG PHÊ DUYỆT ĐƯƠNG SỰ & TÁCH TÊN DÍNH CHÙM
- */
 window.handleIngestedEvidenceResult = function(res, fileName) {
   var idVuAn = window.currentCaseId;
   if (!idVuAn || !res) return;
 
   window.currentPendingEvidence = res;
 
-  // Nếu là luồng chuyên trách dữ liệu án -> không hiển thị hộp thoại duyệt đương sự
   if (res.mode === 'EVIDENCE_ONLY') {
     window.applyEvidenceDirectToCanvas(res.extractedVariables, res.extractedNarratives);
     AppUI.showToast("Đã lưu dữ liệu vụ án thành công!", "success");
@@ -304,7 +285,6 @@ window.handleIngestedEvidenceResult = function(res, fileName) {
     return s === "" || s === "---" || s === "19xx" || s.includes("chưa có") || s.includes("nhập địa chỉ");
   }
 
-  // Đối soát thông tin cần bổ sung cho đương sự hiện có
   var existingPartyUpdates = [];
   updatedPartiesRaw.forEach(function(p) {
     var cleanTarget = window.cleanHonorificFromName(p.hoTen).toLowerCase().trim();
@@ -337,7 +317,6 @@ window.handleIngestedEvidenceResult = function(res, fileName) {
     });
   });
 
-  // Nếu không có thay đổi nào về đương sự
   if (existingPartyUpdates.length === 0 && newParties.length === 0 && replacedJoinedNames.length === 0 && !isMismatch) {
     if (res.mode === 'FULL') {
       window.applyEvidenceDirectToCanvas(res.extractedVariables, res.extractedNarratives);
@@ -348,7 +327,6 @@ window.handleIngestedEvidenceResult = function(res, fileName) {
     return;
   }
 
-  // Khởi dựng giao diện phê duyệt đương sự chuẩn mực tư pháp
   var existingRowsHtml = "";
   if (existingPartyUpdates.length > 0) {
     existingRowsHtml = `
@@ -498,9 +476,6 @@ window.handleIngestedEvidenceResult = function(res, fileName) {
   bootstrap.Modal.getOrCreateInstance(document.getElementById('modalReviewEvidenceUnified')).show();
 };
 
-/**
- * HÀM 3.6: THỰC THI ÁP DỤNG ĐƯƠNG SỰ VÀO A4 STATE & ĐỒNG BỘ CSDL
- */
 window.executeApplyEvidenceCanvas = function(mode, newPartiesToInsert, existingPartiesToUpdate, replacedJoinedNames) {
   var res = window.currentPendingEvidence;
   if (!res) return;
@@ -511,7 +486,6 @@ window.executeApplyEvidenceCanvas = function(mode, newPartiesToInsert, existingP
     return s === "" || s === "---" || s === "19xx" || s.includes("chưa có") || s.includes("nhập địa chỉ");
   }
 
-  // 1. Tách tên dính chùm: Xóa bỏ dòng gộp cũ nếu đã được tách thành người mới
   if (mode === 'FULL' && replacedJoinedNames && replacedJoinedNames.length > 0) {
     replacedJoinedNames.forEach(function(joinedName) {
       var cleanJoined = window.cleanHonorificFromName(joinedName).toLowerCase().trim();
@@ -524,7 +498,6 @@ window.executeApplyEvidenceCanvas = function(mode, newPartiesToInsert, existingP
     });
   }
 
-  // 2. Cập nhật thông tin và bổ sung người đại diện cho đương sự đã có
   if (mode === 'FULL' && existingPartiesToUpdate && existingPartiesToUpdate.length > 0) {
     existingPartiesToUpdate.forEach(function(item) {
       var raw = item.rawUpdate;
@@ -537,7 +510,6 @@ window.executeApplyEvidenceCanvas = function(mode, newPartiesToInsert, existingP
             if (raw.cccd && isBlankField(m.idCard)) m.idCard = raw.cccd;
             if (raw.xungHo && raw.xungHo !== "Ông/Bà" && (isBlankField(m.title) || m.title === "Ông/Bà")) m.title = raw.xungHo;
 
-            // Bổ sung người đại diện nếu có
             if (raw.daiDien && Array.isArray(raw.daiDien) && raw.daiDien.length > 0) {
               m.reps = m.reps || [];
               raw.daiDien.forEach(function(r) {
@@ -560,7 +532,6 @@ window.executeApplyEvidenceCanvas = function(mode, newPartiesToInsert, existingP
     });
   }
 
-  // 3. Thêm đương sự mới vào đúng nhóm tố tụng
   if (mode === 'FULL' && newPartiesToInsert && newPartiesToInsert.length > 0) {
     var loaiAn = window.currentCaseData && window.currentCaseData.info ? window.currentCaseData.info.loaiAn : "";
     var quanHe = window.currentCaseData && window.currentCaseData.info ? window.currentCaseData.info.quanHe : "";
@@ -615,13 +586,11 @@ window.executeApplyEvidenceCanvas = function(mode, newPartiesToInsert, existingP
     });
   }
 
-  // 4. Vẽ lại bảng A4 và tự động lưu vào bảng Google Sheets 2_DuongSu
   if (mode === 'FULL') {
     window.renderA4Editor();
     window.saveA4StateToServer();
   }
 
-  // 5. Nếu có nguyên liệu vụ án kèm theo (chế độ FULL), đổ tiếp vào Canvas
   if (res.extractedVariables && Object.keys(res.extractedVariables).length > 0 && res.mode === 'FULL') {
     window.applyEvidenceDirectToCanvas(res.extractedVariables, res.extractedNarratives);
   }
@@ -633,76 +602,106 @@ window.executeApplyEvidenceCanvas = function(mode, newPartiesToInsert, existingP
 };
 
 /**
- * HÀM 3.7: ÁP DỤNG TRỰC TIẾP DỮ LIỆU NGUYÊN LIỆU VÀO VÙNG DỮ LIỆU ÁN
+ * ÁP DỤNG TRỰC TIẾP DỮ LIỆU BÓC TÁCH VÀO VÙNG DỮ LIỆU ÁN (CHUYÊN ĐỀ 4)
+ * - Tách bạch rõ ràng Lời khai Nguyên đơn / Bị đơn -> Tự tổng hợp Lời khai đương sự
+ * - Tách biên lai án phí khỏi danh mục tài liệu chứng cứ
  */
 window.applyEvidenceDirectToCanvas = function(extractedVars, extractedNars) {
   extractedVars = extractedVars || {};
   extractedNars = extractedNars || {};
 
-  // 1. Kiểm tra dữ liệu thực tế từ AI
-  var hasRealData = false;
-  for (var k in extractedVars) {
-    var valStr = String(extractedVars[k] || "").trim();
-    if (valStr && valStr !== "---" && valStr !== "..." && valStr !== "undefined" && valStr !== "null") {
-      hasRealData = true;
-      break;
-    }
+  // 1. Phân loại và bảo vệ Biên lai thu tiền tạm ứng án phí
+  var bienLaiText = "";
+  if (extractedVars["{Biên lai tạm ứng án phí}"]) bienLaiText = extractedVars["{Biên lai tạm ứng án phí}"];
+  
+  if (extractedVars["{Tài liệu kèm theo đơn khởi kiện}"]) {
+    var lines = extractedVars["{Tài liệu kèm theo đơn khởi kiện}"].split('\n');
+    var cleanDocs = [];
+    lines.forEach(function(l) {
+      if (/biên lai|tạm ứng án phí|nộp tiền tạm ứng/i.test(l)) {
+        if (!bienLaiText) bienLaiText = l.replace(/^[-*•\d\.\s]+/, '').trim();
+      } else {
+        cleanDocs.push(l);
+      }
+    });
+    extractedVars["{Tài liệu kèm theo đơn khởi kiện}"] = cleanDocs.join('\n').trim();
+    if (bienLaiText) extractedVars["{Biên lai tạm ứng án phí}"] = bienLaiText;
   }
 
-  if (!hasRealData) {
-    if (typeof AppUI !== 'undefined') {
-      AppUI.alert("Thông báo", "Tài liệu này không chứa thông tin phù hợp hoặc bản scan không đủ rõ để nhận diện.");
-    }
-    return;
+  // 2. Bảo toàn và phân tầng Lời khai Đương sự
+  var existingLKNguoiKhoiKien = window.currentCaseVariables["{Lời khai Nguyên đơn}"] || window.currentCaseVariables["{Lời khai Người khởi kiện}"] || "";
+  var existingLKBiDon = window.currentCaseVariables["{Lời khai Bị đơn}"] || window.currentCaseVariables["{Lời khai Người bị kiện}"] || "";
+  var existingLKNguoiLienQuan = window.currentCaseVariables["{Lời khai Người có quyền lợi, nghĩa vụ liên quan}"] || "";
+
+  if (extractedVars["{Lời khai Nguyên đơn}"] || extractedVars["{Lời khai Người khởi kiện}"]) {
+    existingLKNguoiKhoiKien = extractedVars["{Lời khai Nguyên đơn}"] || extractedVars["{Lời khai Người khởi kiện}"];
+  }
+  if (extractedVars["{Lời khai Bị đơn}"] || extractedVars["{Lời khai Người bị kiện}"]) {
+    existingLKBiDon = extractedVars["{Lời khai Bị đơn}"] || extractedVars["{Lời khai Người bị kiện}"];
+  }
+  if (extractedVars["{Lời khai Người có quyền lợi, nghĩa vụ liên quan}"]) {
+    existingLKNguoiLienQuan = extractedVars["{Lời khai Người có quyền lợi, nghĩa vụ liên quan}"];
   }
 
-  // 2. Lấy thông tin loại án hiện tại để lọc bỏ các thẻ trái ngành
-  var loaiAn = window.currentCaseData && window.currentCaseData.info ? String(window.currentCaseData.info.loaiAn || "") : "";
-  var isHNGD = loaiAn.includes("Hôn nhân") || loaiAn.includes("3.");
+  var synthesizedStatements = [];
+  if (existingLKNguoiKhoiKien) synthesizedStatements.push("1. Lời khai của Nguyên đơn:\n" + existingLKNguoiKhoiKien);
+  if (existingLKBiDon) synthesizedStatements.push("2. Lời khai của Bị đơn:\n" + existingLKBiDon);
+  if (existingLKNguoiLienQuan) synthesizedStatements.push("3. Lời khai của Người có quyền lợi, nghĩa vụ liên quan:\n" + existingLKNguoiLienQuan);
 
-  // Nếu là án Hôn nhân gia đình: Dọn sạch các trường nhầm sang án Kinh doanh/Đất đai
-  if (isHNGD) {
-    if (extractedVars["{Dư nợ tín dụng}"] && !extractedVars["{Nợ chung}"]) {
-      extractedVars["{Nợ chung}"] = extractedVars["{Dư nợ tín dụng}"];
-    }
-    delete extractedVars["{Dư nợ tín dụng}"];
-    delete extractedVars["{Hợp đồng tín dụng}"];
-    delete extractedVars["{Vị trí tài sản tranh chấp}"];
-    delete extractedVars["{Tài sản tranh chấp}"];
-    delete extractedVars["{Di sản thừa kế}"];
-    delete extractedVars["{Tranh chấp lao động}"];
+  if (synthesizedStatements.length > 0) {
+    extractedVars["{Lời khai đương sự}"] = synthesizedStatements.join("\n\n");
+    extractedVars["{Lời khai Nguyên đơn}"] = existingLKNguoiKhoiKien;
+    extractedVars["{Lời khai Bị đơn}"] = existingLKBiDon;
+    if (existingLKNguoiLienQuan) extractedVars["{Lời khai Người có quyền lợi, nghĩa vụ liên quan}"] = existingLKNguoiLienQuan;
   }
 
-  // 3. KHÔNG GỘP CÁC THẺ CON VÀO {Nội dung vụ án} ĐỂ TRÁNH TRÙNG LẶP HỖN LOẠN
-  // Nếu AI trả về {Nội dung vụ án} chứa các tiêu đề [BIÊN LAI...], làm sạch ngay:
+  // 3. Khử rác Nội dung vụ án
   if (extractedVars["{Nội dung vụ án}"]) {
     var rawNd = extractedVars["{Nội dung vụ án}"];
     if (rawNd.includes("[BIÊN LAI") || rawNd.includes("[LỜI KHAI") || rawNd.includes("[THỎA THUẬN")) {
-      // Chỉ giữ lại đoạn tóm tắt diễn biến vụ án thực tế (nếu có)
       var mDienBien = rawNd.match(/\[TÓM TẮT DIỄN BIẾN VỤ ÁN\]:?\s*([\s\S]*?)$/i);
       extractedVars["{Nội dung vụ án}"] = mDienBien ? mDienBien[1].trim() : "";
     }
   }
 
-  // 4. Cập nhật biến vào bộ nhớ (GHI ĐÈ CHÍNH XÁC, TUYỆT ĐỐI KHÔNG NỐI CHUỖI NHÂN BẢN)
+  // 4. Lọc bỏ rác án HNGĐ
+  var loaiAn = window.currentCaseData && window.currentCaseData.info ? String(window.currentCaseData.info.loaiAn || "") : "";
+  var isHNGD = loaiAn.includes("Hôn nhân") || loaiAn.includes("3.");
+  if (isHNGD) {
+    if (extractedVars["{Dư nợ tín dụng}"] && !extractedVars["{Nợ chung}"]) {
+      extractedVars["{Nợ chung}"] = extractedVars["{Dư nợ tín dụng}"];
+    }
+    delete extractedVars["{Dư nợ tín dụng}"]; delete extractedVars["{Hợp đồng tín dụng}"];
+    delete extractedVars["{Vị trí tài sản tranh chấp}"]; delete extractedVars["{Tài sản tranh chấp}"];
+    delete extractedVars["{Di sản thừa kế}"]; delete extractedVars["{Tranh chấp lao động}"];
+  }
+
+  // Kiểm tra xem có dữ liệu không
+  var hasRealData = false;
+  for (var k in extractedVars) {
+    var valStr = String(extractedVars[k] || "").trim();
+    if (valStr && valStr !== "---" && valStr !== "..." && valStr !== "undefined" && valStr !== "null") {
+      hasRealData = true; break;
+    }
+  }
+  if (!hasRealData) {
+    if (typeof AppUI !== 'undefined') AppUI.alert("Thông báo", "Tài liệu này không chứa thông tin phù hợp hoặc bản scan không đủ rõ để nhận diện.");
+    return;
+  }
+
+  // 5. Ghi đè vào bộ nhớ
   window.currentCaseVariables = Object.assign({}, window.currentCaseVariables || {}, extractedVars);
   window.currentCaseNarratives = Object.assign({}, window.currentCaseNarratives || {}, extractedNars);
-
-  // 5. Vẽ lại giao diện các thẻ ngay lập tức
+  
   if (typeof window.renderAllSavedVariableCards === 'function') {
     window.renderAllSavedVariableCards(window.currentCaseVariables, loaiAn, window.currentCaseNarratives);
   }
-
-  // 6. Lưu thẳng vào Google Drive
   if (typeof window.saveCaseVariables === 'function') {
     window.saveCaseVariables(true);
   }
-
-  AppUI.showToast("Đã bóc tách và phân loại dữ liệu ngăn nắp!", "success");
+  if (typeof AppUI !== 'undefined') AppUI.showToast("Đã phân loại và bảo toàn dữ liệu thành công!", "success");
 };
-/**
- * HÀM 3.8: TƯƠNG THÍCH NGƯỢC CÁC HÀM NẠP TỆP TIN CŨ
- */
+
 window.handleUploadDetailFile = function(input) {
   window.handleUploadEvidenceOnly(input);
 };
@@ -728,9 +727,6 @@ window.mergeAndShowReviewParties = function(partiesData) {
   window.handleIngestedEvidenceResult(pseudoRes, "Văn bản đương sự");
 };
 
-/**
- * HÀM 3.9: QUÉT DRIVE VỤ ÁN TRONG TRÌNH SOẠN THẢO VĂN BẢN
- */
 window.scanDriveFileDirectForDraft = function() {
   var idVuAn = document.getElementById('draft-selected-case-id').value;
   if (!idVuAn) return AppUI.alert("Nhắc nhở", "Vui lòng chọn hồ sơ vụ án trước khi quét Drive!");
@@ -755,9 +751,6 @@ window.scanDriveFileDirectForDraft = function() {
     .api_ScanCaseDriveSmartMilestone(idVuAn);
 };
 
-/**
- * HÀM 3.10: TẢI TỆP TRỰC TIẾP TRONG TRÌNH SOẠN THẢO VĂN BẢN
- */
 window.handleDraftDirectUpload = function(input) {
   if (!input.files || input.files.length === 0) return;
   var file = input.files[0];
@@ -786,6 +779,7 @@ window.handleDraftDirectUpload = function(input) {
   });
   input.value = "";
 };
+
 // =========================================================================
 // 4. MỞ CHI TIẾT VỤ ÁN, DRIVE & DÒNG THỜI GIAN
 // =========================================================================
@@ -1095,6 +1089,7 @@ window.deleteTimelineEvent = function(idLich) {
       .api_XoaLichCongTac(idLich);
   });
 };
+
 // =========================================================================
 // 5. TRÌNH SOẠN THẢO TRANG PHẲNG A4 ĐƯƠNG SỰ
 // =========================================================================
@@ -1783,7 +1778,7 @@ window.saveTaskAndDraft = function() {
 };
 
 // =========================================================================
-// 7. TRUNG TÂM XUẤT VĂN BẢN V3 & CẢNH BÁO THIẾU THÔNG TIN CHUẨN GỌN
+// 7. TRUNG TÂM XUẤT VĂN BẢN V3 & CẢNH BÁO ĐIỀU CHỈNH TẠI CHỖ (CHUYÊN ĐỀ 1)
 // =========================================================================
 
 function checkTemplateMatchesResolution(tplName, resLoai) {
@@ -1819,6 +1814,20 @@ function formatToDateInput(dateStr) {
   }
   return "";
 }
+
+window.detectPublicLetterRequirement = function(selectedTemplateIds) {
+  var needsRecipient = false;
+  selectedTemplateIds.forEach(function(tId) {
+    var tplObj = (window.currentLoadedTemplates || []).find(function(t) { return t.id === tId; });
+    if (tplObj) {
+      var name = tplObj.name.toLowerCase();
+      if (name.includes("công văn") || name.includes("phiếu chuyển") || name.includes("yêu cầu cung cấp") || name.includes("giấy mời") || name.includes("xác minh")) {
+        needsRecipient = true;
+      }
+    }
+  });
+  return needsRecipient;
+};
 
 window.populateSecretaryDropdown = function() {
   var selectEl = document.getElementById('ext_select_thuky');
@@ -1886,6 +1895,13 @@ window.updateDraftBatchSummary = function() {
   var tplCount = tplChecked.length;
   var dsCount = dsChecked.length;
 
+  var tplIds = Array.from(tplChecked).map(function(cb) { return cb.value; });
+  var isPublicLetter = window.detectPublicLetterRequirement(tplIds);
+  var box1 = document.getElementById('ext_nguoinhan_box');
+  var box2 = document.getElementById('ext_diachinhan_box');
+  if (box1) box1.style.display = isPublicLetter ? 'block' : 'none';
+  if (box2) box2.style.display = isPublicLetter ? 'block' : 'none';
+
   if (soInput && window.caseExistingResolution && window.caseExistingResolution.so) {
     var resLoai = String(window.caseExistingResolution.loai || "").trim();
     var resSo = String(window.caseExistingResolution.so || "").trim();
@@ -1935,11 +1951,13 @@ window.openDraftingModal = function(targetId, prefillOptions) {
 
   document.getElementById('ext_ngayBanHanh').valueAsDate = new Date();
   document.getElementById('ext_soPhatHanh').value = "";
+  if (document.getElementById('ext_nguoiNhan')) document.getElementById('ext_nguoiNhan').value = "";
+  if (document.getElementById('ext_diaChiNhan')) document.getElementById('ext_diaChiNhan').value = "";
+  
   window.caseExistingResolution = null;
-
   window.populateSecretaryDropdown();
 
-  var caseObj = idAn ? (window.G_Cases || []).find(function(c) { return c.id === idAn; }) : null;
+  var caseObj = idAn ? (window.G_Cases || window.G_An || []).find(function(c) { return c.id === idAn; }) : null;
   var autoKeywords = prefillOptions ? (prefillOptions.autoSelectKeywordsArray || []) : [];
 
   var kqRaw = "";
@@ -2088,7 +2106,7 @@ window.loadPartiesForDrafting = function(idAn) {
     }
   }
 
-  var anFromRAM = (window.G_Cases || []).find(c => c.id === idAn);
+  var anFromRAM = (window.G_Cases || window.G_An || []).find(c => c.id === idAn);
   if (anFromRAM && anFromRAM.chiTietDuongSu && anFromRAM.chiTietDuongSu.length > 0) {
     dsContainer.innerHTML = anFromRAM.chiTietDuongSu.map(function(d, idx) {
       return '<div class="form-check mb-2">' +
@@ -2108,164 +2126,9 @@ window.loadPartiesForDrafting = function(idAn) {
 };
 
 window.proceedDraftingIgnoreWarning = function() {
-  window.forceCleanupModals();
+  var mWarn = bootstrap.Modal.getInstance(document.getElementById('modalPreflightWarning'));
+  if (mWarn) mWarn.hide();
   window.doActualMailMergePostflight();
-};
-
-window.doActualMailMergePostflight = function() {
-  var payload = window.pendingMergePayload;
-  if (!payload) return;
-
-  isMergingDocument = true;
-  window.forceCleanupModals();
-
-  var taskId = "task_merge_an_" + new Date().getTime();
-  var anInfo = (window.G_Cases || window.G_An || []).find(function(c) { return c.id === payload.idVuAn; }) || {};
-  var caseName = anInfo.soTL || "Hồ sơ vụ án";
-  AppUI.addBackgroundTask(taskId, "Văn bản: " + caseName);
-
-  setTimeout(function() {
-    google.script.run
-      .withSuccessHandler(function(res) {
-        isMergingDocument = false;
-        if (res && res.success) {
-          
-          // 1. Tự động ghi Lịch công tác nếu có mốc làm việc
-          if (payload.trieuTapDate && payload.trieuTapTime) {
-            var evTitle = payload.autoEventTitle || `[${anInfo.soTL || ''}] Triệu tập làm việc: ${payload.noiDungThem || ''}`;
-            google.script.run.api_LuuLichMoi_Logic({
-              idVuAn: payload.idVuAn,
-              soTL: anInfo.soTL,
-              ngay: payload.trieuTapDate,
-              gio: payload.trieuTapTime,
-              noiDung: evTitle,
-              ghiChu: payload.diaDiemLamViec || "Trụ sở Tòa án"
-            });
-          }
-
-          // 2. Tự động đặt lịch nhắc hạn 24h (Ngày thứ 8 / thứ 16)
-          if (payload.reminderDays > 0) {
-            google.script.run.api_LuuLichNhacNho_Logic({
-              idVuAn: payload.idVuAn,
-              ngayBatDau: payload.ngayBanHanh,
-              days: payload.reminderDays,
-              noiDung: payload.reminderText
-            });
-          }
-
-          // 3. Tự động cập nhật Kết quả giải quyết nếu ban hành phán quyết
-          if (payload.isFormalPromulgation) {
-            var payloadRes = {
-              idVuAn: payload.idVuAn,
-              resultType: payload.changerType,
-              resultNo: payload.soPhatHanh,
-              resultDate: payload.ngayBanHanh
-            };
-            google.script.run.withSuccessHandler(function(resUpdate) {
-              var an = (window.G_Cases || window.G_An || []).find(function(c) { return c.id === payload.idVuAn; });
-              var pParts = String(payload.ngayBanHanh || "").split('-');
-              var dateVnFormat = pParts.length === 3 ? (pParts[2] + "/" + pParts[1] + "/" + pParts[0]) : payload.ngayBanHanh;
-              var abbrType = window.standardizeResolutionAbbr(payload.changerType);
-              var isProcedural = payload.changerType.toLowerCase().includes("tạm đình chỉ") || payload.changerType.toLowerCase().includes("gia hạn") || payload.changerType.toLowerCase().includes("tiếp tục");
-              var resStr = isProcedural ? "" : (abbrType + "\n" + payload.soPhatHanh + "\n" + dateVnFormat);
-
-              if (an) {
-                an.ketQuaGiaiQuyet = resStr;
-                if (payload.changerType.toLowerCase().includes("tạm đình chỉ")) an.trangThai = "Tạm đình chỉ";
-                else if (payload.changerType.toLowerCase().includes("gia hạn") || payload.changerType.toLowerCase().includes("tiếp tục")) an.trangThai = "Đang giải quyết";
-                else an.trangThai = "Đã giải quyết";
-                if (resUpdate && resUpdate.hanGQ) an.hanGQ = resUpdate.hanGQ;
-                if (typeof calculateLiveStatus === 'function') calculateLiveStatus(an);
-              }
-              if (window.currentCaseData && window.currentCaseData.info && window.currentCaseData.info.id === payload.idVuAn) {
-                window.currentCaseData.info.ketQuaGiaiQuyet = resStr;
-                window.currentCaseData.info.trangThai = an ? an.trangThai : "Đã giải quyết";
-                if (resUpdate && resUpdate.hanGQ) window.currentCaseData.info.hanGQ = resUpdate.hanGQ;
-              }
-              if (typeof window.runFilterEngine === 'function') window.runFilterEngine();
-            }).api_UpdateCaseResolution(payloadRes);
-          }
-
-          // 4. Danh sách văn bản kèm nút Chờ in ấn (SmartCase Hub) & Tải file Docx
-          var linksHtml = (res.files || []).map(function(f, idx) {
-            var rawName = (f.name || '').replace(/\.(docx|doc|gdoc)$/i, '').trim();
-            rawName = rawName.replace(/\s*-\s*[\w\d\/]+(\s*-\s*\d{1,2}\.\d{1,2}\.\d{2,4})?$/i, '').trim();
-            var dashIdx = rawName.indexOf(' - ');
-            var shortTitle = (dashIdx !== -1) ? rawName.substring(0, dashIdx).trim() : rawName;
-
-            var fId = f.id || (f.url ? (f.url.match(/\/d\/([-\w]+)/) || [])[1] : '') || ('file_' + idx);
-            var safeShortTitle = shortTitle.replace(/'/g, "\\'");
-            var safeSoTL = (anInfo.soTL || '').replace(/'/g, "\\'");
-
-            var docxBtn = f.docxUrl 
-              ? '<a href="' + f.docxUrl + '" target="_blank" class="btn btn-sm btn-action-outline p-0 d-inline-flex align-items-center justify-content-center" style="width: 22px; height: 22px; border-radius: 4px;" title="Tải file Word (.docx)"><i class="fas fa-download text-secondary" style="font-size: 10px;"></i></a>' 
-              : '';
-            
-            // Nút Chờ in ấn chuẩn SmartCase Hub
-            var btnPrintQueue = `<button type="button" id="btn_pq_${fId}" class="btn btn-sm btn-action-tonal p-0 d-inline-flex align-items-center justify-content-center" style="width: 22px; height: 22px; border-radius: 4px;" title="Đưa vào hàng đợi chờ in (SmartCase Hub)" onclick="window.addToPrintQueue(this, '${safeSoTL}', '${payload.idVuAn || ''}', '${safeShortTitle}', '${f.url}', '${f.docxUrl || ''}')"><i class="fas fa-print text-primary" style="font-size: 11px;"></i></button>`;
-
-            return '<div style="display: flex; align-items: center; justify-content: space-between; padding: 4px 8px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 4px; gap: 6px;">' +
-                   '<a href="' + f.url + '" target="_blank" style="font-size: 11.5px; font-weight: 600; color: #0f172a; text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1;" title="' + f.name + '">' +
-                   '<i class="far fa-file-word text-primary me-2"></i>' + shortTitle + '</a>' +
-                   '<div class="d-flex gap-1 flex-shrink-0">' + btnPrintQueue + docxBtn + '</div>' +
-                   '</div>';
-          }).join('');
-
-          AppUI.completeBackgroundTask(taskId, true, linksHtml);
-
-          setTimeout(function() {
-            if (document.getElementById('view-detail') && document.getElementById('view-detail').style.display === 'block') {
-              window.moChiTiet(payload.idVuAn);
-            }
-          }, 1500);
-
-        } else {
-          AppUI.completeBackgroundTask(taskId, false, res ? res.error : "Lỗi không xác định khi xuất file");
-        }
-      })
-      .withFailureHandler(function(err) {
-        isMergingDocument = false;
-        AppUI.completeBackgroundTask(taskId, false, err.message);
-      })
-      .api_RunMailMergeV3_Logic(payload);
-  }, 50);
-};
-
-/**
- * ĐƯA VĂN BẢN VÀO HÀNG ĐỢI IN ẤN CỦA SMARTCASE HUB
- */
-window.addToPrintQueue = function(btnEl, soTL, idVuAn, tenVanBan, linkDocs, linkDocx) {
-  if (!btnEl) return;
-  var icon = btnEl.querySelector('i');
-  if (icon) icon.className = 'fas fa-spinner fa-spin text-primary';
-  btnEl.disabled = true;
-
-  google.script.run
-    .withSuccessHandler(function(res) {
-      if (res && res.success) {
-        btnEl.className = 'btn btn-sm btn-action-success p-0 d-inline-flex align-items-center justify-content-center';
-        if (icon) icon.className = 'fas fa-check text-success';
-        btnEl.title = 'Đã có trong hàng đợi in ấn (SmartCase Hub)';
-        if (typeof AppUI !== 'undefined') AppUI.showToast("Đã đưa văn bản vào hàng đợi in!", "success");
-        if (typeof window.loadHubData === 'function') window.loadHubData();
-      } else {
-        if (icon) icon.className = 'fas fa-print text-primary';
-        btnEl.disabled = false;
-        if (typeof AppUI !== 'undefined') AppUI.showToast("Lỗi đưa vào hàng đợi: " + (res ? res.error : ""), "error");
-      }
-    })
-    .withFailureHandler(function(err) {
-      if (icon) icon.className = 'fas fa-print text-primary';
-      btnEl.disabled = false;
-      if (typeof AppUI !== 'undefined') AppUI.showToast("Lỗi kết nối máy chủ: " + err.message, "error");
-    })
-    .api_LuuHangDoiIn({
-      idVuAn: idVuAn,
-      soTL: soTL,
-      tenVanBan: tenVanBan,
-      linkDocs: linkDocs,
-      linkDocx: linkDocx
-    });
 };
 
 function analyzeTemplateRequirements(selectedTpls) {
@@ -2292,6 +2155,152 @@ function analyzeTemplateRequirements(selectedTpls) {
   return requirements;
 }
 
+window.renderInteractivePreflightForm = function(missingTags, parties, isMissingTime, isMissingNguoiNhan) {
+  var formContainer = document.getElementById('preflight_interactive_form');
+  if (!formContainer) return;
+  var html = [];
+
+  if (isMissingTime) {
+    html.push(`
+      <div class="p-2.5 bg-white border rounded-3 shadow-sm preflight-field-row" data-type="sys-time">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <span class="small fw-bold text-dark"><i class="fas fa-calendar-alt text-primary me-1"></i> Lịch làm việc / Triệu tập</span>
+          <span class="badge bg-danger-subtle text-danger">Chưa nhập</span>
+        </div>
+        <div class="d-flex gap-2">
+          <input type="time" class="form-control form-control-sm in-preflight-time fw-bold" value="08:00" style="width: 40%;">
+          <input type="date" class="form-control form-control-sm in-preflight-date fw-bold" style="width: 60%;">
+        </div>
+      </div>
+    `);
+  }
+
+  if (isMissingNguoiNhan) {
+    html.push(`
+      <div class="p-2.5 bg-white border rounded-3 shadow-sm preflight-field-row" data-type="sys-recipient">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <span class="small fw-bold text-dark"><i class="fas fa-building text-primary me-1"></i> Cơ quan / Người nhận văn bản</span>
+          <span class="badge bg-danger-subtle text-danger">Chưa nhập</span>
+        </div>
+        <input type="text" class="form-control form-control-sm in-preflight-recipient fw-bold mb-1" list="dl_coquan_nhan" placeholder="Tên cơ quan (VD: UBND huyện Đơn Dương...)">
+        <input type="text" class="form-control form-control-sm in-preflight-recipient-addr" placeholder="Địa chỉ cơ quan nhận...">
+      </div>
+    `);
+  }
+
+  (parties || []).forEach(function(p, idx) {
+    if (p.xungHo !== "Tổ chức" && p.xungHo !== "Pháp nhân" && p.xungHo !== "Công ty" && (!p.namSinh || String(p.namSinh).trim() === "")) {
+      html.push(`
+        <div class="p-2.5 bg-white border rounded-3 shadow-sm preflight-field-row" data-type="party-dob" data-idx="${idx}">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="small fw-bold text-dark"><i class="fas fa-user text-secondary me-1"></i> Năm sinh của ${p.tuCach}: <b class="text-primary">${p.hoTen}</b></span>
+            <span class="badge bg-danger-subtle text-danger">Chưa có</span>
+          </div>
+          <input type="text" class="form-control form-control-sm in-preflight-dob fw-bold" placeholder="Ví dụ: 1985">
+        </div>
+      `);
+    }
+  });
+
+  (missingTags || []).forEach(function(tag) {
+    var fieldTitle = tag.replace(/[{}]/g, '');
+    var isTextArea = tag.includes("Nội dung") || tag.includes("Lời khai") || tag.includes("Thỏa thuận");
+
+    var quickBtn = "";
+    if (tag === "{Thỏa thuận án phí}") {
+       quickBtn = `<button class="btn btn-sm btn-outline-success py-1 mt-1 w-100" type="button" onclick="window.quickGenerateHNGDFee(this)"><i class="fas fa-magic me-1"></i>Tạo nhanh mẫu Án phí 300k (HNGĐ)</button>`;
+    }
+
+    html.push(`
+      <div class="p-2.5 bg-white border rounded-3 shadow-sm preflight-field-row" data-type="variable" data-tag="${tag}">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <span class="small fw-bold text-dark"><i class="fas fa-file-lines text-warning me-1"></i> ${fieldTitle}</span>
+          <code class="text-muted" style="font-size: 10px;">${tag}</code>
+        </div>
+        ${isTextArea 
+          ? `<textarea class="form-control form-control-sm in-preflight-val" rows="3" placeholder="Nhập nội dung cho ${tag}..."></textarea>`
+          : `<input type="text" class="form-control form-control-sm in-preflight-val fw-bold" placeholder="Nhập giá trị cho ${tag}...">`
+        }
+        ${quickBtn}
+      </div>
+    `);
+  });
+
+  formContainer.innerHTML = html.join('');
+};
+
+window.quickGenerateHNGDFee = function(btn) {
+  var ta = btn.previousElementSibling;
+  if (ta) {
+    ta.value = "Thỏa thuận chịu 300.000 đồng (Ba trăm nghìn đồng) án phí hôn nhân và gia đình sơ thẩm; được trừ vào số tiền 300.000 đồng (Ba trăm nghìn đồng) tạm ứng án phí đã nộp theo biên lai. Đã nộp đủ án phí.";
+  }
+};
+
+window.saveAndProceedDraftingWithFilledData = function() {
+  var rows = document.querySelectorAll('.preflight-field-row');
+  var updatedVars = {};
+  var updatedParties = window.pendingMergePayload ? window.pendingMergePayload.partiesOverride : [];
+  var isSyncDb = document.getElementById('preflight_sync_db_checkbox') ? document.getElementById('preflight_sync_db_checkbox').checked : true;
+
+  rows.forEach(function(r) {
+    var type = r.getAttribute('data-type');
+    if (type === 'party-dob') {
+      var idx = parseInt(r.getAttribute('data-idx'), 10);
+      var dobVal = r.querySelector('.in-preflight-dob').value.trim();
+      if (dobVal && updatedParties[idx]) {
+        updatedParties[idx].namSinh = dobVal;
+        if (window.a4State) {
+          window.a4State.forEach(function(g) {
+             g.members.forEach(function(m) {
+                if (window.cleanHonorificFromName(m.name).toLowerCase() === window.cleanHonorificFromName(updatedParties[idx].hoTen).toLowerCase()) {
+                   m.year = dobVal;
+                }
+             });
+          });
+        }
+      }
+    } else if (type === 'variable') {
+      var tag = r.getAttribute('data-tag');
+      var val = r.querySelector('.in-preflight-val').value.trim();
+      if (val) {
+        updatedVars[tag] = val;
+      }
+    } else if (type === 'sys-time') {
+      var d = r.querySelector('.in-preflight-date').value;
+      var t = r.querySelector('.in-preflight-time').value;
+      if (d && window.pendingMergePayload) {
+        window.pendingMergePayload.trieuTapDate = d;
+        window.pendingMergePayload.trieuTapTime = t || "08:00";
+      }
+    } else if (type === 'sys-recipient') {
+      var rec = r.querySelector('.in-preflight-recipient').value.trim();
+      var addr = r.querySelector('.in-preflight-recipient-addr').value.trim();
+      if (rec) updatedVars["{Người nhận}"] = rec;
+      if (addr) updatedVars["{Địa chỉ người nhận}"] = addr;
+    }
+  });
+
+  if (isSyncDb) {
+     if (Object.keys(updatedVars).length > 0) {
+       window.currentCaseVariables = Object.assign({}, window.currentCaseVariables || {}, updatedVars);
+       if (typeof window.saveCaseVariables === 'function') {
+         window.saveCaseVariables(true);
+       }
+     }
+     window.saveA4StateToServer(true);
+  }
+
+  if (window.pendingMergePayload) {
+    window.pendingMergePayload.partiesOverride = updatedParties;
+    window.pendingMergePayload.customVariables = Object.assign({}, window.pendingMergePayload.customVariables || {}, updatedVars);
+  }
+
+  var mWarn = bootstrap.Modal.getInstance(document.getElementById('modalPreflightWarning'));
+  if (mWarn) mWarn.hide();
+
+  window.doActualMailMergePostflight();
+};
+
 window.executeMailMergeV3 = function() {
   if (isMergingDocument) return;
 
@@ -2313,6 +2322,9 @@ window.executeMailMergeV3 = function() {
   var noiDungThem = document.getElementById('ext_noiDung').value.trim() || "Làm rõ một số vấn đề liên quan đến vụ án";
   var extXhThuKy = document.getElementById('ext_xhThuKy') ? document.getElementById('ext_xhThuKy').value : "";
   var extTenThuKy = document.getElementById('ext_tenThuKy') ? document.getElementById('ext_tenThuKy').value : "";
+  
+  var valNguoiNhan = document.getElementById('ext_nguoiNhan') ? document.getElementById('ext_nguoiNhan').value.trim() : "";
+  var valDiaChiNhan = document.getElementById('ext_diaChiNhan') ? document.getElementById('ext_diaChiNhan').value.trim() : "";
 
   var reminderDays = 0, reminderText = "";
   var isStatusChanger = false, changerType = "";
@@ -2350,13 +2362,19 @@ window.executeMailMergeV3 = function() {
   });
 
   var isFormalPromulgation = isStatusChanger && Boolean(soPhatHanh);
-
   var currentA4Parties = [];
+  
   if (window.currentCaseData && window.currentCaseData.info && window.currentCaseData.info.id === idAn) {
     currentA4Parties = window.getA4StateAsPartiesArray();
   } else {
     var anFromRAM = (window.G_Cases || window.G_An || []).find(c => c.id === idAn);
     if (anFromRAM && anFromRAM.chiTietDuongSu) currentA4Parties = anFromRAM.chiTietDuongSu;
+  }
+
+  // Tự động gán Cơ quan/Người nhận vào biến chung
+  if (window.detectPublicLetterRequirement(selectedTpls.map(function(t) { return t.value; }))) {
+     window.currentCaseVariables["{Người nhận}"] = valNguoiNhan;
+     window.currentCaseVariables["{Địa chỉ người nhận}"] = valDiaChiNhan;
   }
 
   if (window.compileDynamicVariables && window.currentCaseVariables) {
@@ -2386,38 +2404,169 @@ window.executeMailMergeV3 = function() {
     isFormalPromulgation: isFormalPromulgation
   };
 
-  // CƠ CHẾ CẢNH BÁO THIẾU THÔNG TIN NHẸ NHÀNG, GỌN GÀNG Y HỆT NHƯ PHẦN ĐƠN (QUA AppUI.confirm)
+  // CƠ CHẾ CẢNH BÁO ĐIỀN BÙ THÍCH ỨNG TẠI CHỖ (JUST-IN-TIME IN-PLACE FILL)
   var req = analyzeTemplateRequirements(selectedTpls);
-  var warnings = [];
+  var missingTags = [];
+  var isMissingTime = false;
+  var isMissingNguoiNhan = false;
 
   if (req.needsSchedule && (!extNgay || !extGio)) {
-    warnings.push("- Chưa nhập Ngày hoặc Giờ triệu tập / làm việc.");
+    isMissingTime = true;
+  }
+
+  var isPublicLetter = window.detectPublicLetterRequirement(selectedTpls.map(function(t) { return t.value; }));
+  if (isPublicLetter && !valNguoiNhan) {
+     isMissingNguoiNhan = true;
   }
 
   var missingDob = false;
   (currentA4Parties || []).forEach(function(p) {
-    if (p.xungHo !== "Tổ chức" && (!p.namSinh || String(p.namSinh).trim() === "")) {
+    if (p.xungHo !== "Tổ chức" && p.xungHo !== "Pháp nhân" && p.xungHo !== "Công ty" && (!p.namSinh || String(p.namSinh).trim() === "")) {
       missingDob = true;
     }
   });
-  if (missingDob) {
-    warnings.push("- Có đương sự cá nhân chưa điền Năm sinh.");
-  }
 
-  if (warnings.length > 0) {
-    var warningMsg = "CẢNH BÁO THIẾU THÔNG TIN:\n" + warnings.join("\n") + "\n\nBạn có muốn tiếp tục xuất văn bản không?";
-    if (typeof AppUI !== 'undefined') {
-      AppUI.confirm("Thiếu thông tin", warningMsg, "warning", function() {
-        window.doActualMailMergePostflight();
-      });
-    } else {
-      if (confirm(warningMsg)) {
-        window.doActualMailMergePostflight();
-      }
+  selectedTpls.forEach(function(t) {
+    var name = t.getAttribute('data-name').toLowerCase();
+    if ((name.includes("thỏa thuận") || name.includes("ly hôn") || name.includes("hòa giải") || name.includes("đối thoại")) && (!window.currentCaseVariables["{Nội dung thỏa thuận}"] && !window.currentCaseVariables["{Nội dung hòa giải thành}"])) {
+       if(!missingTags.includes("{Nội dung thỏa thuận}")) missingTags.push("{Nội dung thỏa thuận}");
     }
+    if ((name.includes("công nhận") || name.includes("ly hôn") || name.includes("thỏa thuận")) && !window.currentCaseVariables["{Thỏa thuận án phí}"]) {
+       if(!missingTags.includes("{Thỏa thuận án phí}")) missingTags.push("{Thỏa thuận án phí}");
+    }
+    if ((name.includes("bản án") || name.includes("xét xử")) && !window.currentCaseVariables["{Nội dung vụ án}"]) {
+       if(!missingTags.includes("{Nội dung vụ án}")) missingTags.push("{Nội dung vụ án}");
+    }
+  });
+
+  if (isMissingTime || missingDob || missingTags.length > 0 || isMissingNguoiNhan) {
+    var mCount = missingTags.length + (missingDob ? 1 : 0) + (isMissingTime ? 1 : 0) + (isMissingNguoiNhan ? 1 : 0);
+    var elCount = document.getElementById('preflight_missing_count');
+    if (elCount) elCount.innerText = mCount + " trường";
+    
+    window.renderInteractivePreflightForm(missingTags, currentA4Parties, isMissingTime, isMissingNguoiNhan);
+    if (typeof bootstrap !== 'undefined') bootstrap.Modal.getOrCreateInstance(document.getElementById('modalPreflightWarning')).show();
   } else {
     window.doActualMailMergePostflight();
   }
+};
+
+window.doActualMailMergePostflight = function() {
+  var payload = window.pendingMergePayload;
+  if (!payload) return;
+
+  isMergingDocument = true;
+  
+  if (typeof bootstrap !== 'undefined') {
+    var m = bootstrap.Modal.getInstance(document.getElementById('modalSoanThao'));
+    if (m) m.hide();
+  }
+
+  var taskId = "task_merge_an_" + new Date().getTime();
+  var anInfo = (window.G_Cases || window.G_An || []).find(function(c) { return c.id === payload.idVuAn; }) || {};
+  var caseName = anInfo.soTL || "Hồ sơ vụ án";
+  AppUI.addBackgroundTask(taskId, "Văn bản: " + caseName);
+
+  setTimeout(function() {
+    google.script.run
+      .withSuccessHandler(function(res) {
+        isMergingDocument = false;
+        if (res && res.success) {
+          
+          if (payload.trieuTapDate && payload.trieuTapTime) {
+            var evTitle = payload.autoEventTitle || `[${anInfo.soTL || ''}] Triệu tập làm việc: ${payload.noiDungThem || ''}`;
+            google.script.run.api_LuuLichMoi_Logic({
+              idVuAn: payload.idVuAn,
+              soTL: anInfo.soTL,
+              ngay: payload.trieuTapDate,
+              gio: payload.trieuTapTime,
+              noiDung: evTitle,
+              ghiChu: payload.diaDiemLamViec || "Trụ sở Tòa án"
+            });
+          }
+
+          if (payload.reminderDays > 0) {
+            google.script.run.api_LuuLichNhacNho_Logic({
+              idVuAn: payload.idVuAn,
+              ngayBatDau: payload.ngayBanHanh,
+              days: payload.reminderDays,
+              noiDung: payload.reminderText
+            });
+          }
+
+          if (payload.isFormalPromulgation) {
+            var payloadRes = {
+              idVuAn: payload.idVuAn,
+              resultType: payload.changerType,
+              resultNo: payload.soPhatHanh,
+              resultDate: payload.ngayBanHanh
+            };
+            google.script.run.withSuccessHandler(function(resUpdate) {
+              var an = (window.G_Cases || window.G_An || []).find(function(c) { return c.id === payload.idVuAn; });
+              var pParts = String(payload.ngayBanHanh || "").split('-');
+              var dateVnFormat = pParts.length === 3 ? (pParts[2] + "/" + pParts[1] + "/" + pParts[0]) : payload.ngayBanHanh;
+              var abbrType = window.standardizeResolutionAbbr(payload.changerType);
+              var isProcedural = payload.changerType.toLowerCase().includes("tạm đình chỉ") || payload.changerType.toLowerCase().includes("gia hạn") || payload.changerType.toLowerCase().includes("tiếp tục");
+              var resStr = isProcedural ? "" : (abbrType + "\n" + payload.soPhatHanh + "\n" + dateVnFormat);
+
+              if (an) {
+                an.ketQuaGiaiQuyet = resStr;
+                if (payload.changerType.toLowerCase().includes("tạm đình chỉ")) an.trangThai = "Tạm đình chỉ";
+                else if (payload.changerType.toLowerCase().includes("gia hạn") || payload.changerType.toLowerCase().includes("tiếp tục")) an.trangThai = "Đang giải quyết";
+                else an.trangThai = "Đã giải quyết";
+                if (resUpdate && resUpdate.hanGQ) an.hanGQ = resUpdate.hanGQ;
+                if (typeof calculateLiveStatus === 'function') calculateLiveStatus(an);
+              }
+              if (window.currentCaseData && window.currentCaseData.info && window.currentCaseData.info.id === payload.idVuAn) {
+                window.currentCaseData.info.ketQuaGiaiQuyet = resStr;
+                window.currentCaseData.info.trangThai = an ? an.trangThai : "Đã giải quyết";
+                if (resUpdate && resUpdate.hanGQ) window.currentCaseData.info.hanGQ = resUpdate.hanGQ;
+              }
+              if (typeof window.runFilterEngine === 'function') window.runFilterEngine();
+            }).api_UpdateCaseResolution(payloadRes);
+          }
+
+          var linksHtml = (res.files || []).map(function(f, idx) {
+            var rawName = (f.name || '').replace(/\.(docx|doc|gdoc)$/i, '').trim();
+            rawName = rawName.replace(/\s*-\s*[\w\d\/]+(\s*-\s*\d{1,2}\.\d{1,2}\.\d{2,4})?$/i, '').trim();
+            var dashIdx = rawName.indexOf(' - ');
+            var shortTitle = (dashIdx !== -1) ? rawName.substring(0, dashIdx).trim() : rawName;
+
+            var fId = f.id || (f.url ? (f.url.match(/\/d\/([-\w]+)/) || [])[1] : '') || ('file_' + idx);
+            var safeShortTitle = shortTitle.replace(/'/g, "\\'");
+            var safeSoTL = (anInfo.soTL || '').replace(/'/g, "\\'");
+
+            var docxBtn = f.docxUrl 
+              ? '<a href="' + f.docxUrl + '" target="_blank" class="btn btn-sm btn-action-outline p-0 d-inline-flex align-items-center justify-content-center" style="width: 22px; height: 22px; border-radius: 4px;" title="Tải file Word (.docx)"><i class="fas fa-download text-secondary" style="font-size: 10px;"></i></a>' 
+              : '';
+            
+            var btnPrintQueue = `<button type="button" id="btn_pq_${fId}" class="btn btn-sm btn-action-tonal p-0 d-inline-flex align-items-center justify-content-center" style="width: 22px; height: 22px; border-radius: 4px;" title="Đưa vào hàng đợi chờ in (SmartCase Hub)" onclick="window.addToPrintQueue(this, '${safeSoTL}', '${payload.idVuAn || ''}', '${safeShortTitle}', '${f.url}', '${f.docxUrl || ''}')"><i class="fas fa-print text-primary" style="font-size: 11px;"></i></button>`;
+
+            return '<div style="display: flex; align-items: center; justify-content: space-between; padding: 4px 8px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 4px; gap: 6px;">' +
+                   '<a href="' + f.url + '" target="_blank" style="font-size: 11.5px; font-weight: 600; color: #0f172a; text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1;" title="' + f.name + '">' +
+                   '<i class="far fa-file-word text-primary me-2"></i>' + shortTitle + '</a>' +
+                   '<div class="d-flex gap-1 flex-shrink-0">' + btnPrintQueue + docxBtn + '</div>' +
+                   '</div>';
+          }).join('');
+
+          AppUI.completeBackgroundTask(taskId, true, linksHtml);
+
+          setTimeout(function() {
+            if (document.getElementById('view-detail') && document.getElementById('view-detail').style.display === 'block') {
+              window.moChiTiet(payload.idVuAn);
+            }
+          }, 1500);
+
+        } else {
+          AppUI.completeBackgroundTask(taskId, false, res ? res.error : "Lỗi không xác định khi xuất file");
+        }
+      })
+      .withFailureHandler(function(err) {
+        isMergingDocument = false;
+        AppUI.completeBackgroundTask(taskId, false, err.message);
+      })
+      .api_RunMailMergeV3_Logic(payload);
+  }, 50);
 };
 
 // =========================================================================
